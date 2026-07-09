@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 84 84" width="84" height="84">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#06b6d4;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:0.15" />
+      <stop offset="100%" style="stop-color:#06b6d4;stop-opacity:0.15" />
+    </linearGradient>
+  </defs>
+  <!-- Background rounded square -->
+  <rect x="0" y="0" width="84" height="84" rx="18" fill="url(#grad2)" />
+  <!-- Diagram nodes -->
+  <circle cx="28" cy="28" r="8" fill="url(#grad1)" />
+  <circle cx="56" cy="28" r="8" fill="url(#grad1)" />
+  <circle cx="42" cy="56" r="8" fill="url(#grad1)" />
+  <!-- Connecting lines -->
+  <line x1="28" y1="28" x2="56" y2="28" stroke="url(#grad1)" stroke-width="2.5" stroke-linecap="round" />
+  <line x1="28" y1="28" x2="42" y2="56" stroke="url(#grad1)" stroke-width="2.5" stroke-linecap="round" />
+  <line x1="56" y1="28" x2="42" y2="56" stroke="url(#grad1)" stroke-width="2.5" stroke-linecap="round" />
+  <!-- Small accent node -->
+  <circle cx="42" cy="56" r="3.5" fill="white" />
+</svg>

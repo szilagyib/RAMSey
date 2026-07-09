@@ -1,0 +1,102 @@
+services:
+  frontend:
+    build:
+      context: ../
+      dockerfile: docker/frontend/Dockerfile
+    ports:
+      - "5173:80"
+    volumes:
+      - ../packages/frontend/src:/app/packages/frontend/src
+      - ../packages/engine/src:/app/packages/engine/src
+    depends_on:
+      - backend
+    networks:
+      - ramsey-network
+
+  backend:
+    build:
+      context: ../
+      dockerfile: docker/backend/Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://ramsey:ramsey@postgres:5432/ramsey?schema=public
+      REDIS_URL: redis://redis:6379
+      CORS_ORIGIN: http://localhost:5173
+      NODE_ENV: development
+      JWT_SECRET: dev-jwt-secret-change-in-production
+      BETTER_AUTH_SECRET: dev-better-auth-secret-change-in-prod
+      BETTER_AUTH_URL: http://localhost:3000
+    networks:
+      - ramsey-network
+
+  # Solver worker — consumes analysis jobs from the pg-boss queue (same image as
+  # the backend; runs the worker entry instead of the API). The backend service
+  # owns DB migrations, so the worker just runs the process.
+  solver-worker:
+    build:
+      context: ../
+      dockerfile: docker/backend/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_started
+      backend:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgresql://ramsey:ramsey@postgres:5432/ramsey?schema=public
+      REDIS_URL: redis://redis:6379
+      NODE_ENV: development
+      JWT_SECRET: dev-jwt-secret-change-in-production
+    command: ["node", "packages/backend/dist/worker/solver-worker.js"]
+    networks:
+      - ramsey-network
+
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ramsey
+      POSTGRES_PASSWORD: ramsey
+      POSTGRES_DB: ramsey
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - ramsey-network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ramsey-network
+
+  # export-service:
+  #   Export service placeholder — to be built later.
+  #   This service will handle PDF/PNG/SVG export of RAMS diagrams.
+  #   build:
+  #     context: ../../
+  #     dockerfile: docker/export-service/Dockerfile
+  #   ports:
+  #     - "3001:3001"
+  #   depends_on:
+  #     - backend
+  #   networks:
+  #     - ramsey-network
+
+networks:
+  ramsey-network:
+    driver: bridge
+
+volumes:
+  pgdata:

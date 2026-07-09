@@ -1,0 +1,57 @@
+{
+  "name": "@ramsey/backend",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch --env-file ../../.env src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "db:migrate": "node --env-file=../../.env node_modules/prisma/build/index.js migrate dev",
+    "db:migrate:deploy": "node --env-file=../../.env node_modules/prisma/build/index.js migrate deploy",
+    "db:generate": "node --env-file=../../.env node_modules/prisma/build/index.js generate",
+    "db:studio": "node --env-file=../../.env node_modules/prisma/build/index.js studio"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.100.1",
+    "@fastify/cookie": "^11.0.0",
+    "@fastify/cors": "^11.2.0",
+    "@fastify/helmet": "^13.0.2",
+    "@fastify/oauth2": "^8.0.0",
+    "@fastify/rate-limit": "^10.3.0",
+    "@fastify/websocket": "^11.0.0",
+    "@prisma/client": "^6.19.3",
+    "@ramsey/engine": "*",
+    "@sentry/node": "^10.57.0",
+    "bcrypt": "^6.0.0",
+    "fastify": "^5.2.0",
+    "fastify-plugin": "^5.0.1",
+    "ioredis": "^5.11.0",
+    "jsonwebtoken": "^9.0.2",
+    "lib0": "^0.2.117",
+    "nodemailer": "^8.0.11",
+    "pg-boss": "^12.18.2",
+    "pino": "^10.3.1",
+    "pino-pretty": "^13.0.0",
+    "prisma": "^6.19.3",
+    "y-protocols": "^1.0.7",
+    "yjs": "^13.6.31",
+    "zod": "^4.4.3"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node": "^25.9.1",
+    "@types/nodemailer": "^8.0.1",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8"
+  }
+}

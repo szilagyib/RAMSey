@@ -1,0 +1,189 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+@import 'tailwindcss';
+@config '../tailwind.config.ts';
+
+:root {
+  --gray-50: 248 250 252;
+  --gray-100: 241 245 249;
+  --gray-200: 226 232 240;
+  --gray-300: 203 213 225;
+  --gray-400: 148 163 184;
+  --gray-500: 100 116 139;
+  --gray-600: 71 85 105;
+  --gray-700: 51 65 85;
+  --gray-800: 30 41 59;
+  --gray-900: 15 23 42;
+  --gray-950: 2 6 23;
+
+  --surface-50: 248 250 252;
+  --surface-100: 241 245 249;
+  --surface-200: 226 232 240;
+  --surface-300: 203 213 225;
+  --surface-400: 148 163 184;
+  --surface-500: 100 116 139;
+  --surface-600: 71 85 105;
+  --surface-700: 51 65 85;
+  --surface-800: 30 41 59;
+  --surface-900: 15 23 42;
+  --surface-950: 255 255 255;
+}
+
+:root.dark {
+  --gray-50: 11 15 20;
+  --gray-100: 15 23 42;
+  --gray-200: 17 24 39;
+  --gray-300: 31 41 55;
+  --gray-400: 100 116 139;
+  --gray-500: 148 163 184;
+  --gray-600: 203 213 225;
+  --gray-700: 226 232 240;
+  --gray-800: 241 245 249;
+  --gray-900: 248 250 252;
+  --gray-950: 255 255 255;
+
+  --surface-50: 11 15 20;
+  --surface-100: 15 23 42;
+  --surface-200: 17 24 39;
+  --surface-300: 31 41 55;
+  --surface-400: 148 163 184;
+  --surface-500: 203 213 225;
+  --surface-600: 226 232 240;
+  --surface-700: 229 231 235;
+  --surface-800: 241 245 249;
+  --surface-900: 248 250 252;
+  --surface-950: 255 255 255;
+}
+
+/* ─── Diagram notation palette ─────────────────────────────────────────────
+   Single source of truth for every color used on the diagram canvas (nodes,
+   edges, labels, canvas dots). Shapes follow the industry-standard notations
+   (IEC 61025 fault trees, IEC 61078 RBD, Markov/ETA/bow-tie conventions);
+   these tokens keep them legible in both themes. Change colors HERE only. */
+:root {
+  --dg-canvas-dots: #d8dee9;
+  --dg-edge: #64748b;
+  --dg-edge-selected: #3b82f6;
+  --dg-label-bg: #ffffff;
+  --dg-label-border: #e2e8f0;
+  --dg-label-text: #475569;
+  --dg-select-glow: rgba(59, 130, 246, 0.55);
+
+  /* Fault tree (IEC 61025) */
+  --dg-gate-fill: #eff6ff;
+  --dg-gate-stroke: #3b82f6;
+  --dg-basic-fill: #ecfdf5;
+  --dg-basic-stroke: #10b981;
+  --dg-basic-text: #065f46;
+  --dg-intermediate-fill: #fffbeb;
+  --dg-intermediate-stroke: #f59e0b;
+  --dg-intermediate-text: #92400e;
+  --dg-top-fill: #fef2f2;
+  --dg-top-stroke: #ef4444;
+  --dg-top-text: #991b1b;
+  --dg-undeveloped-fill: #f8fafc;
+  --dg-undeveloped-stroke: #94a3b8;
+  --dg-undeveloped-text: #334155;
+
+  /* Event tree branches */
+  --dg-success: #16a34a;
+  --dg-failure: #dc2626;
+
+  /* Bow-tie consequence */
+  --dg-consequence-fill: #faf5ff;
+  --dg-consequence-stroke: #a855f7;
+  --dg-consequence-text: #6b21a8;
+}
+
+:root.dark {
+  --dg-canvas-dots: #273449;
+  --dg-edge: #7d8aa0;
+  --dg-edge-selected: #5b8ff0;
+  --dg-label-bg: #0f172a;
+  --dg-label-border: #1f2937;
+  --dg-label-text: #cbd5e1;
+  --dg-select-glow: rgba(91, 143, 240, 0.6);
+
+  --dg-gate-fill: #12233d;
+  --dg-gate-stroke: #5b8ff0;
+  --dg-basic-fill: #0c2a1e;
+  --dg-basic-stroke: #34d399;
+  --dg-basic-text: #a7f3d0;
+  --dg-intermediate-fill: #2c2008;
+  --dg-intermediate-stroke: #fbbf24;
+  --dg-intermediate-text: #fde68a;
+  --dg-top-fill: #331214;
+  --dg-top-stroke: #f87171;
+  --dg-top-text: #fecaca;
+  --dg-undeveloped-fill: #141c2b;
+  --dg-undeveloped-stroke: #64748b;
+  --dg-undeveloped-text: #cbd5e1;
+
+  --dg-success: #4ade80;
+  --dg-failure: #f87171;
+
+  --dg-consequence-fill: #241233;
+  --dg-consequence-stroke: #c084fc;
+  --dg-consequence-text: #e9d5ff;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family:
+    'IBM Plex Sans',
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    sans-serif;
+  background-color: rgb(var(--surface-50));
+  color: rgb(var(--surface-900));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'cv05' 1, 'cv08' 1;
+}
+
+/* React Flow canvas background customization */
+.react-flow__background {
+  background-color: rgb(var(--surface-50));
+}
+
+.react-flow__minimap {
+  border: 1px solid rgb(var(--surface-300));
+  background-color: rgb(var(--surface-100));
+  border-radius: 0.375rem;
+}
+
+.react-flow__controls {
+  border: 1px solid rgb(var(--surface-300));
+  background-color: rgb(var(--surface-100));
+  border-radius: 0.375rem;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.16);
+}
+
+.react-flow__controls button {
+  border-bottom: 1px solid rgb(var(--surface-300));
+  color: rgb(var(--surface-700));
+}
+
+.react-flow__controls button:last-child {
+  border-bottom: none;
+}
+
+/* Selection styles */
+.react-flow__node.selected {
+  box-shadow: none;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke-width: 2.5;
+}
+
+/* Native browser elements (inputs, selects, scrollbars) respect color-scheme */
+:root {
+  color-scheme: light;
+}
+
+:root.dark {
+  color-scheme: dark;
+}

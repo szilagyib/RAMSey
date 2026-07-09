@@ -1,0 +1,42 @@
+{
+  "name": "@ramsey/frontend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -b --force"
+  },
+  "dependencies": {
+    "@ramsey/engine": "*",
+    "@sentry/react": "^10.57.0",
+    "@xyflow/react": "^12.11.0",
+    "clsx": "^2.1.0",
+    "elkjs": "^0.11.1",
+    "html-to-image": "^1.11.13",
+    "lucide-react": "^1.17.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-router-dom": "^7.16.0",
+    "tailwind-merge": "^3.6.0",
+    "y-websocket": "^3.0.0",
+    "yjs": "^13.6.31",
+    "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.0",
+    "@testing-library/jest-dom": "^6.6.0",
+    "@testing-library/react": "^16.0.0",
+    "@types/react": "^19.2.16",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.2",
+    "jsdom": "^29.1.1",
+    "postcss": "^8.4.0",
+    "tailwindcss": "^4.3.0",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.16",
+    "vitest": "^4.1.8"
+  }
+}

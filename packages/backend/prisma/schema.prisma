@@ -1,0 +1,402 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-1.1.x", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ──────────────────────────────────────────────────
+// Enums
+// ──────────────────────────────────────────────────
+
+enum DiagramType {
+  RELIABILITY_BLOCK
+  FAULT_TREE
+  EVENT_TREE
+  MARKOV_CHAIN
+  BOW_TIE
+  FMEA
+  CUSTOM
+}
+
+enum ProjectRole {
+  OWNER
+  EDITOR
+  VIEWER
+}
+
+enum ProjectShareRole {
+  EDITOR
+  VIEWER
+}
+
+enum ShareLinkRole {
+  EDITOR
+  VIEWER
+}
+
+enum TeamRole {
+  ADMIN
+  MEMBER
+}
+
+enum NotificationType {
+  PROJECT_SHARED
+  COMMENT_ADDED
+  COMMENT_RESOLVED
+  ANALYSIS_COMPLETE
+  ANALYSIS_FAILED
+  MENTION
+}
+
+enum AnalysisJobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum ExecutionTarget {
+  BROWSER_WASM
+  SERVER_NATIVE
+  SERVER_GPU
+}
+
+enum VerificationTokenType {
+  EMAIL_VERIFY
+  PASSWORD_RESET
+}
+
+// ──────────────────────────────────────────────────
+// Models
+// ──────────────────────────────────────────────────
+
+model User {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String   @unique
+  name         String?
+  image        String?
+  passwordHash String?
+  googleId     String?  @unique
+  // Null until the user confirms their address (or set at creation for OAuth
+  // sign-ups, whose email is already verified by the provider).
+  emailVerified DateTime? @db.Timestamptz
+  // Set when the account is deleted: PII is scrubbed but the row is retained so
+  // shared content (projects/diagrams) stays intact for collaborators.
+  deletedAt    DateTime? @db.Timestamptz
+  // Bumped to revoke ALL outstanding sessions (password reset, account
+  // deletion): JWTs embed the version and authenticate() rejects mismatches.
+  tokenVersion Int      @default(0)
+  createdAt    DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  // Relations
+  createdTeams     Team[]            @relation("TeamCreator")
+  teamMemberships  TeamMember[]      @relation("TeamMemberUser")
+  createdProjects  Project[]         @relation("ProjectCreator")
+  createdDiagrams  Diagram[]         @relation("DiagramCreator")
+  snapshots        DiagramSnapshot[] @relation("SnapshotCreator")
+  projectShares    ProjectShare[]    @relation("SharedWithUser")
+  grantedShares    ProjectShare[]    @relation("ShareGrantor")
+  shareLinks       ShareLink[]       @relation("ShareLinkCreator")
+  comments         Comment[]         @relation("CommentAuthor")
+  notifications    Notification[]    @relation("NotificationUser")
+  templates        DiagramTemplate[] @relation("TemplateCreator")
+  analysisJobs     AnalysisJob[]     @relation("AnalysisRequester")
+  analysisResults  AnalysisResult[]  @relation("ResultCreator")
+  auditLogs        AuditLog[]        @relation("AuditUser")
+  verificationTokens VerificationToken[] @relation("UserVerificationTokens")
+  chatUsage        ChatUsage[]       @relation("ChatUsageUser")
+
+  @@index([email])
+  @@map("users")
+}
+
+// Single-use, hashed tokens for email verification and password reset. We
+// store only the SHA-256 hash of the token — the raw value lives only in the
+// emailed link, so a DB leak yields no usable tokens.
+model VerificationToken {
+  id        String                @id @default(uuid()) @db.Uuid
+  userId    String                @db.Uuid
+  user      User                  @relation("UserVerificationTokens", fields: [userId], references: [id], onDelete: Cascade)
+  type      VerificationTokenType
+  tokenHash String                @unique
+  expiresAt DateTime              @db.Timestamptz
+  usedAt    DateTime?             @db.Timestamptz
+  createdAt DateTime              @default(now()) @db.Timestamptz
+
+  @@index([userId, type])
+  @@map("verification_tokens")
+}
+
+// One row per AI chat request that consumed tokens — the ledger behind the AI
+// cost ceiling. yearMonth ("YYYY-MM", UTC) makes the monthly tiers a cheap
+// indexed aggregate.
+model ChatUsage {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @db.Uuid
+  user         User     @relation("ChatUsageUser", fields: [userId], references: [id], onDelete: Cascade)
+  sessionId    String
+  inputTokens  Int
+  outputTokens Int
+  totalTokens  Int
+  yearMonth    String
+  createdAt    DateTime @default(now()) @db.Timestamptz
+
+  @@index([sessionId])
+  @@index([userId, yearMonth])
+  @@index([yearMonth])
+  @@map("chat_usage")
+}
+
+model Team {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  slug        String   @unique
+  createdById String   @db.Uuid
+  createdBy   User     @relation("TeamCreator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now()) @db.Timestamptz
+  updatedAt   DateTime @updatedAt @db.Timestamptz
+
+  // Relations
+  members TeamMember[]
+
+  @@index([createdById])
+  @@map("teams")
+}
+
+model TeamMember {
+  id        String   @id @default(uuid()) @db.Uuid
+  teamId    String   @db.Uuid
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  userId    String   @db.Uuid
+  user      User     @relation("TeamMemberUser", fields: [userId], references: [id], onDelete: Cascade)
+  role      TeamRole @default(MEMBER)
+  createdAt DateTime @default(now()) @db.Timestamptz
+
+  @@unique([teamId, userId])
+  @@index([userId])
+  @@index([teamId])
+  @@map("team_members")
+}
+
+model Project {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  ownerType   String   @default("user") // "user" | "team"
+  ownerId     String   @db.Uuid
+  createdById String   @db.Uuid
+  createdBy   User     @relation("ProjectCreator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now()) @db.Timestamptz
+  updatedAt   DateTime @updatedAt @db.Timestamptz
+
+  // Relations
+  diagrams   Diagram[]
+  shares     ProjectShare[]
+  shareLinks ShareLink[]
+
+  @@index([ownerId])
+  @@index([createdById])
+  @@map("projects")
+}
+
+model Diagram {
+  id          String      @id @default(uuid()) @db.Uuid
+  projectId   String      @db.Uuid
+  project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name        String
+  type        DiagramType
+  content     Json?
+  yjsState    Bytes?
+  thumbnail   Bytes?
+  createdById String      @db.Uuid
+  createdBy   User        @relation("DiagramCreator", fields: [createdById], references: [id])
+  createdAt   DateTime    @default(now()) @db.Timestamptz
+  updatedAt   DateTime    @updatedAt @db.Timestamptz
+
+  // Relations
+  snapshots      DiagramSnapshot[]
+  comments       Comment[]
+  analysisJobs   AnalysisJob[]
+  analysisResults AnalysisResult[]
+
+  @@index([projectId])
+  @@index([createdById])
+  @@map("diagrams")
+}
+
+model DiagramSnapshot {
+  id          String   @id @default(uuid()) @db.Uuid
+  diagramId   String   @db.Uuid
+  diagram     Diagram  @relation(fields: [diagramId], references: [id], onDelete: Cascade)
+  yjsState    Bytes
+  label       String?
+  createdById String   @db.Uuid
+  createdBy   User     @relation("SnapshotCreator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now()) @db.Timestamptz
+
+  @@index([diagramId])
+  @@map("diagram_snapshots")
+}
+
+model ProjectShare {
+  id          String           @id @default(uuid()) @db.Uuid
+  projectId   String           @db.Uuid
+  project     Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId      String           @db.Uuid
+  user        User             @relation("SharedWithUser", fields: [userId], references: [id], onDelete: Cascade)
+  role        ProjectShareRole
+  grantedById String           @db.Uuid
+  grantedBy   User             @relation("ShareGrantor", fields: [grantedById], references: [id])
+  createdAt   DateTime         @default(now()) @db.Timestamptz
+
+  @@unique([projectId, userId])
+  @@index([userId])
+  @@map("project_shares")
+}
+
+model ShareLink {
+  id          String        @id @default(uuid()) @db.Uuid
+  token       String        @unique @default(uuid()) @db.Uuid
+  projectId   String        @db.Uuid
+  project     Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  role        ShareLinkRole
+  createdById String        @db.Uuid
+  createdBy   User          @relation("ShareLinkCreator", fields: [createdById], references: [id])
+  expiresAt   DateTime?     @db.Timestamptz
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now()) @db.Timestamptz
+
+  @@index([token])
+  @@index([projectId])
+  @@map("share_links")
+}
+
+model Comment {
+  id        String   @id @default(uuid()) @db.Uuid
+  diagramId String   @db.Uuid
+  diagram   Diagram  @relation(fields: [diagramId], references: [id], onDelete: Cascade)
+  userId    String   @db.Uuid
+  user      User     @relation("CommentAuthor", fields: [userId], references: [id])
+  nodeId    String?
+  positionX Float?
+  positionY Float?
+  content   String
+  resolved  Boolean  @default(false)
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  @@index([diagramId])
+  @@index([userId])
+  @@map("comments")
+}
+
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @db.Uuid
+  user      User             @relation("NotificationUser", fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  payload   Json
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now()) @db.Timestamptz
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+model DiagramTemplate {
+  id          String      @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  type        DiagramType
+  modelIr     Json
+  isBuiltin   Boolean     @default(false)
+  createdById String?     @db.Uuid
+  createdBy   User?       @relation("TemplateCreator", fields: [createdById], references: [id])
+  createdAt   DateTime    @default(now()) @db.Timestamptz
+
+  @@index([type])
+  @@index([isBuiltin])
+  @@map("diagram_templates")
+}
+
+model AnalysisJob {
+  id            String             @id @default(uuid()) @db.Uuid
+  diagramId     String             @db.Uuid
+  diagram       Diagram            @relation(fields: [diagramId], references: [id], onDelete: Cascade)
+  requestedById String             @db.Uuid
+  requestedBy   User               @relation("AnalysisRequester", fields: [requestedById], references: [id])
+  contentHash   String
+  method        String
+  options       Json
+  status        AnalysisJobStatus  @default(QUEUED)
+  progress      Float              @default(0)
+  priority      Int                @default(0)
+  workerId      String?
+  errorMessage  String?
+  errorStack    String?
+  queuedAt      DateTime           @default(now()) @db.Timestamptz
+  startedAt     DateTime?          @db.Timestamptz
+  finishedAt    DateTime?          @db.Timestamptz
+  createdAt     DateTime           @default(now()) @db.Timestamptz
+
+  // Relations
+  result AnalysisResult?
+
+  @@index([diagramId])
+  @@index([status])
+  @@index([requestedById])
+  @@map("analysis_jobs")
+}
+
+model AnalysisResult {
+  id               String          @id @default(uuid()) @db.Uuid
+  jobId            String?         @unique @db.Uuid
+  job              AnalysisJob?    @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  diagramId        String          @db.Uuid
+  diagram          Diagram         @relation(fields: [diagramId], references: [id], onDelete: Cascade)
+  contentHash      String
+  method           String
+  solverName       String
+  solverVersion    String
+  options          Json
+  results          Json
+  trace            Json
+  numericMetadata  Json
+  warnings         Json?
+  errorBounds      Json?
+  computeTimeMs    Int
+  executedOn       ExecutionTarget
+  createdById      String          @db.Uuid
+  createdBy        User            @relation("ResultCreator", fields: [createdById], references: [id])
+  createdAt        DateTime        @default(now()) @db.Timestamptz
+
+  @@unique([diagramId, contentHash, method])
+  @@index([diagramId])
+  @@map("analysis_results")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String?  @db.Uuid
+  user       User?    @relation("AuditUser", fields: [userId], references: [id], onDelete: SetNull)
+  action     String
+  objectType String
+  objectId   String?  @db.Uuid
+  metadata   Json?
+  ipAddress  String?
+  sessionId  String?
+  createdAt  DateTime @default(now()) @db.Timestamptz
+
+  @@index([userId])
+  @@index([action])
+  @@index([objectType, objectId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

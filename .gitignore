@@ -1,0 +1,81 @@
+# ─── Dependencies ───
+node_modules/
+.pnp
+.pnp.js
+
+# ─── Build output ───
+dist/
+dist-node/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# ─── Environment variables ───
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+.env.prod
+!.env.prod.example
+
+# ─── IDE / Editor ───
+.vscode/
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── OS files ───
+.DS_Store
+ehthumbs.db
+
+# ─── Logs ───
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ─── Testing ───
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+
+# ─── Prisma ───
+prisma/migrations/*.sql.bak
+
+# ─── Docker ───
+.docker/
+
+# ─── Turborepo ───
+.turbo/
+
+# ─── Misc ───
+*.tgz
+.cache/
+.temp/
+.tmp/
+
+# ─── Sentry ───
+.sentryclirc
+
+# ─── Vercel ───
+.vercel/
+
+# ─── Local scratch (never committed) ───
+chati.txt
+ramsey_master_plan_suggested_improvements_review_notes.md
+
+# Playwright
+test-results/
+playwright-report/

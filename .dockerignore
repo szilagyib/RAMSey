@@ -1,0 +1,5 @@
+.git
+.github
+*.md
+.env*
+node_modules/@ramsey
