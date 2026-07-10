@@ -35,6 +35,10 @@ export function Toolbar({ onNavigateBack, onSave, onCreateSnapshot, onValidate, 
   const setNodes = useDiagramStore((s) => s.setNodes);
   const deleteSelected = useDiagramStore((s) => s.deleteSelected);
   const clearSelection = useDiagramStore((s) => s.clearSelection);
+  const undo = useDiagramStore((s) => s.undo);
+  const redo = useDiagramStore((s) => s.redo);
+  const canUndo = useDiagramStore((s) => s.undoStack.length > 0);
+  const canRedo = useDiagramStore((s) => s.redoStack.length > 0);
   const getValidationResults = useDiagramStore((s) => s.getValidationResults);
   const { autoLayout } = useAutoLayout();
 
@@ -84,26 +88,48 @@ export function Toolbar({ onNavigateBack, onSave, onCreateSnapshot, onValidate, 
         e.preventDefault();
         setShowExport(true);
       }
+      // Undo/redo — but never inside text fields, where Ctrl+Z must stay the
+      // browser's native text undo.
+      const target = e.target as HTMLElement | null;
+      const inEditable =
+        !!target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable);
+      if (ctrl && !inEditable) {
+        const key = e.key.toLowerCase();
+        if (key === 'z' && !e.shiftKey) {
+          e.preventDefault();
+          undo();
+        } else if (key === 'y' || (key === 'z' && e.shiftKey)) {
+          e.preventDefault();
+          redo();
+        }
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [onSave]);
+  }, [onSave, undo, redo]);
 
   const handleAutoLayout = useCallback(async () => {
     // Fault trees read top-down per the notation; every other type is a
     // left-to-right flow.
     const direction = diagramType === 'fault_tree' ? 'DOWN' : 'RIGHT';
     const layoutedNodes = await autoLayout(nodes, edges, { direction });
-    setNodes(layoutedNodes);
-    // A re-layout invalidates hand-placed edge control points: reset every
-    // edge to automatic routing so nothing points at stale coordinates.
-    useDiagramStore.setState((state) => ({
-      edges: state.edges.map((e) =>
-        (e.data as { cpX?: unknown })?.cpX != null
-          ? { ...e, data: { ...e.data, cpX: null, cpY: null } }
-          : e,
-      ),
-    }));
+    // One undo entry for the whole layout (positions + control-point resets).
+    useDiagramStore.getState().runInHistoryEntry(() => {
+      setNodes(layoutedNodes);
+      // A re-layout invalidates hand-placed edge control points: reset every
+      // edge to automatic routing so nothing points at stale coordinates.
+      useDiagramStore.setState((state) => ({
+        edges: state.edges.map((e) =>
+          (e.data as { cpX?: unknown })?.cpX != null
+            ? { ...e, data: { ...e.data, cpX: null, cpY: null } }
+            : e,
+        ),
+      }));
+    });
   }, [nodes, edges, diagramType, autoLayout, setNodes]);
 
   const handleValidate = useCallback(() => {
@@ -111,8 +137,10 @@ export function Toolbar({ onNavigateBack, onSave, onCreateSnapshot, onValidate, 
   }, [onValidate]);
 
   const handleClearDiagram = useCallback(() => {
-    if (!window.confirm('Clear the entire diagram? This cannot be undone.')) return;
-    useDiagramStore.setState({ nodes: [], edges: [], nodeCounter: 0, edgeCounter: 0 });
+    if (!window.confirm('Clear the entire diagram?')) return;
+    useDiagramStore.getState().runInHistoryEntry(() => {
+      useDiagramStore.setState({ nodes: [], edges: [], nodeCounter: 0, edgeCounter: 0 });
+    });
   }, []);
 
   const handleSelectAll = useCallback(() => {
@@ -169,6 +197,19 @@ export function Toolbar({ onNavigateBack, onSave, onCreateSnapshot, onValidate, 
     {
       label: 'Edit',
       items: [
+        {
+          label: 'Undo',
+          shortcut: 'Ctrl+Z',
+          onClick: () => undo(),
+          disabled: !canUndo,
+        },
+        {
+          label: 'Redo',
+          shortcut: 'Ctrl+Shift+Z',
+          onClick: () => redo(),
+          disabled: !canRedo,
+        },
+        { divider: true },
         {
           label: 'Delete Selected',
           shortcut: 'Del',

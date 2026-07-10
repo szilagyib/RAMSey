@@ -7,7 +7,31 @@ import { getDiagramTypeConfig } from '../diagram-types/registry';
 // ChatPanel so the diagram-mutation logic is unit-testable in isolation.
 // ---------------------------------------------------------------------------
 
+/** Tool calls that mutate the diagram — each becomes ONE undo entry. */
+const MUTATING_TOOLS = new Set([
+  'add_node',
+  'add_edge',
+  'remove_node',
+  'remove_edge',
+  'update_node',
+  'update_edge',
+  'clear_diagram',
+]);
+
 export function executeToolCall(
+  toolCall: ToolCall,
+  diagramStore: ReturnType<typeof useDiagramStore.getState>,
+): void {
+  if (MUTATING_TOOLS.has(toolCall.name)) {
+    // Group the tool call's internal mutations (e.g. add_node = create +
+    // label/props update) so undo reverts the whole call at once.
+    useDiagramStore.getState().runInHistoryEntry(() => applyToolCall(toolCall, diagramStore));
+  } else {
+    applyToolCall(toolCall, diagramStore);
+  }
+}
+
+function applyToolCall(
   toolCall: ToolCall,
   diagramStore: ReturnType<typeof useDiagramStore.getState>,
 ): void {

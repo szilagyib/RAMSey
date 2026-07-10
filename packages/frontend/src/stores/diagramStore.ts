@@ -15,6 +15,14 @@ import { getDiagramTypeConfig } from '../diagram-types/registry';
 // Store shape
 // ---------------------------------------------------------------------------
 
+/** What undo/redo restores. Selection is deliberately not part of history. */
+interface HistorySnapshot {
+  nodes: Node[];
+  edges: Edge[];
+  nodeCounter: number;
+  edgeCounter: number;
+}
+
 export interface DiagramStore {
   // State
   nodes: Node[];
@@ -24,6 +32,14 @@ export interface DiagramStore {
   nodeCounter: number;
   edgeCounter: number;
   diagramType: string;
+
+  // Undo/redo (bounded snapshot stacks; see recordHistory for coalescing)
+  undoStack: HistorySnapshot[];
+  redoStack: HistorySnapshot[];
+  recordHistory: (tag?: string | null) => void;
+  runInHistoryEntry: (fn: () => void) => void;
+  undo: () => void;
+  redo: () => void;
 
   // React Flow event handlers
   onNodesChange: (changes: NodeChange[]) => void;
@@ -59,6 +75,32 @@ export interface DiagramStore {
 // Store implementation
 // ---------------------------------------------------------------------------
 
+const HISTORY_LIMIT = 100;
+/** Same-tag records inside this sliding window merge into one undo entry. */
+const COALESCE_MS = 800;
+
+// Coalescing bookkeeping lives outside the reactive state on purpose: it must
+// not trigger renders and must survive between set() calls.
+let historyTag: string | null = null;
+let historyTagTime = 0;
+let historySuppressed = false;
+
+function takeSnapshot(state: {
+  nodes: Node[];
+  edges: Edge[];
+  nodeCounter: number;
+  edgeCounter: number;
+}): HistorySnapshot {
+  // All mutations are immutable (new arrays/objects), so holding references
+  // is safe — no deep clone needed.
+  return {
+    nodes: state.nodes,
+    edges: state.edges,
+    nodeCounter: state.nodeCounter,
+    edgeCounter: state.edgeCounter,
+  };
+}
+
 export const useDiagramStore = create<DiagramStore>((set, get) => ({
   nodes: [],
   edges: [],
@@ -67,14 +109,91 @@ export const useDiagramStore = create<DiagramStore>((set, get) => ({
   nodeCounter: 0,
   edgeCounter: 0,
   diagramType: 'markov_chain',
+  undoStack: [],
+  redoStack: [],
 
-  onNodesChange: (changes: NodeChange[]) => {
+  /**
+   * Capture the CURRENT state as an undo entry — call before mutating.
+   * A tag turns repeated calls into one entry while they keep arriving within
+   * COALESCE_MS of each other (drags, property-edit keystrokes); null always
+   * starts a fresh entry. Any new entry clears the redo stack.
+   */
+  recordHistory: (tag = null) => {
+    if (historySuppressed) return;
+    const now = Date.now();
+    if (tag !== null && tag === historyTag && now - historyTagTime < COALESCE_MS) {
+      historyTagTime = now; // sliding window: a continuous gesture stays one entry
+      return;
+    }
+    historyTag = tag;
+    historyTagTime = now;
     set((state) => ({
-      nodes: applyNodeChanges(changes, state.nodes),
+      undoStack: [...state.undoStack.slice(-(HISTORY_LIMIT - 1)), takeSnapshot(state)],
+      redoStack: [],
     }));
   },
 
+  /** Group several mutations (e.g. one AI tool call, auto-layout) into ONE undo entry. */
+  runInHistoryEntry: (fn) => {
+    get().recordHistory(null);
+    historySuppressed = true;
+    try {
+      fn();
+    } finally {
+      historySuppressed = false;
+    }
+  },
+
+  undo: () => {
+    const state = get();
+    const prev = state.undoStack[state.undoStack.length - 1];
+    if (!prev) return;
+    historyTag = null;
+    set({
+      ...prev,
+      undoStack: state.undoStack.slice(0, -1),
+      redoStack: [...state.redoStack, takeSnapshot(state)].slice(-HISTORY_LIMIT),
+      selectedNodeId: null,
+      selectedEdgeId: null,
+    });
+  },
+
+  redo: () => {
+    const state = get();
+    const next = state.redoStack[state.redoStack.length - 1];
+    if (!next) return;
+    historyTag = null;
+    set({
+      ...next,
+      redoStack: state.redoStack.slice(0, -1),
+      undoStack: [...state.undoStack, takeSnapshot(state)].slice(-HISTORY_LIMIT),
+      selectedNodeId: null,
+      selectedEdgeId: null,
+    });
+  },
+
+  onNodesChange: (changes: NodeChange[]) => {
+    // Only real mutations enter history: removals always; drags once at the
+    // first dragging event (the 'drag' tag coalesces the rest of the gesture).
+    // Selection/dimension changes are not undoable.
+    if (changes.some((c) => c.type === 'remove')) {
+      get().recordHistory();
+    } else if (changes.some((c) => c.type === 'position' && c.dragging)) {
+      get().recordHistory('drag');
+    }
+    set((state) => ({
+      nodes: applyNodeChanges(changes, state.nodes),
+    }));
+    // Drag finished → end the coalescing window so the next drag is a new entry.
+    if (changes.some((c) => c.type === 'position' && c.dragging === false)) {
+      historyTag = null;
+    }
+  },
+
   onEdgesChange: (changes: EdgeChange[]) => {
+    if (changes.some((c) => c.type === 'remove')) {
+      get().recordHistory();
+    }
     set((state) => ({
       edges: applyEdgeChanges(changes, state.edges),
     }));
@@ -84,6 +203,7 @@ export const useDiagramStore = create<DiagramStore>((set, get) => ({
     const { edges, edgeCounter, diagramType } = get();
     const config = getDiagramTypeConfig(diagramType);
     if (!config) return;
+    get().recordHistory();
 
     // Pass the source handle through as the edge subtype (e.g. an event-tree
     // header's "success"/"failure" handle decides the branch type), and keep
@@ -112,6 +232,7 @@ export const useDiagramStore = create<DiagramStore>((set, get) => ({
     const { nodes, nodeCounter, diagramType } = get();
     const config = getDiagramTypeConfig(diagramType);
     if (!config) return;
+    get().recordHistory();
 
     const newNode = config.createNode(position, nodeCounter, subType);
     set({
@@ -121,6 +242,8 @@ export const useDiagramStore = create<DiagramStore>((set, get) => ({
   },
 
   updateNodeData: (nodeId, data) => {
+    // Tagged per node: a burst of keystrokes in the property panel is one entry.
+    get().recordHistory(`node-props:${nodeId}`);
     set((state) => ({
       nodes: state.nodes.map((node) =>
         node.id === nodeId
@@ -131,6 +254,8 @@ export const useDiagramStore = create<DiagramStore>((set, get) => ({
   },
 
   updateEdgeData: (edgeId, data) => {
+    // Tagged per edge: covers property keystrokes AND control-point drags.
+    get().recordHistory(`edge-props:${edgeId}`);
     set((state) => ({
       edges: state.edges.map((edge) =>
         edge.id === edgeId
@@ -142,6 +267,7 @@ export const useDiagramStore = create<DiagramStore>((set, get) => ({
 
   deleteSelected: () => {
     const { nodes, edges, selectedNodeId, selectedEdgeId } = get();
+    if (selectedNodeId || selectedEdgeId) get().recordHistory();
 
     if (selectedNodeId) {
       set({
@@ -193,6 +319,9 @@ export const useDiagramStore = create<DiagramStore>((set, get) => ({
   },
 
   loadDiagram: (nodes, edges, type) => {
+    // A load is a new editing context — history from the previous document
+    // must not leak into it.
+    historyTag = null;
     set({
       nodes,
       edges,
@@ -201,6 +330,8 @@ export const useDiagramStore = create<DiagramStore>((set, get) => ({
       edgeCounter: edges.length,
       selectedNodeId: null,
       selectedEdgeId: null,
+      undoStack: [],
+      redoStack: [],
     });
   },
 }));
