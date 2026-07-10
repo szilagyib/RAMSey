@@ -56,7 +56,7 @@ function FlowEdgeComponent({
         </EdgeLabel>
       )}
       {selected && (
-        <EdgeControlPoint edgeId={id} x={cp?.x ?? labelX} y={cp?.y ?? labelY} active={!!cp} />
+        <EdgeControlPoint edgeId={id} x={cp?.x ?? labelX} y={cp?.y ?? labelY - 26} active={!!cp} />
       )}
     </>
   );

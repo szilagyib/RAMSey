@@ -62,7 +62,7 @@ export function FMEAEditor() {
         </button>
       </div>
 
-      <div className={cn('overflow-x-auto border border-surface-200 rounded-md')}>
+      <div className={cn('overflow-x-auto border border-surface-200 dark:border-surface-300 rounded-md')}>
         <table className={cn('w-full border-collapse text-sm')}>
           <thead>
             <tr className={cn('bg-surface-100')}>
@@ -70,7 +70,7 @@ export function FMEAEditor() {
                 <th
                   key={header || 'actions-col'}
                   className={cn(
-                    'border border-surface-200 px-3 py-2 text-left font-medium text-surface-700',
+                    'border border-surface-200 dark:border-surface-300 px-3 py-2 text-left font-medium text-surface-700',
                     header === '' && 'w-10',
                   )}
                 >
@@ -84,7 +84,7 @@ export function FMEAEditor() {
               <tr>
                 <td
                   colSpan={COLUMN_HEADERS.length}
-                  className={cn('border border-surface-200 px-3 py-6 text-center text-surface-400')}
+                  className={cn('border border-surface-200 dark:border-surface-300 px-3 py-6 text-center text-surface-400')}
                 >
                   No rows yet. Click &quot;Add Row&quot; to start.
                 </td>
@@ -97,94 +97,94 @@ export function FMEAEditor() {
                 className={cn(
                   'cursor-pointer transition-colors',
                   selectedRowId === row.id
-                    ? 'bg-primary-100'
+                    ? 'bg-primary-100 dark:bg-primary-900/40'
                     : 'hover:bg-surface-100',
                 )}
               >
                 {/* Item */}
-                <td className={cn('border border-surface-200 px-1 py-1')}>
+                <td className={cn('border border-surface-200 dark:border-surface-300 px-1 py-1')}>
                   <input
                     type="text"
                     value={row.item}
                     onChange={(e) => handleTextChange(row.id, 'item', e.target.value)}
-                    className={cn('w-full px-2 py-1 border-0 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-400 rounded')}
+                    className={cn('w-full px-2 py-1 border-0 bg-transparent text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-1 focus:ring-primary-500 rounded')}
                     placeholder="Item"
                   />
                 </td>
 
                 {/* Function */}
-                <td className={cn('border border-surface-200 px-1 py-1')}>
+                <td className={cn('border border-surface-200 dark:border-surface-300 px-1 py-1')}>
                   <input
                     type="text"
                     value={row.function}
                     onChange={(e) => handleTextChange(row.id, 'function', e.target.value)}
-                    className={cn('w-full px-2 py-1 border-0 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-400 rounded')}
+                    className={cn('w-full px-2 py-1 border-0 bg-transparent text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-1 focus:ring-primary-500 rounded')}
                     placeholder="Function"
                   />
                 </td>
 
                 {/* Failure Mode */}
-                <td className={cn('border border-surface-200 px-1 py-1')}>
+                <td className={cn('border border-surface-200 dark:border-surface-300 px-1 py-1')}>
                   <input
                     type="text"
                     value={row.failureMode}
                     onChange={(e) => handleTextChange(row.id, 'failureMode', e.target.value)}
-                    className={cn('w-full px-2 py-1 border-0 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-400 rounded')}
+                    className={cn('w-full px-2 py-1 border-0 bg-transparent text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-1 focus:ring-primary-500 rounded')}
                     placeholder="Failure Mode"
                   />
                 </td>
 
                 {/* Effect */}
-                <td className={cn('border border-surface-200 px-1 py-1')}>
+                <td className={cn('border border-surface-200 dark:border-surface-300 px-1 py-1')}>
                   <input
                     type="text"
                     value={row.effect}
                     onChange={(e) => handleTextChange(row.id, 'effect', e.target.value)}
-                    className={cn('w-full px-2 py-1 border-0 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-400 rounded')}
+                    className={cn('w-full px-2 py-1 border-0 bg-transparent text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-1 focus:ring-primary-500 rounded')}
                     placeholder="Effect"
                   />
                 </td>
 
                 {/* Severity */}
-                <td className={cn('border border-surface-200 px-1 py-1')}>
+                <td className={cn('border border-surface-200 dark:border-surface-300 px-1 py-1')}>
                   <input
                     type="number"
                     min={1}
                     max={10}
                     value={row.severity}
                     onChange={(e) => handleScoreChange(row.id, 'severity', e.target.value)}
-                    className={cn('w-16 px-2 py-1 border-0 bg-transparent text-center focus:outline-none focus:ring-1 focus:ring-blue-400 rounded')}
+                    className={cn('w-16 px-2 py-1 border-0 bg-transparent text-surface-900 placeholder:text-surface-400 text-center focus:outline-none focus:ring-1 focus:ring-primary-500 rounded')}
                   />
                 </td>
 
                 {/* Occurrence */}
-                <td className={cn('border border-surface-200 px-1 py-1')}>
+                <td className={cn('border border-surface-200 dark:border-surface-300 px-1 py-1')}>
                   <input
                     type="number"
                     min={1}
                     max={10}
                     value={row.occurrence}
                     onChange={(e) => handleScoreChange(row.id, 'occurrence', e.target.value)}
-                    className={cn('w-16 px-2 py-1 border-0 bg-transparent text-center focus:outline-none focus:ring-1 focus:ring-blue-400 rounded')}
+                    className={cn('w-16 px-2 py-1 border-0 bg-transparent text-surface-900 placeholder:text-surface-400 text-center focus:outline-none focus:ring-1 focus:ring-primary-500 rounded')}
                   />
                 </td>
 
                 {/* Detection */}
-                <td className={cn('border border-surface-200 px-1 py-1')}>
+                <td className={cn('border border-surface-200 dark:border-surface-300 px-1 py-1')}>
                   <input
                     type="number"
                     min={1}
                     max={10}
                     value={row.detection}
                     onChange={(e) => handleScoreChange(row.id, 'detection', e.target.value)}
-                    className={cn('w-16 px-2 py-1 border-0 bg-transparent text-center focus:outline-none focus:ring-1 focus:ring-blue-400 rounded')}
+                    className={cn('w-16 px-2 py-1 border-0 bg-transparent text-surface-900 placeholder:text-surface-400 text-center focus:outline-none focus:ring-1 focus:ring-primary-500 rounded')}
                   />
                 </td>
 
                 {/* RPN (read-only, auto-computed) */}
                 <td
                   className={cn(
-                    'border border-surface-200 px-3 py-1 text-center font-semibold',
+                    'border border-surface-200 dark:border-surface-300 px-3 py-1 text-center font-semibold',
                     row.rpn >= 200 && 'bg-red-900 dark:bg-red-100 text-red-500 dark:text-red-700',
                     row.rpn >= 100 && row.rpn < 200 && 'bg-amber-900 dark:bg-amber-100 text-amber-500 dark:text-amber-700',
                     row.rpn < 100 && 'text-green-500 dark:text-green-700',
@@ -194,18 +194,18 @@ export function FMEAEditor() {
                 </td>
 
                 {/* Actions */}
-                <td className={cn('border border-surface-200 px-1 py-1')}>
+                <td className={cn('border border-surface-200 dark:border-surface-300 px-1 py-1')}>
                   <input
                     type="text"
                     value={row.actions}
                     onChange={(e) => handleTextChange(row.id, 'actions', e.target.value)}
-                    className={cn('w-full px-2 py-1 border-0 bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-400 rounded')}
+                    className={cn('w-full px-2 py-1 border-0 bg-transparent text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-1 focus:ring-primary-500 rounded')}
                     placeholder="Actions"
                   />
                 </td>
 
                 {/* Delete button */}
-                <td className={cn('border border-surface-200 px-1 py-1 text-center')}>
+                <td className={cn('border border-surface-200 dark:border-surface-300 px-1 py-1 text-center')}>
                   <button
                     type="button"
                     onClick={(e) => {

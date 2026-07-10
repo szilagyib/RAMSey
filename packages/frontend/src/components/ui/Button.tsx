@@ -8,8 +8,10 @@ import { cn } from '../../lib/utils';
 const variantClasses = {
   default:
     'bg-primary-600 text-white hover:bg-primary-700 active:bg-primary-800 shadow-sm',
+  // NOTE: the surface text scale self-inverts between themes — never add
+  // dark:text-surface-* overrides (they pick a dark color in dark mode).
   outline:
-    'border border-surface-300 bg-white dark:bg-transparent text-surface-700 dark:text-surface-200 dark:border-surface-600 hover:bg-surface-50 dark:hover:bg-surface-200/40 active:bg-surface-100',
+    'border border-surface-300 bg-white dark:bg-transparent text-surface-700 dark:border-surface-400 hover:bg-surface-50 dark:hover:bg-surface-200/40 active:bg-surface-100',
   ghost:
     'text-surface-600 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-200/50 active:bg-surface-200',
   destructive:

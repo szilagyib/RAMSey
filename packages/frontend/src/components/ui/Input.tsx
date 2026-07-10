@@ -23,7 +23,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="text-sm font-medium text-surface-700 dark:text-surface-300"
+            className="text-sm font-medium text-surface-700"
           >
             {label}
           </label>
@@ -32,7 +32,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           ref={ref}
           id={inputId}
           className={cn(
-            'h-9 w-full rounded-md border border-surface-300 dark:border-surface-600 bg-white dark:bg-surface-100/60 px-3 text-sm',
+            'h-9 w-full rounded-md border border-surface-300 dark:border-surface-400 bg-white dark:bg-surface-100/60 px-3 text-sm',
             'text-surface-900 dark:text-surface-900 placeholder:text-surface-400',
             'transition-colors duration-150',
             'focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500/50',
