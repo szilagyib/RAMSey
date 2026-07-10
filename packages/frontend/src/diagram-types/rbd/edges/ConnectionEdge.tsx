@@ -1,6 +1,8 @@
 import { memo } from 'react';
 import { BaseEdge, getSmoothStepPath, type EdgeProps } from '@xyflow/react';
 import { EdgeLabel } from '../../shared/EdgeLabel';
+import { EdgeControlPoint } from '../../shared/EdgeControlPoint';
+import { getControlPoint } from '../../shared/edgeShape';
 import type { RBDEdgeData } from '../../../types/diagram';
 
 // ---------------------------------------------------------------------------
@@ -19,6 +21,9 @@ function ConnectionEdgeComponent({
   data,
   selected,
 }: EdgeProps) {
+  // A user-placed control point relocates the middle segment while keeping
+  // the orthogonal wiring per IEC 61078.
+  const cp = getControlPoint(data);
   const [edgePath, labelX, labelY] = getSmoothStepPath({
     sourceX,
     sourceY,
@@ -27,6 +32,8 @@ function ConnectionEdgeComponent({
     targetY,
     targetPosition,
     borderRadius: 4,
+    centerX: cp?.x,
+    centerY: cp?.y,
   });
 
   const edgeData = (data ?? { label: '' }) as RBDEdgeData;
@@ -46,6 +53,9 @@ function ConnectionEdgeComponent({
         <EdgeLabel x={labelX} y={labelY} accent={selected ? 'var(--dg-edge-selected)' : undefined}>
           {displayLabel}
         </EdgeLabel>
+      )}
+      {selected && (
+        <EdgeControlPoint edgeId={id} x={cp?.x ?? labelX} y={cp?.y ?? labelY} active={!!cp} />
       )}
     </>
   );

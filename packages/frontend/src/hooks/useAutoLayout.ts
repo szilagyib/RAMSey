@@ -42,15 +42,28 @@ export async function autoLayout(
     layoutOptions: {
       'elk.algorithm': 'layered',
       'elk.direction': opts.direction,
+      // Generous node/edge separation so neither nodes nor edges overlap;
+      // orthogonal routing makes ELK reserve real corridors between nodes
+      // for the edges instead of letting them cut across.
+      'elk.edgeRouting': 'ORTHOGONAL',
       'elk.spacing.nodeNode': String(opts.spacing),
+      'elk.spacing.edgeNode': String(opts.spacing / 2),
+      'elk.spacing.edgeEdge': String(opts.spacing / 3),
       'elk.layered.spacing.nodeNodeBetweenLayers': String(opts.spacing),
       'elk.layered.spacing.edgeNodeBetweenLayers': String(opts.spacing / 2),
+      'elk.layered.spacing.edgeEdgeBetweenLayers': String(opts.spacing / 3),
     },
-    children: nodes.map((node) => ({
-      id: node.id,
-      width: opts.nodeWidth,
-      height: opts.nodeHeight,
-    })),
+    children: nodes.map((node) => {
+      // Use the real rendered size when React Flow has measured it — the
+      // fixed fallback under-sized wide nodes (128px boxes), which let the
+      // layout place them overlapping.
+      const measured = (node as { measured?: { width?: number; height?: number } }).measured;
+      return {
+        id: node.id,
+        width: measured?.width ?? node.width ?? opts.nodeWidth,
+        height: measured?.height ?? node.height ?? opts.nodeHeight,
+      };
+    }),
     edges: edges.map((edge) => ({
       id: edge.id,
       sources: [edge.source],

@@ -1,6 +1,8 @@
 import { memo } from 'react';
 import { BaseEdge, getSmoothStepPath, type EdgeProps } from '@xyflow/react';
 import { EdgeLabel } from '../../shared/EdgeLabel';
+import { EdgeControlPoint } from '../../shared/EdgeControlPoint';
+import { getControlPoint } from '../../shared/edgeShape';
 import type { EventTreeEdgeData } from '../../../types/diagram';
 
 // ---------------------------------------------------------------------------
@@ -20,6 +22,9 @@ function BranchEdgeComponent({
   selected,
   markerEnd,
 }: EdgeProps) {
+  // A user-placed control point relocates the middle segment (orthogonal
+  // routing is kept).
+  const cp = getControlPoint(data);
   const [edgePath, labelX, labelY] = getSmoothStepPath({
     sourceX,
     sourceY,
@@ -27,6 +32,8 @@ function BranchEdgeComponent({
     targetX,
     targetY,
     targetPosition,
+    centerX: cp?.x,
+    centerY: cp?.y,
   });
 
   const edgeData = (data ?? { label: '', branchType: 'success' }) as EventTreeEdgeData;
@@ -49,6 +56,9 @@ function BranchEdgeComponent({
         <EdgeLabel x={labelX} y={labelY} accent={stroke}>
           {displayLabel}
         </EdgeLabel>
+      )}
+      {selected && (
+        <EdgeControlPoint edgeId={id} x={cp?.x ?? labelX} y={cp?.y ?? labelY} active={!!cp} />
       )}
     </>
   );

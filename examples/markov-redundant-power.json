@@ -3,30 +3,30 @@
   "name": "Redundant power supply with battery ride-through",
   "type": "markov_chain",
   "exportedAt": "2026-06-14T12:00:00.000Z",
-  "description": "Classic repairable-system Markov model: two hot-redundant PSUs (each λ = 2e-4/h, MTTR 20 h), a 4-hour UPS battery that rides through dual failure, and an absorbing blackout state. OK = both PSUs healthy (initial), DEG = one PSU down (repair race), BAT = both down, load on battery (β = 0.25/h depletion), OUT = blackout (absorbing). Try steady-state availability, transient P(BAT) over a mission, and MTTF to the blackout state.",
+  "description": "Classic repairable-system Markov model: two hot-redundant PSUs (each λ = 2e-4/h, MTTR 20 h), a 4-hour UPS battery that rides through dual failure, and an absorbing blackout state. OK = both PSUs healthy (initial), DEG = one PSU down (repair race), BAT = both down, load on battery (β = 0.25/h depletion), OUT = blackout (absorbing). Failure transitions arc above the state row, repair transitions below (via edge control points). Try steady-state availability, transient P(BAT) over a mission, and MTTF to the blackout state.",
   "nodes": [
     {
       "id": "state-0",
       "type": "stateNode",
-      "position": { "x": 100, "y": 220 },
+      "position": { "x": 100, "y": 240 },
       "data": { "label": "OK", "stateType": "operational", "isInitial": true }
     },
     {
       "id": "state-1",
       "type": "stateNode",
-      "position": { "x": 320, "y": 120 },
+      "position": { "x": 320, "y": 240 },
       "data": { "label": "DEG", "stateType": "degraded", "isInitial": false }
     },
     {
       "id": "state-2",
       "type": "stateNode",
-      "position": { "x": 540, "y": 220 },
+      "position": { "x": 540, "y": 240 },
       "data": { "label": "BAT", "stateType": "failed", "isInitial": false }
     },
     {
       "id": "state-3",
       "type": "stateNode",
-      "position": { "x": 760, "y": 120 },
+      "position": { "x": 760, "y": 235 },
       "data": { "label": "OUT", "stateType": "absorbing", "isInitial": false }
     }
   ],
@@ -36,28 +36,28 @@
       "type": "transitionEdge",
       "source": "state-0",
       "target": "state-1",
-      "data": { "rate": "0.0004", "probability": "", "label": "2λ" }
+      "data": { "rate": "0.0004", "probability": "", "label": "2λ", "cpX": 234, "cpY": 170 }
     },
     {
       "id": "transition-1",
       "type": "transitionEdge",
       "source": "state-1",
       "target": "state-0",
-      "data": { "rate": "0.05", "probability": "", "label": "μ" }
+      "data": { "rate": "0.05", "probability": "", "label": "μ", "cpX": 234, "cpY": 358 }
     },
     {
       "id": "transition-2",
       "type": "transitionEdge",
       "source": "state-1",
       "target": "state-2",
-      "data": { "rate": "0.0002", "probability": "", "label": "λ" }
+      "data": { "rate": "0.0002", "probability": "", "label": "λ", "cpX": 454, "cpY": 170 }
     },
     {
       "id": "transition-3",
       "type": "transitionEdge",
       "source": "state-2",
       "target": "state-1",
-      "data": { "rate": "0.05", "probability": "", "label": "μ" }
+      "data": { "rate": "0.05", "probability": "", "label": "μ", "cpX": 454, "cpY": 358 }
     },
     {
       "id": "transition-4",

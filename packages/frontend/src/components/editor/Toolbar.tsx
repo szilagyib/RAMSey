@@ -90,9 +90,21 @@ export function Toolbar({ onNavigateBack, onSave, onCreateSnapshot, onValidate, 
   }, [onSave]);
 
   const handleAutoLayout = useCallback(async () => {
-    const layoutedNodes = await autoLayout(nodes, edges);
+    // Fault trees read top-down per the notation; every other type is a
+    // left-to-right flow.
+    const direction = diagramType === 'fault_tree' ? 'DOWN' : 'RIGHT';
+    const layoutedNodes = await autoLayout(nodes, edges, { direction });
     setNodes(layoutedNodes);
-  }, [nodes, edges, autoLayout, setNodes]);
+    // A re-layout invalidates hand-placed edge control points: reset every
+    // edge to automatic routing so nothing points at stale coordinates.
+    useDiagramStore.setState((state) => ({
+      edges: state.edges.map((e) =>
+        (e.data as { cpX?: unknown })?.cpX != null
+          ? { ...e, data: { ...e.data, cpX: null, cpY: null } }
+          : e,
+      ),
+    }));
+  }, [nodes, edges, diagramType, autoLayout, setNodes]);
 
   const handleValidate = useCallback(() => {
     onValidate?.();

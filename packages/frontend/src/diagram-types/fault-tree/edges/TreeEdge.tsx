@@ -1,6 +1,8 @@
 import { memo } from 'react';
 import { BaseEdge, getSmoothStepPath, type EdgeProps } from '@xyflow/react';
 import { EdgeLabel } from '../../shared/EdgeLabel';
+import { EdgeControlPoint } from '../../shared/EdgeControlPoint';
+import { getControlPoint } from '../../shared/edgeShape';
 import type { FaultTreeEdgeData } from '../../../types/diagram';
 
 // ---------------------------------------------------------------------------
@@ -19,6 +21,9 @@ function TreeEdgeComponent({
   data,
   selected,
 }: EdgeProps) {
+  // A user-placed control point relocates the middle segment while keeping
+  // the orthogonal (bus-style) routing the notation requires.
+  const cp = getControlPoint(data);
   const [edgePath, labelX, labelY] = getSmoothStepPath({
     sourceX,
     sourceY,
@@ -27,6 +32,8 @@ function TreeEdgeComponent({
     targetY,
     targetPosition,
     borderRadius: 0,
+    centerX: cp?.x,
+    centerY: cp?.y,
   });
 
   const edgeData = (data ?? { label: '' }) as FaultTreeEdgeData;
@@ -46,6 +53,9 @@ function TreeEdgeComponent({
         <EdgeLabel x={labelX} y={labelY} accent={selected ? 'var(--dg-edge-selected)' : undefined}>
           {displayLabel}
         </EdgeLabel>
+      )}
+      {selected && (
+        <EdgeControlPoint edgeId={id} x={cp?.x ?? labelX} y={cp?.y ?? labelY} active={!!cp} />
       )}
     </>
   );
