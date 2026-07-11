@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Plus, Trash2, LogOut, Users, Settings } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { NotificationBell } from '../components/NotificationBell';
 import { Select } from '../components/ui/Select';
 import { ThemeToggle } from '../components/ui/ThemeToggle';
 import { getAllDiagramTypes } from '../diagram-types/registry';
@@ -230,6 +231,7 @@ export function DashboardPage() {
                   <Users className="h-4 w-4" />
                   Teams
                 </Link>
+                <NotificationBell />
                 <Link
                   to="/account"
                   className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-surface-500 hover:bg-surface-50 hover:text-surface-700 transition-colors"

@@ -41,6 +41,13 @@ export interface DiagramStore {
   undo: () => void;
   redo: () => void;
 
+  // Clipboard (in-app; nodes plus the edges connecting them)
+  clipboard: { nodes: Node[]; edges: Edge[] } | null;
+  /** Copy the selected node(s) + internal edges. Returns false if nothing to copy. */
+  copySelection: () => boolean;
+  paste: () => void;
+  duplicateSelection: () => void;
+
   // React Flow event handlers
   onNodesChange: (changes: NodeChange[]) => void;
   onEdgesChange: (changes: EdgeChange[]) => void;
@@ -85,6 +92,10 @@ let historyTag: string | null = null;
 let historyTagTime = 0;
 let historySuppressed = false;
 
+/** How many times the current clipboard has been pasted (drives the offset). */
+let pasteCount = 0;
+const PASTE_OFFSET = 32;
+
 function takeSnapshot(state: {
   nodes: Node[];
   edges: Edge[];
@@ -111,6 +122,7 @@ export const useDiagramStore = create<DiagramStore>((set, get) => ({
   diagramType: 'markov_chain',
   undoStack: [],
   redoStack: [],
+  clipboard: null,
 
   /**
    * Capture the CURRENT state as an undo entry — call before mutating.
@@ -170,6 +182,77 @@ export const useDiagramStore = create<DiagramStore>((set, get) => ({
       selectedNodeId: null,
       selectedEdgeId: null,
     });
+  },
+
+  copySelection: () => {
+    const { nodes, edges, selectedNodeId } = get();
+    // React Flow multi-selection takes precedence; fall back to the
+    // store-tracked single selection. A lone edge isn't copyable — it's
+    // meaningless without its endpoints.
+    let picked = nodes.filter((n) => n.selected);
+    if (picked.length === 0 && selectedNodeId) {
+      picked = nodes.filter((n) => n.id === selectedNodeId);
+    }
+    if (picked.length === 0) return false;
+
+    const ids = new Set(picked.map((n) => n.id));
+    const pickedEdges = edges.filter((e) => ids.has(e.source) && ids.has(e.target));
+    pasteCount = 0;
+    set({
+      clipboard: {
+        nodes: picked.map((n) => ({ ...n, selected: false })),
+        edges: pickedEdges.map((e) => ({ ...e, selected: false })),
+      },
+    });
+    return true;
+  },
+
+  paste: () => {
+    const { clipboard, nodes, edges, nodeCounter, edgeCounter } = get();
+    if (!clipboard || clipboard.nodes.length === 0) return;
+    get().recordHistory();
+
+    pasteCount += 1;
+    const offset = PASTE_OFFSET * pasteCount;
+
+    // Fresh counter-based ids (unique within the diagram; undo restores the
+    // counters, so re-pasting after an undo can't collide either).
+    const idMap = new Map<string, string>();
+    clipboard.nodes.forEach((n, i) => idMap.set(n.id, `copy-${nodeCounter + i}`));
+
+    const newNodes = clipboard.nodes.map((n) => {
+      const data = { ...n.data } as Record<string, unknown>;
+      // A pasted Markov state must not steal the initial-state marker.
+      if (data.isInitial === true) data.isInitial = false;
+      return {
+        ...n,
+        id: idMap.get(n.id)!,
+        position: { x: n.position.x + offset, y: n.position.y + offset },
+        data,
+        selected: true,
+      };
+    });
+    const newEdges = clipboard.edges.map((e, i) => ({
+      ...e,
+      id: `copy-e${edgeCounter + i}`,
+      source: idMap.get(e.source)!,
+      target: idMap.get(e.target)!,
+      data: { ...e.data },
+      selected: false,
+    }));
+
+    set({
+      nodes: [...nodes.map((n) => (n.selected ? { ...n, selected: false } : n)), ...newNodes],
+      edges: [...edges, ...newEdges],
+      nodeCounter: nodeCounter + newNodes.length,
+      edgeCounter: edgeCounter + newEdges.length,
+      selectedNodeId: newNodes.length === 1 ? newNodes[0].id : null,
+      selectedEdgeId: null,
+    });
+  },
+
+  duplicateSelection: () => {
+    if (get().copySelection()) get().paste();
   },
 
   onNodesChange: (changes: NodeChange[]) => {

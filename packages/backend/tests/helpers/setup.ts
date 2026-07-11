@@ -65,6 +65,9 @@ export interface MockPrismaClient {
   };
   notification: {
     create: ReturnType<typeof vi.fn>;
+    findMany: ReturnType<typeof vi.fn>;
+    count: ReturnType<typeof vi.fn>;
+    updateMany: ReturnType<typeof vi.fn>;
   };
   analysisJob: {
     create: ReturnType<typeof vi.fn>;
@@ -141,6 +144,9 @@ export function mockPrismaClient(): MockPrismaClient {
     },
     notification: {
       create: vi.fn().mockResolvedValue({}),
+      findMany: vi.fn().mockResolvedValue([]),
+      count: vi.fn().mockResolvedValue(0),
+      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
     analysisJob: {
       create: vi.fn(),

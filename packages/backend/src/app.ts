@@ -15,6 +15,7 @@ import chatRoutes from './routes/chat.routes.js';
 import collabRoutes from './routes/collab.routes.js';
 import diagramRoutes from './routes/diagram.routes.js';
 import healthRoutes from './routes/health.routes.js';
+import notificationRoutes from './routes/notification.routes.js';
 import projectRoutes from './routes/project.routes.js';
 import shareRoutes from './routes/share.routes.js';
 import teamRoutes from './routes/team.routes.js';
@@ -103,6 +104,7 @@ export async function buildApp(
   await app.register(collabRoutes);
   await app.register(chatRoutes);
   await app.register(analysisRoutes);
+  await app.register(notificationRoutes);
 
   return app;
 }

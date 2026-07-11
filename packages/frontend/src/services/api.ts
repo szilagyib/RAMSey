@@ -91,6 +91,27 @@ export const api = {
       request<{ data: { ok: boolean } }>('/api/auth/me', { method: 'DELETE', body: '{}' }),
   },
 
+  notifications: {
+    list: () =>
+      request<{
+        data: {
+          items: Array<{
+            id: string;
+            type: string;
+            payload: Record<string, unknown>;
+            read: boolean;
+            createdAt: string;
+          }>;
+          unread: number;
+        };
+      }>('/api/notifications'),
+    readAll: () =>
+      request<{ data: { ok: boolean } }>('/api/notifications/read-all', {
+        method: 'POST',
+        body: '{}',
+      }),
+  },
+
   users: {
     search: (email: string) =>
       request<{ data: { id: string; name?: string; email: string } }>(`/api/users/search?email=${encodeURIComponent(email)}`),

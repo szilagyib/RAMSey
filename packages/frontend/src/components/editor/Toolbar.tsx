@@ -9,6 +9,7 @@ import { parseDiagramJson } from '../../lib/importDiagram';
 import { MenuBar, type MenuDefinition } from './MenuBar';
 import { ExportDialog } from './ExportDialog';
 import { ThemeToggle } from '../ui/ThemeToggle';
+import { NotificationBell } from '../NotificationBell';
 import { useAuth } from '../../contexts/auth';
 
 // Shared "Fit to Screen" options — keep the menu item and the toolbar button
@@ -39,6 +40,13 @@ export function Toolbar({ onNavigateBack, onSave, onCreateSnapshot, onValidate, 
   const redo = useDiagramStore((s) => s.redo);
   const canUndo = useDiagramStore((s) => s.undoStack.length > 0);
   const canRedo = useDiagramStore((s) => s.redoStack.length > 0);
+  const copySelection = useDiagramStore((s) => s.copySelection);
+  const paste = useDiagramStore((s) => s.paste);
+  const duplicateSelection = useDiagramStore((s) => s.duplicateSelection);
+  const hasNodeSelection = useDiagramStore(
+    (s) => s.selectedNodeId !== null || s.nodes.some((n) => n.selected),
+  );
+  const canPaste = useDiagramStore((s) => s.clipboard !== null);
   const getValidationResults = useDiagramStore((s) => s.getValidationResults);
   const { autoLayout } = useAutoLayout();
 
@@ -105,12 +113,24 @@ export function Toolbar({ onNavigateBack, onSave, onCreateSnapshot, onValidate, 
         } else if (key === 'y' || (key === 'z' && e.shiftKey)) {
           e.preventDefault();
           redo();
+        } else if (key === 'c') {
+          // Only claim Ctrl+C when a node is selected — otherwise leave the
+          // browser's copy (e.g. of selected text) alone.
+          if (copySelection()) e.preventDefault();
+        } else if (key === 'v') {
+          if (useDiagramStore.getState().clipboard) {
+            e.preventDefault();
+            paste();
+          }
+        } else if (key === 'd') {
+          e.preventDefault(); // always: Ctrl+D would bookmark the page
+          duplicateSelection();
         }
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [onSave, undo, redo]);
+  }, [onSave, undo, redo, copySelection, paste, duplicateSelection]);
 
   const handleAutoLayout = useCallback(async () => {
     // Fault trees read top-down per the notation; every other type is a
@@ -208,6 +228,25 @@ export function Toolbar({ onNavigateBack, onSave, onCreateSnapshot, onValidate, 
           shortcut: 'Ctrl+Shift+Z',
           onClick: () => redo(),
           disabled: !canRedo,
+        },
+        { divider: true },
+        {
+          label: 'Copy',
+          shortcut: 'Ctrl+C',
+          onClick: () => copySelection(),
+          disabled: !hasNodeSelection,
+        },
+        {
+          label: 'Paste',
+          shortcut: 'Ctrl+V',
+          onClick: () => paste(),
+          disabled: !canPaste,
+        },
+        {
+          label: 'Duplicate',
+          shortcut: 'Ctrl+D',
+          onClick: () => duplicateSelection(),
+          disabled: !hasNodeSelection,
         },
         { divider: true },
         {
@@ -350,6 +389,7 @@ export function Toolbar({ onNavigateBack, onSave, onCreateSnapshot, onValidate, 
           <Button variant="ghost" size="sm" onClick={() => reactFlow.fitView(FIT_VIEW_OPTIONS)} className="h-7 w-7 p-0" title="Fit to Screen">
             <Maximize2 className="h-3.5 w-3.5" />
           </Button>
+          {authUser && !authUser.id.startsWith('local:') && <NotificationBell />}
           {authUser && (
             <div
               className="flex h-6 w-6 items-center justify-center rounded-full bg-primary-500 text-[10px] font-semibold text-white"
