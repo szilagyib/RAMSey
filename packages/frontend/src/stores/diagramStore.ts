@@ -62,6 +62,7 @@ export interface DiagramStore {
   // Selection
   selectNode: (id: string | null) => void;
   selectEdge: (id: string | null) => void;
+  selectAll: () => void;
   clearSelection: () => void;
 
   // Validation
@@ -350,22 +351,25 @@ export const useDiagramStore = create<DiagramStore>((set, get) => ({
 
   deleteSelected: () => {
     const { nodes, edges, selectedNodeId, selectedEdgeId } = get();
-    if (selectedNodeId || selectedEdgeId) get().recordHistory();
 
-    if (selectedNodeId) {
-      set({
-        nodes: nodes.filter((n) => n.id !== selectedNodeId),
-        edges: edges.filter(
-          (e) => e.source !== selectedNodeId && e.target !== selectedNodeId,
-        ),
-        selectedNodeId: null,
-      });
-    } else if (selectedEdgeId) {
-      set({
-        edges: edges.filter((e) => e.id !== selectedEdgeId),
-        selectedEdgeId: null,
-      });
-    }
+    // The full selection: React Flow multi-selection flags plus the
+    // store-tracked single selection — so Delete after a rubber-band or
+    // Ctrl+A removes everything highlighted, in one undo entry.
+    const nodeIds = new Set(nodes.filter((n) => n.selected).map((n) => n.id));
+    if (selectedNodeId) nodeIds.add(selectedNodeId);
+    const edgeIds = new Set(edges.filter((e) => e.selected).map((e) => e.id));
+    if (selectedEdgeId) edgeIds.add(selectedEdgeId);
+    if (nodeIds.size === 0 && edgeIds.size === 0) return;
+
+    get().recordHistory();
+    set({
+      nodes: nodes.filter((n) => !nodeIds.has(n.id)),
+      edges: edges.filter(
+        (e) => !edgeIds.has(e.id) && !nodeIds.has(e.source) && !nodeIds.has(e.target),
+      ),
+      selectedNodeId: null,
+      selectedEdgeId: null,
+    });
   },
 
   selectNode: (id) => {
@@ -376,8 +380,26 @@ export const useDiagramStore = create<DiagramStore>((set, get) => ({
     set({ selectedEdgeId: id, selectedNodeId: null });
   },
 
+  selectAll: () => {
+    set((state) => ({
+      nodes: state.nodes.map((n) => (n.selected ? n : { ...n, selected: true })),
+      edges: state.edges.map((e) => (e.selected ? e : { ...e, selected: true })),
+    }));
+  },
+
   clearSelection: () => {
-    set({ selectedNodeId: null, selectedEdgeId: null });
+    // Also strip React Flow multi-selection flags (Escape after Ctrl+A /
+    // rubber-band should visibly deselect everything).
+    set((state) => ({
+      selectedNodeId: null,
+      selectedEdgeId: null,
+      nodes: state.nodes.some((n) => n.selected)
+        ? state.nodes.map((n) => (n.selected ? { ...n, selected: false } : n))
+        : state.nodes,
+      edges: state.edges.some((e) => e.selected)
+        ? state.edges.map((e) => (e.selected ? { ...e, selected: false } : e))
+        : state.edges,
+    }));
   },
 
   getValidationResults: () => {

@@ -125,6 +125,9 @@ export function Toolbar({ onNavigateBack, onSave, onCreateSnapshot, onValidate, 
         } else if (key === 'd') {
           e.preventDefault(); // always: Ctrl+D would bookmark the page
           duplicateSelection();
+        } else if (key === 'a') {
+          e.preventDefault(); // Ctrl+A would select the page text
+          useDiagramStore.getState().selectAll();
         }
       }
     };
@@ -164,13 +167,7 @@ export function Toolbar({ onNavigateBack, onSave, onCreateSnapshot, onValidate, 
   }, []);
 
   const handleSelectAll = useCallback(() => {
-    // React Flow multi-select: mark every node/edge selected so they highlight
-    // and the canvas delete key applies to all of them.
-    const state = useDiagramStore.getState();
-    state.setNodes(state.nodes.map((n) => ({ ...n, selected: true })));
-    useDiagramStore.setState({
-      edges: state.edges.map((e) => ({ ...e, selected: true })),
-    });
+    useDiagramStore.getState().selectAll();
   }, []);
 
   // Menu definitions

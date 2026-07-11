@@ -5,6 +5,7 @@ import {
   Background,
   BackgroundVariant,
   MarkerType,
+  SelectionMode,
   type ReactFlowInstance,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -141,14 +142,18 @@ function DiagramEditorInner({ onNavigateBack, onSave, onCreateSnapshot, diagramN
   );
 
   const onNodeClick = useCallback(
-    (_: React.MouseEvent, node: { id: string }) => {
+    (e: React.MouseEvent, node: { id: string }) => {
+      // With a multi-select modifier held, React Flow manages the selection
+      // set itself — don't collapse it to a single store selection.
+      if (e.ctrlKey || e.metaKey || e.shiftKey) return;
       selectNode(node.id);
     },
     [selectNode],
   );
 
   const onEdgeClick = useCallback(
-    (_: React.MouseEvent, edge: { id: string }) => {
+    (e: React.MouseEvent, edge: { id: string }) => {
+      if (e.ctrlKey || e.metaKey || e.shiftKey) return;
       selectEdge(edge.id);
     },
     [selectEdge],
@@ -197,6 +202,14 @@ function DiagramEditorInner({ onNavigateBack, onSave, onCreateSnapshot, diagramN
             snapToGrid
             snapGrid={[16, 16]}
             deleteKeyCode={null}
+            // Drawing-app selection model: left-drag on the canvas draws a
+            // rubber-band rectangle (touching an element selects it); panning
+            // moves to middle/right mouse drag or Space+drag; Ctrl/Shift+click
+            // adds to the selection.
+            selectionOnDrag
+            selectionMode={SelectionMode.Partial}
+            panOnDrag={[1, 2]}
+            multiSelectionKeyCode={['Control', 'Shift']}
             className="bg-surface-50"
           >
             <Background
