@@ -132,10 +132,32 @@ export function EditorPage() {
         e.preventDefault();
         setShowExport(true);
       }
+      // Undo/redo — but never inside a table cell, where Ctrl+Z must stay the
+      // browser's native text undo (which flows back through onChange anyway).
+      const target = e.target as HTMLElement | null;
+      const inEditable =
+        !!target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable);
+      if (ctrl && !inEditable) {
+        const key = e.key.toLowerCase();
+        if (key === 'z' && !e.shiftKey) {
+          e.preventDefault();
+          useFMEAStore.getState().undo();
+        } else if (key === 'y' || (key === 'z' && e.shiftKey)) {
+          e.preventDefault();
+          useFMEAStore.getState().redo();
+        }
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [isTableBased, handleSave]);
+
+  const canUndoFMEA = useFMEAStore((s) => s.undoStack.length > 0);
+  const canRedoFMEA = useFMEAStore((s) => s.redoStack.length > 0);
 
   const fmeaMenus: MenuDefinition[] = [
     {
@@ -151,6 +173,19 @@ export function EditorPage() {
     {
       label: 'Edit',
       items: [
+        {
+          label: 'Undo',
+          shortcut: 'Ctrl+Z',
+          onClick: () => useFMEAStore.getState().undo(),
+          disabled: !canUndoFMEA,
+        },
+        {
+          label: 'Redo',
+          shortcut: 'Ctrl+Shift+Z',
+          onClick: () => useFMEAStore.getState().redo(),
+          disabled: !canRedoFMEA,
+        },
+        { divider: true },
         { label: 'Add Row', onClick: () => useFMEAStore.getState().addRow() },
       ],
     },

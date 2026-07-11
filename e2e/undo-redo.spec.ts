@@ -39,3 +39,28 @@ test('undo/redo: keyboard and Edit menu revert diagram edits', async ({ page }) 
     await expect(redoItem).toBeDisabled();
   });
 });
+
+test('undo/redo works in the FMEA table editor', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'New Diagram' }).first().click();
+  await page.getByPlaceholder('e.g. Pump System Reliability').fill('FMEA undo');
+  await page.locator('select').first().selectOption({ label: 'FMEA' });
+  await page.getByRole('button', { name: 'Create', exact: true }).click();
+  await page.waitForURL(/\/projects\/.+\/diagrams\/.+/);
+
+  await page.getByRole('button', { name: 'Add Row' }).click();
+  await expect(page.locator('table input').first()).toBeVisible();
+
+  // Focus sits on the Add Row button (not a cell), so Ctrl+Z hits the store.
+  await page.keyboard.press('Control+z');
+  await expect(page.locator('table input')).toHaveCount(0);
+
+  await page.keyboard.press('Control+Shift+z');
+  await expect(page.locator('table input').first()).toBeVisible();
+
+  // Edit-menu Undo reverts a typed cell value as one step.
+  await page.locator('table input').first().fill('Pump seal wear');
+  await page.getByRole('button', { name: 'Edit' }).click();
+  await page.getByText('Undo', { exact: true }).click();
+  await expect(page.locator('table input').first()).toHaveValue('');
+});

@@ -4,7 +4,10 @@ services:
       context: ../
       dockerfile: docker/frontend/Dockerfile
     ports:
-      - "5173:80"
+      # Host 8080 on purpose: 5173 belongs to the Vite dev server. Sharing the
+      # port let a stale containerized build shadow the dev server (Playwright
+      # reuses whatever answers on 5173) — keep them separate.
+      - "8080:80"
     volumes:
       - ../packages/frontend/src:/app/packages/frontend/src
       - ../packages/engine/src:/app/packages/engine/src
@@ -18,7 +21,10 @@ services:
       context: ../
       dockerfile: docker/backend/Dockerfile
     ports:
-      - "3000:3000"
+      # Host 3001: 3000 belongs to the dev backend (same reasoning as 8080).
+      # The dockerized frontend reaches the backend via the compose network,
+      # not this host mapping.
+      - "3001:3000"
     depends_on:
       postgres:
         condition: service_started
@@ -27,7 +33,7 @@ services:
     environment:
       DATABASE_URL: postgresql://ramsey:ramsey@postgres:5432/ramsey?schema=public
       REDIS_URL: redis://redis:6379
-      CORS_ORIGIN: http://localhost:5173
+      CORS_ORIGIN: http://localhost:8080
       NODE_ENV: development
       JWT_SECRET: dev-jwt-secret-change-in-production
       BETTER_AUTH_SECRET: dev-better-auth-secret-change-in-prod
