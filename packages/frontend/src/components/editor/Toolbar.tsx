@@ -14,12 +14,15 @@ import {
   ClipboardPaste,
   CopyPlus,
   Trash2,
+  Grid3x3,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { useDiagramStore } from '../../stores/diagramStore';
 import { getDiagramTypeConfig } from '../../diagram-types/registry';
 import { useAutoLayout } from '../../hooks/useAutoLayout';
+import { useEditorPrefs, type BackgroundMode } from '../../stores/editorPrefs';
 import { parseDiagramJson } from '../../lib/importDiagram';
+import { cn } from '../../lib/utils';
 import { MenuBar, type MenuDefinition } from './MenuBar';
 import { ExportDialog } from './ExportDialog';
 import { ThemeToggle } from '../ui/ThemeToggle';
@@ -64,6 +67,9 @@ export function Toolbar({ onNavigateBack, onSave, onCreateSnapshot, onValidate, 
     (s) => s.selectedEdgeId !== null || s.edges.some((e) => e.selected),
   );
   const canPaste = useDiagramStore((s) => s.clipboard !== null);
+  const background = useEditorPrefs((s) => s.background);
+  const setBackground = useEditorPrefs((s) => s.setBackground);
+  const cycleBackground = useEditorPrefs((s) => s.cycleBackground);
   const getValidationResults = useDiagramStore((s) => s.getValidationResults);
   const { autoLayout } = useAutoLayout();
 
@@ -304,6 +310,11 @@ export function Toolbar({ onNavigateBack, onSave, onCreateSnapshot, onValidate, 
           onClick: () => reactFlow.fitView(FIT_VIEW_OPTIONS),
         },
         { divider: true },
+        ...(['dots', 'grid', 'none'] as BackgroundMode[]).map((mode) => ({
+          label: `${background === mode ? '✓ ' : '  '}Background: ${mode}`,
+          onClick: () => setBackground(mode),
+        })),
+        { divider: true },
         {
           label: 'Auto Layout',
           onClick: handleAutoLayout,
@@ -417,6 +428,15 @@ export function Toolbar({ onNavigateBack, onSave, onCreateSnapshot, onValidate, 
 
           <Button variant="ghost" size="sm" onClick={handleAutoLayout} className="h-7 w-7 p-0" title="Auto Layout">
             <LayoutGrid className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={cycleBackground}
+            className={cn('h-7 w-7 p-0', background !== 'none' && 'text-primary-600')}
+            title={`Background: ${background} (click to cycle)`}
+          >
+            <Grid3x3 className="h-3.5 w-3.5" />
           </Button>
           <span className="mx-0.5 h-4 w-px bg-surface-200" />
           <Button variant="ghost" size="sm" onClick={() => reactFlow.zoomIn()} className="h-7 w-7 p-0" title="Zoom In">

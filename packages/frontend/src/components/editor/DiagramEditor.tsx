@@ -11,6 +11,7 @@ import {
 import '@xyflow/react/dist/style.css';
 
 import { useDiagramStore } from '../../stores/diagramStore';
+import { useEditorPrefs } from '../../stores/editorPrefs';
 import { getDiagramTypeConfig } from '../../diagram-types/registry';
 import { Sidebar } from './Sidebar';
 import { RightPanel } from './RightPanel';
@@ -48,6 +49,8 @@ function DiagramEditorInner({ onNavigateBack, onSave, onCreateSnapshot, diagramN
   const selectedNodeId = useDiagramStore((s) => s.selectedNodeId);
   const clearSelection = useDiagramStore((s) => s.clearSelection);
   const deleteSelected = useDiagramStore((s) => s.deleteSelected);
+
+  const background = useEditorPrefs((s) => s.background);
 
   const config = getDiagramTypeConfig(diagramType);
   const nodeTypes = useMemo(() => config?.nodeTypes ?? {}, [config]);
@@ -212,12 +215,14 @@ function DiagramEditorInner({ onNavigateBack, onSave, onCreateSnapshot, diagramN
             multiSelectionKeyCode={['Control', 'Shift']}
             className="bg-surface-50"
           >
-            <Background
-              variant={BackgroundVariant.Dots}
-              gap={16}
-              size={1}
-              color="var(--dg-canvas-dots)"
-            />
+            {background !== 'none' && (
+              <Background
+                variant={background === 'grid' ? BackgroundVariant.Lines : BackgroundVariant.Dots}
+                gap={16}
+                size={1}
+                color="var(--dg-canvas-dots)"
+              />
+            )}
             <SelectionOverlay selections={selections} nodes={nodes} />
             <CursorsOverlay cursors={cursors} />
           </ReactFlow>
