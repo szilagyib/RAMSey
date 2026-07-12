@@ -19,7 +19,7 @@ import {
 import { Button } from '../ui/Button';
 import { useDiagramStore } from '../../stores/diagramStore';
 import { getDiagramTypeConfig } from '../../diagram-types/registry';
-import { useAutoLayout } from '../../hooks/useAutoLayout';
+import { useAutoLayout, routeEdgesAfterLayout } from '../../hooks/useAutoLayout';
 import { useEditorPrefs, type BackgroundMode } from '../../stores/editorPrefs';
 import { parseDiagramJson } from '../../lib/importDiagram';
 import { cn } from '../../lib/utils';
@@ -163,20 +163,20 @@ export function Toolbar({ onNavigateBack, onSave, onCreateSnapshot, onValidate, 
     // left-to-right flow.
     const direction = diagramType === 'fault_tree' ? 'DOWN' : 'RIGHT';
     const layoutedNodes = await autoLayout(nodes, edges, { direction });
-    // One undo entry for the whole layout (positions + control-point resets).
+    // Re-route edges for the new positions: hand-placed control points would
+    // point at stale coordinates, and bidirectional pairs need fresh arcs so
+    // they don't collapse onto one another.
+    const routedEdges = routeEdgesAfterLayout(layoutedNodes, edges);
+
+    // One undo entry for the whole layout (positions + edge routing).
     useDiagramStore.getState().runInHistoryEntry(() => {
       setNodes(layoutedNodes);
-      // A re-layout invalidates hand-placed edge control points: reset every
-      // edge to automatic routing so nothing points at stale coordinates.
-      useDiagramStore.setState((state) => ({
-        edges: state.edges.map((e) =>
-          (e.data as { cpX?: unknown })?.cpX != null
-            ? { ...e, data: { ...e.data, cpX: null, cpY: null } }
-            : e,
-        ),
-      }));
+      useDiagramStore.setState({ edges: routedEdges });
     });
-  }, [nodes, edges, diagramType, autoLayout, setNodes]);
+
+    // Frame the result so the user sees the whole diagram.
+    window.setTimeout(() => reactFlow.fitView(FIT_VIEW_OPTIONS), 60);
+  }, [nodes, edges, diagramType, autoLayout, setNodes, reactFlow]);
 
   const handleValidate = useCallback(() => {
     onValidate?.();

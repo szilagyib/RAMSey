@@ -31,3 +31,31 @@ test('auto layout loads elk on demand and repositions nodes', async ({ page }) =
   // Still two nodes, still on canvas.
   await expect(nodes).toHaveCount(2);
 });
+
+// Regression: after auto-layout, a bidirectional pair (λ one way, μ back) used
+// to collapse onto the same straight line — one edge and its rate label hidden.
+test('auto layout keeps bidirectional edges and their labels visible', async ({ page }) => {
+  await page.goto('/');
+  await createDiagram(page, 'Layout pairs');
+  await page.getByRole('button', { name: 'File' }).click();
+  await page.getByText('Import JSON...').click();
+  await page.locator('input[type="file"]').setInputFiles('examples/markov-redundant-power.json');
+  const canvas = page.locator('.react-flow');
+  await expect(canvas.getByText('β')).toBeVisible();
+
+  await page.getByTitle('Auto Layout').click();
+  await page.waitForTimeout(1500);
+
+  // Every rate label still renders (2λ and λ would be hidden under the μ chips
+  // if the pairs overlapped).
+  for (const label of ['2λ', 'λ', 'β']) {
+    await expect(canvas.getByText(label, { exact: true }).first()).toBeVisible();
+  }
+  await expect(canvas.getByText('μ', { exact: true })).toHaveCount(2);
+
+  // The two directions of the OK<->DEG pair take different paths.
+  const paths = await page
+    .locator('.react-flow__edge-path')
+    .evaluateAll((els) => els.map((e) => e.getAttribute('d')));
+  expect(new Set(paths).size).toBe(paths.length);
+});

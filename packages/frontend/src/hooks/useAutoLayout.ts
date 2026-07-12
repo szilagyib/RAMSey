@@ -29,10 +29,15 @@ export interface AutoLayoutOptions {
 
 const DEFAULT_OPTIONS: Required<AutoLayoutOptions> = {
   direction: 'RIGHT',
-  spacing: 80,
+  // Roomy by default: cramped layouts push edge labels on top of nodes and
+  // each other. Space costs nothing on an infinite canvas.
+  spacing: 120,
   nodeWidth: 64,
   nodeHeight: 64,
 };
+
+/** Perpendicular offset applied to each side of a bidirectional edge pair. */
+const PAIR_ARC = 70;
 
 // ---------------------------------------------------------------------------
 // Core layout function
@@ -101,6 +106,57 @@ export async function autoLayout(
   });
 
   return layoutedNodes;
+}
+
+// ---------------------------------------------------------------------------
+// Edge routing after layout
+// ---------------------------------------------------------------------------
+
+/**
+ * Give every edge a control point that keeps it visible after a re-layout.
+ *
+ * Bidirectional pairs (A→B and B→A — a failure/repair pair in a Markov chain,
+ * say) would otherwise be drawn on the exact same straight line, hiding one
+ * edge and stacking both rate labels. Each side gets a perpendicular offset in
+ * the opposite direction, so the pair arcs apart symmetrically. Single edges
+ * are left on automatic routing (control point cleared).
+ *
+ * Returns new edges; positions come from the freshly laid-out nodes.
+ */
+export function routeEdgesAfterLayout(nodes: Node[], edges: Edge[]): Edge[] {
+  const center = new Map<string, { x: number; y: number }>();
+  for (const n of nodes) {
+    const w = (n as { measured?: { width?: number } }).measured?.width ?? n.width ?? 64;
+    const h = (n as { measured?: { height?: number } }).measured?.height ?? n.height ?? 64;
+    center.set(n.id, { x: n.position.x + w / 2, y: n.position.y + h / 2 });
+  }
+
+  const hasReverse = (e: Edge) =>
+    edges.some((o) => o.source === e.target && o.target === e.source);
+
+  return edges.map((e) => {
+    const data = { ...(e.data ?? {}) } as Record<string, unknown>;
+    const a = center.get(e.source);
+    const b = center.get(e.target);
+
+    if (!a || !b || !hasReverse(e)) {
+      // Straight/automatic routing.
+      data.cpX = null;
+      data.cpY = null;
+      return { ...e, data };
+    }
+
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const len = Math.hypot(dx, dy) || 1;
+    // Offset along the perpendicular of THIS edge's own direction. The reverse
+    // edge's (dx,dy) are negated, so its perpendicular points the other way and
+    // the pair arcs to opposite sides. (A shared, id-derived sign would push
+    // both edges the same way — they'd still overlap.)
+    data.cpX = (a.x + b.x) / 2 + (-dy / len) * PAIR_ARC;
+    data.cpY = (a.y + b.y) / 2 + (dx / len) * PAIR_ARC;
+    return { ...e, data };
+  });
 }
 
 // ---------------------------------------------------------------------------
