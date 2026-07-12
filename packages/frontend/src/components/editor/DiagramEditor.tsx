@@ -5,6 +5,7 @@ import {
   Background,
   BackgroundVariant,
   MarkerType,
+  MiniMap,
   SelectionMode,
   type ReactFlowInstance,
 } from '@xyflow/react';
@@ -49,8 +50,10 @@ function DiagramEditorInner({ onNavigateBack, onSave, onCreateSnapshot, diagramN
   const selectedNodeId = useDiagramStore((s) => s.selectedNodeId);
   const clearSelection = useDiagramStore((s) => s.clearSelection);
   const deleteSelected = useDiagramStore((s) => s.deleteSelected);
+  const nudgeSelection = useDiagramStore((s) => s.nudgeSelection);
 
   const background = useEditorPrefs((s) => s.background);
+  const minimap = useEditorPrefs((s) => s.minimap);
 
   const config = getDiagramTypeConfig(diagramType);
   const nodeTypes = useMemo(() => config?.nodeTypes ?? {}, [config]);
@@ -130,18 +133,37 @@ function DiagramEditorInner({ onNavigateBack, onSave, onCreateSnapshot, diagramN
 
   const onKeyDown = useCallback(
     (event: KeyboardEvent<HTMLDivElement>) => {
+      const target = event.target as HTMLElement;
+      const inEditable =
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT' ||
+        target.isContentEditable;
+
       if (event.key === 'Delete' || event.key === 'Backspace') {
-        const target = event.target as HTMLElement;
-        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') {
-          return;
-        }
+        if (inEditable) return;
         deleteSelected();
       }
       if (event.key === 'Escape') {
         clearSelection();
       }
+
+      // Arrow-key nudging: one grid step, or a coarse step with Shift.
+      const NUDGE = [16, 16] as const; // matches snapGrid
+      const deltas: Record<string, [number, number]> = {
+        ArrowLeft: [-1, 0],
+        ArrowRight: [1, 0],
+        ArrowUp: [0, -1],
+        ArrowDown: [0, 1],
+      };
+      const dir = deltas[event.key];
+      if (dir && !inEditable) {
+        event.preventDefault(); // don't scroll the pane
+        const step = event.shiftKey ? 4 : 1;
+        nudgeSelection(dir[0] * NUDGE[0] * step, dir[1] * NUDGE[1] * step);
+      }
     },
-    [deleteSelected, clearSelection],
+    [deleteSelected, clearSelection, nudgeSelection],
   );
 
   const onNodeClick = useCallback(
@@ -221,6 +243,20 @@ function DiagramEditorInner({ onNavigateBack, onSave, onCreateSnapshot, diagramN
                 gap={16}
                 size={1}
                 color="var(--dg-canvas-dots)"
+              />
+            )}
+            {minimap && (
+              <MiniMap
+                pannable
+                zoomable
+                // Mirror each node's custom color so the minimap is readable
+                // against a recolored diagram.
+                nodeColor={(n) =>
+                  ((n.data as { color?: string })?.color ??
+                    (n.data as { fillColor?: string })?.fillColor ??
+                    '#94a3b8')
+                }
+                className="!bg-white dark:!bg-surface-100 !border !border-surface-200 dark:!border-surface-300"
               />
             )}
             <SelectionOverlay selections={selections} nodes={nodes} />

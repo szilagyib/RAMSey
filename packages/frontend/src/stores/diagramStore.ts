@@ -15,6 +15,8 @@ import { getDiagramTypeConfig } from '../diagram-types/registry';
 // Store shape
 // ---------------------------------------------------------------------------
 
+export type AlignAxis = 'left' | 'right' | 'top' | 'bottom' | 'center-x' | 'center-y';
+
 /** What undo/redo restores. Selection is deliberately not part of history. */
 interface HistorySnapshot {
   nodes: Node[];
@@ -47,6 +49,12 @@ export interface DiagramStore {
   copySelection: () => boolean;
   paste: () => void;
   duplicateSelection: () => void;
+
+  // Alignment / distribution of the current multi-selection
+  alignSelection: (axis: AlignAxis) => void;
+  distributeSelection: (axis: 'horizontal' | 'vertical') => void;
+  /** Move the selection by a delta (arrow-key nudging). */
+  nudgeSelection: (dx: number, dy: number) => void;
 
   // React Flow event handlers
   onNodesChange: (changes: NodeChange[]) => void;
@@ -96,6 +104,32 @@ let historySuppressed = false;
 /** How many times the current clipboard has been pasted (drives the offset). */
 let pasteCount = 0;
 const PASTE_OFFSET = 32;
+
+/** Default node box when React Flow hasn't measured yet (matches the palette). */
+const FALLBACK_SIZE = 48;
+
+/** Position + rendered size of a node. */
+function nodeBox(n: Node): { x: number; y: number; w: number; h: number } {
+  const m = (n as { measured?: { width?: number; height?: number } }).measured;
+  return {
+    x: n.position.x,
+    y: n.position.y,
+    w: m?.width ?? n.width ?? FALLBACK_SIZE,
+    h: m?.height ?? n.height ?? FALLBACK_SIZE,
+  };
+}
+
+/**
+ * The nodes an action applies to: React Flow's multi-selection flags, falling
+ * back to the store's single selection.
+ */
+function selectedNodes(state: { nodes: Node[]; selectedNodeId: string | null }): Node[] {
+  const flagged = state.nodes.filter((n) => n.selected);
+  if (flagged.length > 0) return flagged;
+  return state.selectedNodeId
+    ? state.nodes.filter((n) => n.id === state.selectedNodeId)
+    : [];
+}
 
 function takeSnapshot(state: {
   nodes: Node[];
@@ -254,6 +288,116 @@ export const useDiagramStore = create<DiagramStore>((set, get) => ({
 
   duplicateSelection: () => {
     if (get().copySelection()) get().paste();
+  },
+
+  alignSelection: (axis) => {
+    const state = get();
+    const picked = selectedNodes(state);
+    if (picked.length < 2) return; // aligning one node against itself is a no-op
+
+    const boxes = picked.map((n) => ({ id: n.id, ...nodeBox(n) }));
+    // Reference edge/center taken across the whole selection.
+    const left = Math.min(...boxes.map((b) => b.x));
+    const right = Math.max(...boxes.map((b) => b.x + b.w));
+    const top = Math.min(...boxes.map((b) => b.y));
+    const bottom = Math.max(...boxes.map((b) => b.y + b.h));
+    const cx = (left + right) / 2;
+    const cy = (top + bottom) / 2;
+
+    const target = new Map<string, { x?: number; y?: number }>();
+    for (const b of boxes) {
+      switch (axis) {
+        case 'left':
+          target.set(b.id, { x: left });
+          break;
+        case 'right':
+          target.set(b.id, { x: right - b.w });
+          break;
+        case 'top':
+          target.set(b.id, { y: top });
+          break;
+        case 'bottom':
+          target.set(b.id, { y: bottom - b.h });
+          break;
+        case 'center-x':
+          target.set(b.id, { x: cx - b.w / 2 });
+          break;
+        case 'center-y':
+          target.set(b.id, { y: cy - b.h / 2 });
+          break;
+      }
+    }
+
+    get().recordHistory();
+    set({
+      nodes: state.nodes.map((n) => {
+        const t = target.get(n.id);
+        if (!t) return n;
+        return {
+          ...n,
+          position: { x: t.x ?? n.position.x, y: t.y ?? n.position.y },
+        };
+      }),
+    });
+  },
+
+  distributeSelection: (axis) => {
+    const state = get();
+    const picked = selectedNodes(state);
+    // Fewer than three nodes have nothing to distribute *between*.
+    if (picked.length < 3) return;
+
+    const boxes = picked
+      .map((n) => ({ id: n.id, ...nodeBox(n) }))
+      .sort((a, b) => (axis === 'horizontal' ? a.x - b.x : a.y - b.y));
+
+    // Keep the outermost two fixed; space the gaps between the rest evenly so
+    // the overall extent doesn't change.
+    const first = boxes[0];
+    const last = boxes[boxes.length - 1];
+    const totalSpan =
+      axis === 'horizontal' ? last.x + last.w - first.x : last.y + last.h - first.y;
+    const usedBySizes = boxes.reduce((sum, b) => sum + (axis === 'horizontal' ? b.w : b.h), 0);
+    const gap = (totalSpan - usedBySizes) / (boxes.length - 1);
+
+    const target = new Map<string, number>();
+    let cursor = axis === 'horizontal' ? first.x : first.y;
+    for (const b of boxes) {
+      target.set(b.id, cursor);
+      cursor += (axis === 'horizontal' ? b.w : b.h) + gap;
+    }
+
+    get().recordHistory();
+    set({
+      nodes: state.nodes.map((n) => {
+        const t = target.get(n.id);
+        if (t === undefined) return n;
+        return {
+          ...n,
+          position:
+            axis === 'horizontal'
+              ? { x: t, y: n.position.y }
+              : { x: n.position.x, y: t },
+        };
+      }),
+    });
+  },
+
+  nudgeSelection: (dx, dy) => {
+    const state = get();
+    const picked = selectedNodes(state);
+    if (picked.length === 0) return;
+    const ids = new Set(picked.map((n) => n.id));
+
+    // Coalesced: holding an arrow key is one undo entry, not one per repeat.
+    get().recordHistory('nudge');
+    set({
+      nodes: state.nodes.map((n) =>
+        ids.has(n.id)
+          ? { ...n, position: { x: n.position.x + dx, y: n.position.y + dy } }
+          : n,
+      ),
+    });
   },
 
   onNodesChange: (changes: NodeChange[]) => {

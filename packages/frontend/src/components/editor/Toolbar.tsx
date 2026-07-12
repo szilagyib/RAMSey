@@ -15,6 +15,11 @@ import {
   CopyPlus,
   Trash2,
   Grid3x3,
+  AlignHorizontalJustifyCenter,
+  AlignVerticalJustifyCenter,
+  AlignHorizontalDistributeCenter,
+  AlignVerticalDistributeCenter,
+  Map,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { useDiagramStore } from '../../stores/diagramStore';
@@ -70,6 +75,15 @@ export function Toolbar({ onNavigateBack, onSave, onCreateSnapshot, onValidate, 
   const background = useEditorPrefs((s) => s.background);
   const setBackground = useEditorPrefs((s) => s.setBackground);
   const cycleBackground = useEditorPrefs((s) => s.cycleBackground);
+  const minimap = useEditorPrefs((s) => s.minimap);
+  const toggleMinimap = useEditorPrefs((s) => s.toggleMinimap);
+  const alignSelection = useDiagramStore((s) => s.alignSelection);
+  const distributeSelection = useDiagramStore((s) => s.distributeSelection);
+  // Align needs 2+ nodes; distribute needs 3+ (there must be a gap to even out).
+  const selectedCount = useDiagramStore((s) => {
+    const flagged = s.nodes.filter((n) => n.selected).length;
+    return flagged > 0 ? flagged : s.selectedNodeId ? 1 : 0;
+  });
   const getValidationResults = useDiagramStore((s) => s.getValidationResults);
   const { autoLayout } = useAutoLayout();
 
@@ -292,6 +306,53 @@ export function Toolbar({ onNavigateBack, onSave, onCreateSnapshot, onValidate, 
       ],
     },
     {
+      label: 'Align',
+      items: [
+        {
+          label: 'Align Left',
+          onClick: () => alignSelection('left'),
+          disabled: selectedCount < 2,
+        },
+        {
+          label: 'Align Center',
+          onClick: () => alignSelection('center-x'),
+          disabled: selectedCount < 2,
+        },
+        {
+          label: 'Align Right',
+          onClick: () => alignSelection('right'),
+          disabled: selectedCount < 2,
+        },
+        { divider: true },
+        {
+          label: 'Align Top',
+          onClick: () => alignSelection('top'),
+          disabled: selectedCount < 2,
+        },
+        {
+          label: 'Align Middle',
+          onClick: () => alignSelection('center-y'),
+          disabled: selectedCount < 2,
+        },
+        {
+          label: 'Align Bottom',
+          onClick: () => alignSelection('bottom'),
+          disabled: selectedCount < 2,
+        },
+        { divider: true },
+        {
+          label: 'Distribute Horizontally',
+          onClick: () => distributeSelection('horizontal'),
+          disabled: selectedCount < 3,
+        },
+        {
+          label: 'Distribute Vertically',
+          onClick: () => distributeSelection('vertical'),
+          disabled: selectedCount < 3,
+        },
+      ],
+    },
+    {
       label: 'View',
       items: [
         {
@@ -314,6 +375,11 @@ export function Toolbar({ onNavigateBack, onSave, onCreateSnapshot, onValidate, 
           label: `${background === mode ? '✓ ' : '  '}Background: ${mode}`,
           onClick: () => setBackground(mode),
         })),
+        { divider: true },
+        {
+          label: `${minimap ? '✓ ' : '  '}Minimap`,
+          onClick: toggleMinimap,
+        },
         { divider: true },
         {
           label: 'Auto Layout',
@@ -374,6 +440,21 @@ export function Toolbar({ onNavigateBack, onSave, onCreateSnapshot, onValidate, 
             </Button>
             <Button variant="ghost" size="sm" onClick={() => deleteSelected()} disabled={!hasNodeSelection && !hasEdgeSelection} className="h-7 w-7 p-0" title="Delete (Del)">
               <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+
+            {/* Align / distribute — enabled once a multi-selection exists. */}
+            <span className="mx-0.5 h-4 w-px bg-surface-200" />
+            <Button variant="ghost" size="sm" onClick={() => alignSelection('center-y')} disabled={selectedCount < 2} className="h-7 w-7 p-0" title="Align middle (horizontal row)">
+              <AlignHorizontalJustifyCenter className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => alignSelection('center-x')} disabled={selectedCount < 2} className="h-7 w-7 p-0" title="Align center (vertical column)">
+              <AlignVerticalJustifyCenter className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => distributeSelection('horizontal')} disabled={selectedCount < 3} className="h-7 w-7 p-0" title="Distribute horizontally">
+              <AlignHorizontalDistributeCenter className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => distributeSelection('vertical')} disabled={selectedCount < 3} className="h-7 w-7 p-0" title="Distribute vertically">
+              <AlignVerticalDistributeCenter className="h-3.5 w-3.5" />
             </Button>
           </div>
         </div>
@@ -437,6 +518,15 @@ export function Toolbar({ onNavigateBack, onSave, onCreateSnapshot, onValidate, 
             title={`Background: ${background} (click to cycle)`}
           >
             <Grid3x3 className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleMinimap}
+            className={cn('h-7 w-7 p-0', minimap && 'text-primary-600')}
+            title={minimap ? 'Hide minimap' : 'Show minimap'}
+          >
+            <Map className="h-3.5 w-3.5" />
           </Button>
           <span className="mx-0.5 h-4 w-px bg-surface-200" />
           <Button variant="ghost" size="sm" onClick={() => reactFlow.zoomIn()} className="h-7 w-7 p-0" title="Zoom In">
