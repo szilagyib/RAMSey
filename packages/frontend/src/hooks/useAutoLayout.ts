@@ -1,8 +1,20 @@
 import { useCallback } from 'react';
-import ELK from 'elkjs/lib/elk.bundled.js';
 import type { Node, Edge } from '@xyflow/react';
 
-const elk = new ELK();
+// elkjs is ~1.4 MB. It's only needed when the user runs Auto Layout, so load
+// it on demand instead of in the editor's initial bundle. Cached after first use.
+let elkPromise: Promise<{ layout: (g: unknown) => Promise<ElkResult> }> | null = null;
+interface ElkResult {
+  children?: Array<{ id: string; x?: number; y?: number }>;
+}
+async function getElk() {
+  if (!elkPromise) {
+    elkPromise = import('elkjs/lib/elk.bundled.js').then(
+      (m) => new m.default() as { layout: (g: unknown) => Promise<ElkResult> },
+    );
+  }
+  return elkPromise;
+}
 
 // ---------------------------------------------------------------------------
 // ELK layout options
@@ -71,6 +83,7 @@ export async function autoLayout(
     })),
   };
 
+  const elk = await getElk();
   const layoutResult = await elk.layout(elkGraph);
 
   const layoutedNodes = nodes.map((node) => {
