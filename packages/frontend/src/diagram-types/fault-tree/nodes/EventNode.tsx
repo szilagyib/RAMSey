@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { cn } from '../../../lib/utils';
-import { getNodeColor, tintFill } from '../../../lib/nodeColor';
+import { resolveTokenColors } from '../../../lib/nodeColor';
 import type { FaultTreeNodeData } from '../../../types/diagram';
 
 // ---------------------------------------------------------------------------
@@ -77,10 +77,7 @@ function UndevelopedEventSvg({ tokens }: { tokens: EventTokens }) {
 function EventNodeComponent({ data, selected }: NodeProps) {
   const nodeData = data as FaultTreeNodeData;
   const eventType = nodeData.eventType ?? 'basic';
-  const customColor = getNodeColor(data);
-  const tokens: EventTokens = customColor
-    ? { fill: tintFill(customColor), stroke: customColor, text: 'var(--dg-undeveloped-text)' }
-    : (eventTokens[eventType] ?? eventTokens.basic);
+  const tokens: EventTokens = resolveTokenColors(data, eventTokens[eventType] ?? eventTokens.basic);
   const isBox = eventType === 'top' || eventType === 'intermediate';
 
   const selectedGlow = selected

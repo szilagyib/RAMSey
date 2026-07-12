@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { cn } from '../../../lib/utils';
-import { getNodeColor, tintFill } from '../../../lib/nodeColor';
+import { resolveTokenColors } from '../../../lib/nodeColor';
 import type { BowTieNodeData } from '../../../types/diagram';
 
 // ---------------------------------------------------------------------------
@@ -11,7 +11,11 @@ import type { BowTieNodeData } from '../../../types/diagram';
 
 function TopEventNodeComponent({ data, selected }: NodeProps) {
   const nodeData = data as BowTieNodeData;
-  const customColor = getNodeColor(data);
+  const tokens = resolveTokenColors(data, {
+    fill: 'var(--dg-intermediate-fill)',
+    stroke: 'var(--dg-intermediate-stroke)',
+    text: 'var(--dg-intermediate-text)',
+  });
 
   return (
     <div className="relative flex h-20 w-20 items-center justify-center">
@@ -29,16 +33,13 @@ function TopEventNodeComponent({ data, selected }: NodeProps) {
           'absolute h-12 w-12 rotate-45 border-2 transition-shadow',
           selected && 'ring-2 ring-amber-300',
         )}
-        style={{
-          background: customColor ? tintFill(customColor) : 'var(--dg-intermediate-fill)',
-          borderColor: customColor ?? 'var(--dg-intermediate-stroke)',
-        }}
+        style={{ background: tokens.fill, borderColor: tokens.stroke }}
       />
 
       {/* Label — not rotated, sits on top of the diamond */}
       <span
         className="relative z-10 max-w-[44px] truncate text-center text-xs font-semibold leading-tight select-none"
-        style={{ color: customColor ? 'var(--dg-undeveloped-text)' : 'var(--dg-intermediate-text)' }}
+        style={{ color: tokens.text }}
       >
         {nodeData.label}
       </span>

@@ -3,6 +3,7 @@ import { BaseEdge, getBezierPath, type EdgeProps } from '@xyflow/react';
 import { EdgeLabel } from '../../shared/EdgeLabel';
 import { EdgeControlPoint } from '../../shared/EdgeControlPoint';
 import { getControlPoint, quadraticPath } from '../../shared/edgeShape';
+import { getEdgeColor } from '../../../lib/nodeColor';
 import { useDiagramStore } from '../../../stores/diagramStore';
 import type { MarkovEdgeData } from '../../../types/diagram';
 
@@ -64,6 +65,8 @@ function TransitionEdgeComponent({
 
   const edgeData = (data ?? { rate: '', probability: '', label: '' }) as MarkovEdgeData;
   const displayLabel = edgeData.label || edgeData.rate || edgeData.probability || '';
+  const custom = getEdgeColor(data);
+  const stroke = custom ?? (selected ? 'var(--dg-edge-selected)' : 'var(--dg-edge)');
 
   return (
     <>
@@ -71,13 +74,10 @@ function TransitionEdgeComponent({
         id={id}
         path={edgePath}
         markerEnd={markerEnd}
-        style={{
-          stroke: selected ? 'var(--dg-edge-selected)' : 'var(--dg-edge)',
-          strokeWidth: selected ? 2 : 1.5,
-        }}
+        style={{ stroke, strokeWidth: selected ? 2 : 1.5 }}
       />
       {displayLabel && (
-        <EdgeLabel x={chipX} y={chipY} accent={selected ? 'var(--dg-edge-selected)' : undefined}>
+        <EdgeLabel x={chipX} y={chipY} accent={selected ? 'var(--dg-edge-selected)' : (custom ?? undefined)}>
           {displayLabel}
         </EdgeLabel>
       )}

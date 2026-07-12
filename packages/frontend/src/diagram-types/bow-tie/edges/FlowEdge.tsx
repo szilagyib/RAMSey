@@ -3,6 +3,7 @@ import { BaseEdge, getSmoothStepPath, type EdgeProps } from '@xyflow/react';
 import { EdgeLabel } from '../../shared/EdgeLabel';
 import { EdgeControlPoint } from '../../shared/EdgeControlPoint';
 import { getControlPoint } from '../../shared/edgeShape';
+import { getEdgeColor } from '../../../lib/nodeColor';
 import type { BowTieEdgeData } from '../../../types/diagram';
 
 // ---------------------------------------------------------------------------
@@ -38,20 +39,14 @@ function FlowEdgeComponent({
 
   const edgeData = (data ?? { label: '' }) as BowTieEdgeData;
   const displayLabel = edgeData.label || '';
+  const custom = getEdgeColor(data);
+  const stroke = custom ?? (selected ? 'var(--dg-edge-selected)' : 'var(--dg-edge)');
 
   return (
     <>
-      <BaseEdge
-        id={id}
-        path={edgePath}
-        markerEnd={markerEnd}
-        style={{
-          stroke: selected ? 'var(--dg-edge-selected)' : 'var(--dg-edge)',
-          strokeWidth: selected ? 2 : 1.5,
-        }}
-      />
+      <BaseEdge id={id} path={edgePath} markerEnd={markerEnd} style={{ stroke, strokeWidth: selected ? 2 : 1.5 }} />
       {displayLabel && (
-        <EdgeLabel x={labelX} y={labelY} accent={selected ? 'var(--dg-edge-selected)' : undefined}>
+        <EdgeLabel x={labelX} y={labelY} accent={selected ? 'var(--dg-edge-selected)' : (custom ?? undefined)}>
           {displayLabel}
         </EdgeLabel>
       )}

@@ -3,6 +3,7 @@ import { BaseEdge, getSmoothStepPath, type EdgeProps } from '@xyflow/react';
 import { EdgeLabel } from '../../shared/EdgeLabel';
 import { EdgeControlPoint } from '../../shared/EdgeControlPoint';
 import { getControlPoint } from '../../shared/edgeShape';
+import { getEdgeColor } from '../../../lib/nodeColor';
 import type { EventTreeEdgeData } from '../../../types/diagram';
 
 // ---------------------------------------------------------------------------
@@ -39,7 +40,8 @@ function BranchEdgeComponent({
   const edgeData = (data ?? { label: '', branchType: 'success' }) as EventTreeEdgeData;
   const isSuccess = edgeData.branchType === 'success';
   const displayLabel = edgeData.label || edgeData.probability || '';
-  const stroke = isSuccess ? 'var(--dg-success)' : 'var(--dg-failure)';
+  // A user color overrides the success/failure convention for this edge.
+  const stroke = getEdgeColor(data) ?? (isSuccess ? 'var(--dg-success)' : 'var(--dg-failure)');
 
   return (
     <>

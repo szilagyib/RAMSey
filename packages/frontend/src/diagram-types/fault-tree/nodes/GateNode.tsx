@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { cn } from '../../../lib/utils';
-import { getNodeColor, tintFill } from '../../../lib/nodeColor';
+import { resolveTokenColors, hasCustomColor, resolveNodeColors } from '../../../lib/nodeColor';
 import type { FaultTreeNodeData } from '../../../types/diagram';
 
 // ---------------------------------------------------------------------------
@@ -151,16 +151,18 @@ function GateNodeComponent({ data, selected }: NodeProps) {
   const kOfNProps =
     gateType === 'K_OF_N' ? { k: nodeData.k ?? 1, n: undefined } : {};
 
-  // A user-picked color re-points the gate tokens for this node only — the
-  // SVG shapes resolve var(--dg-gate-*) from the nearest ancestor.
-  const customColor = getNodeColor(data);
+  // User-picked colors re-point the gate tokens for this node only — the SVG
+  // shapes resolve var(--dg-gate-*) from the nearest ancestor.
+  const custom = hasCustomColor(resolveNodeColors(data));
+  const tokens = resolveTokenColors(data, {
+    fill: 'var(--dg-gate-fill)',
+    stroke: 'var(--dg-gate-stroke)',
+    text: 'var(--dg-gate-stroke)',
+  });
   const wrapperStyle: React.CSSProperties = {
     ...(selected ? { filter: 'drop-shadow(0 0 6px var(--dg-select-glow))' } : {}),
-    ...(customColor
-      ? ({
-          '--dg-gate-fill': tintFill(customColor),
-          '--dg-gate-stroke': customColor,
-        } as React.CSSProperties)
+    ...(custom
+      ? ({ '--dg-gate-fill': tokens.fill, '--dg-gate-stroke': tokens.stroke } as React.CSSProperties)
       : {}),
   };
 
@@ -182,7 +184,7 @@ function GateNodeComponent({ data, selected }: NodeProps) {
 
       <span
         className="mt-0.5 max-w-[80px] truncate text-center text-[9px] font-semibold uppercase tracking-wider select-none"
-        style={{ color: STROKE }}
+        style={{ color: custom ? tokens.text : STROKE }}
       >
         {nodeData.label || gateCaptions[gateType]}
       </span>
