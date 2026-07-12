@@ -7,6 +7,7 @@ import {
   MarkerType,
   MiniMap,
   SelectionMode,
+  type NodeChange,
   type ReactFlowInstance,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -21,6 +22,8 @@ import { ValidationPanel } from './ValidationPanel';
 import { AnalysisPanel } from './AnalysisPanel';
 import { CursorsOverlay } from './CursorsOverlay';
 import { SelectionOverlay } from './SelectionOverlay';
+import { GuideOverlay } from './GuideOverlay';
+import { computeSnap, boxOf, type Guide } from '../../lib/alignmentGuides';
 import { useCollaboration } from '../../hooks/useCollaboration';
 
 interface DiagramEditorProps {
@@ -188,6 +191,51 @@ function DiagramEditorInner({ onNavigateBack, onSave, onCreateSnapshot, diagramN
     clearSelection();
   }, [clearSelection]);
 
+  // ---- Alignment guides -------------------------------------------------
+  // While a node is dragged, snap it to the edges/centers of the other nodes
+  // and show the lines it aligned to.
+  //
+  // The snap is applied by rewriting the position CHANGE before React Flow
+  // applies it — not by writing the store afterwards, which RF's internal drag
+  // state would just overwrite on the next frame.
+  const [guides, setGuides] = useState<Guide[]>([]);
+
+  const handleNodesChange = useCallback(
+    (changes: NodeChange[]) => {
+      // Any position change carrying a position is snappable — including the
+      // FINAL one of a drag (dragging: false), which otherwise overwrites the
+      // snapped position with the raw pointer position.
+      const move = changes.find(
+        (c): c is NodeChange & {
+          id: string;
+          position: { x: number; y: number };
+          dragging?: boolean;
+        } => c.type === 'position' && !!(c as { position?: unknown }).position,
+      );
+
+      if (!move) {
+        onNodesChange(changes);
+        return;
+      }
+
+      const all = useDiagramStore.getState().nodes;
+      const dragged = all.find((n) => n.id === move.id);
+      if (dragged) {
+        // Compare against every other node that isn't part of the drag.
+        const others = all.filter((n) => n.id !== move.id && !n.selected).map(boxOf);
+        const box = { ...boxOf(dragged), x: move.position.x, y: move.position.y };
+        const { position, guides: found } = computeSnap(box, others);
+
+        move.position = position;
+        // Guides only show mid-drag; the last event ends the gesture.
+        setGuides(move.dragging ? found : []);
+      }
+
+      onNodesChange(changes);
+    },
+    [onNodesChange],
+  );
+
   return (
     <div className="flex h-full min-h-0 w-full flex-col" onKeyDown={onKeyDown} tabIndex={0}>
       <Toolbar
@@ -206,7 +254,7 @@ function DiagramEditorInner({ onNavigateBack, onSave, onCreateSnapshot, diagramN
           <ReactFlow
             nodes={nodes}
             edges={edges}
-            onNodesChange={onNodesChange}
+            onNodesChange={handleNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
             onInit={(instance) => {
@@ -214,6 +262,7 @@ function DiagramEditorInner({ onNavigateBack, onSave, onCreateSnapshot, diagramN
             }}
             onDragOver={onDragOver}
             onDrop={onDrop}
+            onNodeDragStop={() => setGuides([])}
             onNodeClick={onNodeClick}
             onEdgeClick={onEdgeClick}
             onPaneClick={onPaneClick}
@@ -224,8 +273,11 @@ function DiagramEditorInner({ onNavigateBack, onSave, onCreateSnapshot, diagramN
             fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
             minZoom={0.2}
             maxZoom={2}
-            snapToGrid
-            snapGrid={[16, 16]}
+            // Snap-to-grid is deliberately OFF: alignment guides snap to the
+            // real geometry of neighbouring nodes, and a grid lattice would
+            // fight them (a node would jump to the grid instead of to the line
+            // it just aligned with). Arrow-key nudging still moves in 16px
+            // grid steps, so grid-aligned placement remains available.
             deleteKeyCode={null}
             // Drawing-app selection model: left-drag on the canvas draws a
             // rubber-band rectangle (touching an element selects it); panning
@@ -259,6 +311,7 @@ function DiagramEditorInner({ onNavigateBack, onSave, onCreateSnapshot, diagramN
                 className="!bg-white dark:!bg-surface-100 !border !border-surface-200 dark:!border-surface-300"
               />
             )}
+            <GuideOverlay guides={guides} />
             <SelectionOverlay selections={selections} nodes={nodes} />
             <CursorsOverlay cursors={cursors} />
           </ReactFlow>
