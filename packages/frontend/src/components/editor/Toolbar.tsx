@@ -1,6 +1,20 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useReactFlow } from '@xyflow/react';
-import { ZoomIn, ZoomOut, Maximize2, AlertTriangle, CheckCircle, ArrowLeft, LayoutGrid } from 'lucide-react';
+import {
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
+  AlertTriangle,
+  CheckCircle,
+  ArrowLeft,
+  LayoutGrid,
+  Undo2,
+  Redo2,
+  Copy,
+  ClipboardPaste,
+  CopyPlus,
+  Trash2,
+} from 'lucide-react';
 import { Button } from '../ui/Button';
 import { useDiagramStore } from '../../stores/diagramStore';
 import { getDiagramTypeConfig } from '../../diagram-types/registry';
@@ -45,6 +59,9 @@ export function Toolbar({ onNavigateBack, onSave, onCreateSnapshot, onValidate, 
   const duplicateSelection = useDiagramStore((s) => s.duplicateSelection);
   const hasNodeSelection = useDiagramStore(
     (s) => s.selectedNodeId !== null || s.nodes.some((n) => n.selected),
+  );
+  const hasEdgeSelection = useDiagramStore(
+    (s) => s.selectedEdgeId !== null || s.edges.some((e) => e.selected),
   );
   const canPaste = useDiagramStore((s) => s.clipboard !== null);
   const getValidationResults = useDiagramStore((s) => s.getValidationResults);
@@ -323,6 +340,31 @@ export function Toolbar({ onNavigateBack, onSave, onCreateSnapshot, onValidate, 
           <span className="text-[10px] text-surface-400">{typeName}</span>
           <div className="ml-1 h-4 w-px bg-surface-200" />
           <MenuBar menus={menus} />
+
+          {/* Editing action group — the common operations mirrored from the
+              Edit menu so they're one click away. */}
+          <div className="ml-1 h-4 w-px bg-surface-200" />
+          <div className="flex items-center gap-0.5">
+            <Button variant="ghost" size="sm" onClick={() => undo()} disabled={!canUndo} className="h-7 w-7 p-0" title="Undo (Ctrl+Z)">
+              <Undo2 className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => redo()} disabled={!canRedo} className="h-7 w-7 p-0" title="Redo (Ctrl+Shift+Z)">
+              <Redo2 className="h-3.5 w-3.5" />
+            </Button>
+            <span className="mx-0.5 h-4 w-px bg-surface-200" />
+            <Button variant="ghost" size="sm" onClick={() => copySelection()} disabled={!hasNodeSelection} className="h-7 w-7 p-0" title="Copy (Ctrl+C)">
+              <Copy className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => paste()} disabled={!canPaste} className="h-7 w-7 p-0" title="Paste (Ctrl+V)">
+              <ClipboardPaste className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => duplicateSelection()} disabled={!hasNodeSelection} className="h-7 w-7 p-0" title="Duplicate (Ctrl+D)">
+              <CopyPlus className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => deleteSelected()} disabled={!hasNodeSelection && !hasEdgeSelection} className="h-7 w-7 p-0" title="Delete (Del)">
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
         </div>
 
         <div className="flex items-center gap-1">
