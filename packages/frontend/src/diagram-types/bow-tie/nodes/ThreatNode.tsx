@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { cn } from '../../../lib/utils';
+import { nodeColorStyle } from '../../../lib/nodeColor';
 import type { BowTieNodeData } from '../../../types/diagram';
 
 // ---------------------------------------------------------------------------
@@ -19,6 +20,7 @@ function ThreatNodeComponent({ data, selected }: NodeProps) {
           'border-red-400 bg-red-900 dark:bg-red-50 text-red-100 dark:text-red-900',
           selected && 'ring-2 ring-red-300',
         )}
+        style={nodeColorStyle(data)}
       >
         <span className="w-full truncate text-center text-sm font-semibold select-none">
           {nodeData.label}

@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { cn } from '../../../lib/utils';
+import { nodeColorStyle } from '../../../lib/nodeColor';
 import type { BowTieNodeData } from '../../../types/diagram';
 
 // ---------------------------------------------------------------------------
@@ -27,11 +28,13 @@ function ConsequenceNodeComponent({ data, selected }: NodeProps) {
           'flex h-12 w-28 items-center justify-center overflow-hidden rounded-lg border-2 px-2 transition-shadow',
           selected && 'ring-2 ring-purple-300',
         )}
-        style={{
-          background: 'var(--dg-consequence-fill)',
-          borderColor: 'var(--dg-consequence-stroke)',
-          color: 'var(--dg-consequence-text)',
-        }}
+        style={
+          nodeColorStyle(data) ?? {
+            background: 'var(--dg-consequence-fill)',
+            borderColor: 'var(--dg-consequence-stroke)',
+            color: 'var(--dg-consequence-text)',
+          }
+        }
       >
         <span className="w-full truncate text-center text-sm font-semibold select-none">
           {nodeData.label}

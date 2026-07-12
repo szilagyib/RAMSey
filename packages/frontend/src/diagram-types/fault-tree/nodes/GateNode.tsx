@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { cn } from '../../../lib/utils';
+import { getNodeColor, tintFill } from '../../../lib/nodeColor';
 import type { FaultTreeNodeData } from '../../../types/diagram';
 
 // ---------------------------------------------------------------------------
@@ -150,10 +151,23 @@ function GateNodeComponent({ data, selected }: NodeProps) {
   const kOfNProps =
     gateType === 'K_OF_N' ? { k: nodeData.k ?? 1, n: undefined } : {};
 
+  // A user-picked color re-points the gate tokens for this node only — the
+  // SVG shapes resolve var(--dg-gate-*) from the nearest ancestor.
+  const customColor = getNodeColor(data);
+  const wrapperStyle: React.CSSProperties = {
+    ...(selected ? { filter: 'drop-shadow(0 0 6px var(--dg-select-glow))' } : {}),
+    ...(customColor
+      ? ({
+          '--dg-gate-fill': tintFill(customColor),
+          '--dg-gate-stroke': customColor,
+        } as React.CSSProperties)
+      : {}),
+  };
+
   return (
     <div
       className={cn('relative flex flex-col items-center transition-[filter]')}
-      style={selected ? { filter: 'drop-shadow(0 0 6px var(--dg-select-glow))' } : undefined}
+      style={wrapperStyle}
     >
       {/* Tree edges run parent → child: the top handle receives the edge from
           the parent event; the bottom handle feeds this gate's inputs below. */}

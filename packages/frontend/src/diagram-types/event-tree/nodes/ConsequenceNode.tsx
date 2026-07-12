@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { cn } from '../../../lib/utils';
+import { nodeColorStyle } from '../../../lib/nodeColor';
 import type { EventTreeNodeData } from '../../../types/diagram';
 
 // ---------------------------------------------------------------------------
@@ -32,12 +33,14 @@ function ConsequenceNodeComponent({ data, selected }: NodeProps) {
             : 'bg-gray-50 border-gray-400',
           selected && (isSuccess ? 'ring-2 ring-green-300' : 'ring-2 ring-gray-300'),
         )}
+        style={nodeColorStyle(data)}
       >
         <span
           className={cn(
             'w-full truncate text-center text-sm font-semibold select-none',
             isSuccess ? 'text-green-100 dark:text-green-900' : 'text-gray-900',
           )}
+          style={nodeColorStyle(data) && { color: 'inherit' }}
         >
           {nodeData.label}
         </span>

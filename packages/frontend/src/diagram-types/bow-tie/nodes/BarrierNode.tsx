@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { cn } from '../../../lib/utils';
+import { nodeColorStyle } from '../../../lib/nodeColor';
 import type { BowTieNodeData } from '../../../types/diagram';
 
 // ---------------------------------------------------------------------------
@@ -54,13 +55,18 @@ function BarrierNodeComponent({ data, selected }: NodeProps) {
           style.border,
           selected && `ring-2 ${style.ring}`,
         )}
+        style={nodeColorStyle(data)}
       >
         <span
           className={cn(
             'text-[10px] font-semibold leading-tight select-none',
             style.text,
           )}
-          style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
+          style={{
+            writingMode: 'vertical-rl',
+            textOrientation: 'mixed',
+            ...(nodeColorStyle(data) ? { color: 'inherit' } : {}),
+          }}
         >
           {nodeData.label}
         </span>

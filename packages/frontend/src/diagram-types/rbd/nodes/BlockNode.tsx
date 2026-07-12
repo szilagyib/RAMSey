@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { cn } from '../../../lib/utils';
+import { nodeColorStyle } from '../../../lib/nodeColor';
 import type { RBDNodeData } from '../../../types/diagram';
 
 // ---------------------------------------------------------------------------
@@ -26,8 +27,12 @@ function BlockNodeComponent({ data, selected }: NodeProps) {
           'border-blue-400',
           selected && 'ring-2 ring-blue-300',
         )}
+        style={nodeColorStyle(data)}
       >
-        <span className="w-full truncate text-center text-sm font-semibold text-primary-800 dark:text-primary-300 select-none">
+        <span
+          className="w-full truncate text-center text-sm font-semibold text-primary-800 dark:text-primary-300 select-none"
+          style={nodeColorStyle(data) && { color: 'inherit' }}
+        >
           {nodeData.label}
         </span>
 

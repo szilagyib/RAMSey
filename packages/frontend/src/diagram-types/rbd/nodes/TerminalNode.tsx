@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { cn } from '../../../lib/utils';
+import { nodeColorStyle } from '../../../lib/nodeColor';
 import type { RBDNodeData } from '../../../types/diagram';
 
 // ---------------------------------------------------------------------------
@@ -53,8 +54,12 @@ function TerminalNodeComponent({ data, selected }: NodeProps) {
           style.border,
           selected && `ring-2 ${style.ring}`,
         )}
+        style={nodeColorStyle(data)}
       >
-        <span className={cn('text-xs font-semibold select-none', style.text)}>
+        <span
+          className={cn('text-xs font-semibold select-none', style.text)}
+          style={nodeColorStyle(data) && { color: 'inherit' }}
+        >
           {nodeData.label}
         </span>
       </div>

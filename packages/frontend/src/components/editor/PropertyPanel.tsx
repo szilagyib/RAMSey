@@ -1,5 +1,55 @@
 import { useDiagramStore } from '../../stores/diagramStore';
 import { Input } from '../ui/Input';
+import { getNodeColor, NODE_COLOR_PRESETS } from '../../lib/nodeColor';
+import { cn } from '../../lib/utils';
+
+function NodeColorRow({ nodeId, data }: { nodeId: string; data: Record<string, unknown> }) {
+  const updateNodeData = useDiagramStore((s) => s.updateNodeData);
+  const current = getNodeColor(data);
+
+  // Swatch/reset clicks are discrete decisions — each gets its own undo entry
+  // (runInHistoryEntry breaks the keystroke-coalescing window). The native
+  // picker stays coalesced: dragging it fires a continuous onChange stream.
+  const setDiscrete = (color: string | null) => {
+    useDiagramStore.getState().runInHistoryEntry(() => updateNodeData(nodeId, { color }));
+  };
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-sm font-medium text-surface-700">color</span>
+      <div className="flex flex-wrap items-center gap-1.5">
+        {NODE_COLOR_PRESETS.map((preset) => (
+          <button
+            key={preset}
+            title={preset}
+            aria-label={`Set color ${preset}`}
+            onClick={() => setDiscrete(preset)}
+            className={cn(
+              'h-5 w-5 rounded-full border transition-transform hover:scale-110',
+              current === preset ? 'border-2 border-surface-700' : 'border-surface-300',
+            )}
+            style={{ background: preset }}
+          />
+        ))}
+        <input
+          type="color"
+          aria-label="Node color"
+          value={current ?? '#64748b'}
+          onChange={(e) => updateNodeData(nodeId, { color: e.target.value })}
+          className="h-6 w-8 cursor-pointer rounded border border-surface-300 bg-transparent p-0"
+        />
+        {current && (
+          <button
+            onClick={() => setDiscrete(null)}
+            className="text-xs text-surface-400 hover:text-surface-600 hover:underline"
+          >
+            Reset
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function GenericNodeProperties({ nodeId }: { nodeId: string }) {
   const nodes = useDiagramStore((s) => s.nodes);
@@ -10,8 +60,11 @@ function GenericNodeProperties({ nodeId }: { nodeId: string }) {
 
   const data = node.data as Record<string, unknown>;
 
+  // 'color' gets its dedicated picker row below, not a raw text input.
   const editableKeys = Object.keys(data).filter(
-    (key) => typeof data[key] === 'string' || typeof data[key] === 'number' || typeof data[key] === 'boolean',
+    (key) =>
+      key !== 'color' &&
+      (typeof data[key] === 'string' || typeof data[key] === 'number' || typeof data[key] === 'boolean'),
   );
 
   return (
@@ -49,6 +102,8 @@ function GenericNodeProperties({ nodeId }: { nodeId: string }) {
           />
         );
       })}
+
+      <NodeColorRow nodeId={nodeId} data={data} />
 
       <p className="text-xs text-surface-400">ID: {nodeId}</p>
     </div>

@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { cn } from '../../../lib/utils';
+import { nodeColorStyle } from '../../../lib/nodeColor';
 import type { MarkovNodeData } from '../../../types/diagram';
 
 // ---------------------------------------------------------------------------
@@ -45,6 +46,7 @@ function StateNodeComponent({ data, selected }: NodeProps) {
   const nodeData = data as MarkovNodeData;
   const style = stateStyles[nodeData.stateType] ?? stateStyles.operational;
   const isAbsorbing = nodeData.stateType === 'absorbing';
+  const custom = nodeColorStyle(data);
 
   return (
     <>
@@ -64,6 +66,7 @@ function StateNodeComponent({ data, selected }: NodeProps) {
           selected && `ring-2 ${style.ring}`,
           nodeData.isInitial && 'ring-2 ring-offset-2 ring-primary-400',
         )}
+        style={custom && isAbsorbing ? { borderColor: custom.borderColor } : undefined}
       >
         <div
           className={cn(
@@ -71,8 +74,12 @@ function StateNodeComponent({ data, selected }: NodeProps) {
             style.bg,
             style.border,
           )}
+          style={custom}
         >
-          <span className={cn('text-sm font-semibold select-none', style.text)}>
+          <span
+            className={cn('text-sm font-semibold select-none', style.text)}
+            style={custom ? { color: custom.color } : undefined}
+          >
             {nodeData.label}
           </span>
         </div>

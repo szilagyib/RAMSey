@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { cn } from '../../../lib/utils';
+import { nodeColorStyle } from '../../../lib/nodeColor';
 import type { EventTreeNodeData } from '../../../types/diagram';
 
 // ---------------------------------------------------------------------------
@@ -26,8 +27,12 @@ function InitiatingEventNodeComponent({ data, selected }: NodeProps) {
           'bg-red-900 dark:bg-red-50 border-orange-400',
           selected && 'ring-2 ring-orange-300',
         )}
+        style={nodeColorStyle(data)}
       >
-        <span className="w-full truncate text-center text-sm font-semibold text-red-100 dark:text-red-900 select-none">
+        <span
+          className="w-full truncate text-center text-sm font-semibold text-red-100 dark:text-red-900 select-none"
+          style={nodeColorStyle(data) && { color: 'inherit' }}
+        >
           {nodeData.label}
         </span>
       </div>
