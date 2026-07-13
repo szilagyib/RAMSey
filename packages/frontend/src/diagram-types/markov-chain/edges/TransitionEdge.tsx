@@ -1,8 +1,9 @@
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import { BaseEdge, getBezierPath, type EdgeProps } from '@xyflow/react';
 import { EdgeLabel } from '../../shared/EdgeLabel';
+import { ARROW_MARKER } from '../../shared/EdgeMarkers';
 import { EdgeControlPoint } from '../../shared/EdgeControlPoint';
-import { getControlPoint, quadraticPath } from '../../shared/edgeShape';
+import { getControlPoint, quadraticPath, trimQuadraticAtDisc, type Disc } from '../../shared/edgeShape';
 import { getEdgeColor } from '../../../lib/nodeColor';
 import { useDiagramStore } from '../../../stores/diagramStore';
 import type { MarkovEdgeData } from '../../../types/diagram';
@@ -25,15 +26,34 @@ function TransitionEdgeComponent({
   targetPosition,
   data,
   selected,
-  markerEnd,
 }: EdgeProps) {
   const cp = getControlPoint(data);
+
+  // The target's circle, so a curve that would dive under it can be stopped at
+  // the rim and keep its arrowhead visible (see trimQuadraticAtDisc).
+  const targetNode = useDiagramStore((s) => s.nodes.find((n) => n.id === target));
+  const targetDisc = useMemo((): Disc | null => {
+    if (!targetNode) return null;
+    const w = targetNode.measured?.width ?? targetNode.width ?? 0;
+    const h = targetNode.measured?.height ?? targetNode.height ?? 0;
+    if (!w || !h) return null;
+    return {
+      cx: targetNode.position.x + w / 2,
+      cy: targetNode.position.y + h / 2,
+      r: Math.min(w, h) / 2,
+    };
+  }, [targetNode]);
 
   let edgePath: string;
   let labelX: number;
   let labelY: number;
   if (cp) {
+    // Label stays on the full curve's midpoint; only the drawn path is trimmed.
     [edgePath, labelX, labelY] = quadraticPath(sourceX, sourceY, cp.x, cp.y, targetX, targetY);
+    if (targetDisc) {
+      edgePath =
+        trimQuadraticAtDisc(sourceX, sourceY, cp.x, cp.y, targetX, targetY, targetDisc) ?? edgePath;
+    }
   } else {
     [edgePath, labelX, labelY] = getBezierPath({
       sourceX,
@@ -73,7 +93,7 @@ function TransitionEdgeComponent({
       <BaseEdge
         id={id}
         path={edgePath}
-        markerEnd={markerEnd}
+        markerEnd={ARROW_MARKER}
         style={{ stroke, strokeWidth: selected ? 2 : 1.5 }}
       />
       <EdgeLabel

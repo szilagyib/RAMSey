@@ -4,7 +4,6 @@ import {
   ReactFlowProvider,
   Background,
   BackgroundVariant,
-  MarkerType,
   MiniMap,
   SelectionMode,
   ViewportPortal,
@@ -24,6 +23,7 @@ import { AnalysisPanel } from './AnalysisPanel';
 import { CursorsOverlay } from './CursorsOverlay';
 import { SelectionOverlay } from './SelectionOverlay';
 import { GuideOverlay } from './GuideOverlay';
+import { EdgeMarkers } from '../../diagram-types/shared/EdgeMarkers';
 import { InlineLabelEditor } from './InlineLabelEditor';
 import { computeSnap, boxOf, type Guide } from '../../lib/alignmentGuides';
 import { useCollaboration } from '../../hooks/useCollaboration';
@@ -65,20 +65,14 @@ function DiagramEditorInner({ onNavigateBack, onSave, onCreateSnapshot, diagramN
   const edgeTypes = useMemo(() => config?.edgeTypes ?? {}, [config]);
   const defaultEdgeType = config?.defaultEdgeType ?? 'default';
 
-  // Directed arrowheads only where the notation is directed: Markov
-  // transitions, event-tree branches, bow-tie pathways. Fault trees and RBDs
-  // use plain connectors per IEC 61025 / IEC 61078.
-  const isDirected =
-    diagramType === 'markov_chain' || diagramType === 'event_tree' || diagramType === 'bow_tie';
+  // Arrowheads are owned by the edge components themselves (see EdgeMarkers):
+  // directed where the notation is directed — Markov transitions, event-tree
+  // branches, bow-tie pathways — and absent on fault trees and RBDs, which use
+  // plain connectors per IEC 61025 / IEC 61078. Setting markerEnd here instead
+  // would only reach edges drawn by hand, not ones loaded, imported or pasted.
   const defaultEdgeOptions = useMemo(
-    () => ({
-      type: defaultEdgeType,
-      animated: false,
-      ...(isDirected
-        ? { markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16, color: '#94a3b8' } }
-        : {}),
-    }),
-    [defaultEdgeType, isDirected],
+    () => ({ type: defaultEdgeType, animated: false }),
+    [defaultEdgeType],
   );
 
   const [validationOpen, setValidationOpen] = useState(false);
@@ -331,6 +325,7 @@ function DiagramEditorInner({ onNavigateBack, onSave, onCreateSnapshot, diagramN
                 className="!bg-white dark:!bg-surface-100 !border !border-surface-200 dark:!border-surface-300"
               />
             )}
+            <EdgeMarkers />
             <GuideOverlay guides={guides} />
 
             {/* Node label editor, positioned over the node in flow space. */}

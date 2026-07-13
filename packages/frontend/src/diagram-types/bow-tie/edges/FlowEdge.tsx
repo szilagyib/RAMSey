@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { BaseEdge, getSmoothStepPath, type EdgeProps } from '@xyflow/react';
 import { EdgeLabel } from '../../shared/EdgeLabel';
+import { ARROW_MARKER } from '../../shared/EdgeMarkers';
 import { EdgeControlPoint } from '../../shared/EdgeControlPoint';
 import { getControlPoint } from '../../shared/edgeShape';
 import { getEdgeColor } from '../../../lib/nodeColor';
@@ -21,7 +22,6 @@ function FlowEdgeComponent({
   targetPosition,
   data,
   selected,
-  markerEnd,
 }: EdgeProps) {
   // A user-placed control point relocates the middle segment (orthogonal
   // routing is kept).
@@ -44,7 +44,7 @@ function FlowEdgeComponent({
 
   return (
     <>
-      <BaseEdge id={id} path={edgePath} markerEnd={markerEnd} style={{ stroke, strokeWidth: selected ? 2 : 1.5 }} />
+      <BaseEdge id={id} path={edgePath} markerEnd={ARROW_MARKER} style={{ stroke, strokeWidth: selected ? 2 : 1.5 }} />
       <EdgeLabel
         edgeId={id}
         x={labelX}
