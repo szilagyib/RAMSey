@@ -65,6 +65,7 @@ export function Toolbar({ onNavigateBack, onSave, onCreateSnapshot, onValidate, 
   const copySelection = useDiagramStore((s) => s.copySelection);
   const paste = useDiagramStore((s) => s.paste);
   const duplicateSelection = useDiagramStore((s) => s.duplicateSelection);
+  const selectAll = useDiagramStore((s) => s.selectAll);
   const hasNodeSelection = useDiagramStore(
     (s) => s.selectedNodeId !== null || s.nodes.some((n) => n.selected),
   );
@@ -164,13 +165,13 @@ export function Toolbar({ onNavigateBack, onSave, onCreateSnapshot, onValidate, 
           duplicateSelection();
         } else if (key === 'a') {
           e.preventDefault(); // Ctrl+A would select the page text
-          useDiagramStore.getState().selectAll();
+          selectAll();
         }
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [onSave, undo, redo, copySelection, paste, duplicateSelection]);
+  }, [onSave, undo, redo, copySelection, paste, duplicateSelection, selectAll]);
 
   const handleAutoLayout = useCallback(async () => {
     // Fault trees read top-down per the notation; every other type is a
@@ -201,10 +202,6 @@ export function Toolbar({ onNavigateBack, onSave, onCreateSnapshot, onValidate, 
     useDiagramStore.getState().runInHistoryEntry(() => {
       useDiagramStore.setState({ nodes: [], edges: [], nodeCounter: 0, edgeCounter: 0 });
     });
-  }, []);
-
-  const handleSelectAll = useCallback(() => {
-    useDiagramStore.getState().selectAll();
   }, []);
 
   // Menu definitions
@@ -291,7 +288,7 @@ export function Toolbar({ onNavigateBack, onSave, onCreateSnapshot, onValidate, 
         {
           label: 'Select All',
           shortcut: 'Ctrl+A',
-          onClick: handleSelectAll,
+          onClick: selectAll,
         },
         { divider: true },
         {

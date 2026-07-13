@@ -154,7 +154,7 @@ function DiagramEditorInner({ onNavigateBack, onSave, onCreateSnapshot, diagramN
       }
 
       // Arrow-key nudging: one grid step, or a coarse step with Shift.
-      const NUDGE = [16, 16] as const; // matches snapGrid
+      const NUDGE = [16, 16] as const;
       const deltas: Record<string, [number, number]> = {
         ArrowLeft: [-1, 0],
         ArrowRight: [1, 0],
@@ -179,6 +179,10 @@ function DiagramEditorInner({ onNavigateBack, onSave, onCreateSnapshot, diagramN
   const startEditing = useEditorPrefs((s) => s.startEditing);
   const stopEditing = useEditorPrefs((s) => s.stopEditing);
   const updateNodeData = useDiagramStore((s) => s.updateNodeData);
+
+  // Transient UI state, and node ids are only unique within a diagram — carrying
+  // it across a remount would pop an editor open on whatever reuses that id.
+  useEffect(() => stopEditing, [stopEditing]);
 
   const editingNode =
     editing?.kind === 'node' ? nodes.find((n) => n.id === editing.id) : undefined;
