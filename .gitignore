@@ -73,8 +73,18 @@ prisma/migrations/*.sql.bak
 .vercel/
 
 # ─── Local scratch (never committed) ───
+# This repo is public. Internal working notes — plans, TODO lists, feature
+# analyses, AI-assistant config — stay on disk and out of git. Published docs
+# (README, LICENSE, docs/OPERATIONS.md) are the exception, not the rule: if a
+# new .md is not written for someone reading the repo cold, it belongs here.
 chati.txt
 ramsey_master_plan_suggested_improvements_review_notes.md
+RAMSEY_MASTER_PLAN.md
+TODO.md
+docs/EDITOR_FEATURE_ANALYSIS.md
+CLAUDE.md
+.claude/
+docs/superpowers/
 
 # Playwright
 test-results/
