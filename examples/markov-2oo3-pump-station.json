@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "name": "2-out-of-3 pump station with common-cause failure and proof testing",
+  "type": "markov_chain",
+  "exportedAt": "2026-07-13T09:00:00.000Z",
+  "description": "Repairable 2oo3 pump station: three pumps, any two of which meet demand. Unlike the redundant-power example this chain has no absorbing state, so it is irreducible — steady-state availability, MTBF/MTTR and frequency all converge to meaningful values (an absorbing model drives them to 0). Per pump λ = 1e-3/h (MTBF 1000 h), MTTR 8 h, and a single repair crew, so pumps are restored one at a time (S0 → S1 → S2 → OK). Four failure mechanisms compete: independent wear (3λ → 2λ → λ as redundancy is consumed), a β = 2% common-cause failure (shared suction header / power bus) that takes all three pumps at once and needs a 24 h recovery, a monthly proof test (720 h) that deliberately bypasses one pump for 4 h — during which a second failure (2λ) drops the station straight to S1 — and a spurious trip (5e-4/h) that stops the station but resets in an hour. UP = OK, S2, PM (two or more pumps available); DOWN = S1, S0, CCF, SPUR. Try: availability (~0.999), frequency/MTBF/MTTR (the mix of 1 h spurious trips and 24 h common-cause outages is what makes MTTR interesting), transient availability, and sensitivity. For MTTF, mark S0 absorbing — the solver needs an absorbing state and will tell you so otherwise.",
+  "nodes": [
+    {
+      "id": "state-0",
+      "type": "stateNode",
+      "position": { "x": 100, "y": 300 },
+      "data": { "label": "OK", "stateType": "operational", "isInitial": true }
+    },
+    {
+      "id": "state-1",
+      "type": "stateNode",
+      "position": { "x": 340, "y": 300 },
+      "data": { "label": "S2", "stateType": "degraded", "isInitial": false }
+    },
+    {
+      "id": "state-2",
+      "type": "stateNode",
+      "position": { "x": 580, "y": 300 },
+      "data": { "label": "S1", "stateType": "failed", "isInitial": false }
+    },
+    {
+      "id": "state-3",
+      "type": "stateNode",
+      "position": { "x": 820, "y": 300 },
+      "data": { "label": "S0", "stateType": "failed", "isInitial": false }
+    },
+    {
+      "id": "state-4",
+      "type": "stateNode",
+      "position": { "x": 340, "y": 90 },
+      "data": { "label": "PM", "stateType": "degraded", "isInitial": false }
+    },
+    {
+      "id": "state-5",
+      "type": "stateNode",
+      "position": { "x": 340, "y": 510 },
+      "data": { "label": "CCF", "stateType": "failed", "isInitial": false }
+    },
+    {
+      "id": "state-6",
+      "type": "stateNode",
+      "position": { "x": 100, "y": 510 },
+      "data": { "label": "SPUR", "stateType": "failed", "isInitial": false }
+    }
+  ],
+  "edges": [
+    {
+      "id": "transition-0",
+      "type": "transitionEdge",
+      "source": "state-0",
+      "target": "state-1",
+      "data": { "rate": "0.003", "probability": "", "label": "3λ", "cpX": 250, "cpY": 230 }
+    },
+    {
+      "id": "transition-1",
+      "type": "transitionEdge",
+      "source": "state-1",
+      "target": "state-0",
+      "data": { "rate": "0.125", "probability": "", "label": "μ", "cpX": 250, "cpY": 430 }
+    },
+    {
+      "id": "transition-2",
+      "type": "transitionEdge",
+      "source": "state-1",
+      "target": "state-2",
+      "data": { "rate": "0.002", "probability": "", "label": "2λ", "cpX": 490, "cpY": 230 }
+    },
+    {
+      "id": "transition-3",
+      "type": "transitionEdge",
+      "source": "state-2",
+      "target": "state-1",
+      "data": { "rate": "0.125", "probability": "", "label": "μ", "cpX": 490, "cpY": 430 }
+    },
+    {
+      "id": "transition-4",
+      "type": "transitionEdge",
+      "source": "state-2",
+      "target": "state-3",
+      "data": { "rate": "0.001", "probability": "", "label": "λ", "cpX": 730, "cpY": 230 }
+    },
+    {
+      "id": "transition-5",
+      "type": "transitionEdge",
+      "source": "state-3",
+      "target": "state-2",
+      "data": { "rate": "0.125", "probability": "", "label": "μ", "cpX": 730, "cpY": 430 }
+    },
+    {
+      "id": "transition-6",
+      "type": "transitionEdge",
+      "source": "state-0",
+      "target": "state-4",
+      "data": { "rate": "0.0013889", "probability": "", "label": "λ_PT", "cpX": 286, "cpY": 288 }
+    },
+    {
+      "id": "transition-7",
+      "type": "transitionEdge",
+      "source": "state-4",
+      "target": "state-0",
+      "data": { "rate": "0.25", "probability": "", "label": "μ_PT", "cpX": 214, "cpY": 192 }
+    },
+    {
+      "id": "transition-8",
+      "type": "transitionEdge",
+      "source": "state-4",
+      "target": "state-2",
+      "data": { "rate": "0.002", "probability": "", "label": "2λ", "cpX": 520, "cpY": 160 }
+    },
+    {
+      "id": "transition-9",
+      "type": "transitionEdge",
+      "source": "state-0",
+      "target": "state-5",
+      "data": { "rate": "0.00002", "probability": "", "label": "βλ", "cpX": 212, "cpY": 476 }
+    },
+    {
+      "id": "transition-10",
+      "type": "transitionEdge",
+      "source": "state-5",
+      "target": "state-0",
+      "data": { "rate": "0.0417", "probability": "", "label": "μ_c", "cpX": 288, "cpY": 384 }
+    },
+    {
+      "id": "transition-11",
+      "type": "transitionEdge",
+      "source": "state-0",
+      "target": "state-6",
+      "data": { "rate": "0.0005", "probability": "", "label": "λ_sp", "cpX": 70, "cpY": 430 }
+    },
+    {
+      "id": "transition-12",
+      "type": "transitionEdge",
+      "source": "state-6",
+      "target": "state-0",
+      "data": { "rate": "1.0", "probability": "", "label": "μ_sp", "cpX": 190, "cpY": 430 }
+    }
+  ]
+}

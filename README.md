@@ -103,10 +103,16 @@ npm run typecheck     # tsc across all workspaces
 
 ### Try an example
 
-Open any diagram, then **File → Import JSON…** and pick
-[`examples/markov-redundant-power.json`](examples/markov-redundant-power.json) —
-a repairable redundant-PSU Markov model (all four state types, λ/μ/β rates,
-an absorbing blackout state) ready for steady-state, transient, and MTTF analysis.
+Open any diagram, then **File → Import JSON…** and pick one of:
+
+- [`examples/markov-redundant-power.json`](examples/markov-redundant-power.json) —
+  a repairable redundant-PSU model (all four state types, λ/μ/β rates) ending in an
+  absorbing blackout state, so it suits reliability, transient and **MTTF** analysis.
+- [`examples/markov-2oo3-pump-station.json`](examples/markov-2oo3-pump-station.json) —
+  a 2-out-of-3 pump station with common-cause failure, proof-test maintenance and
+  spurious trips. It has no absorbing state, so **steady-state availability and
+  MTBF/MTTR converge** (≈0.9986 available, MTBF ≈1780 h) — the metrics an absorbing
+  model drives to zero.
 
 ### Environment Variables
 
