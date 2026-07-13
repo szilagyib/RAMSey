@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { X, Play, ChevronDown, ChevronRight } from 'lucide-react';
+import { Play, ChevronDown, ChevronRight } from 'lucide-react';
 import { contentHash, type AnalysisMethod, type AnalyzeResponse } from '@ramsey/engine';
 import { useDiagramStore } from '../../stores/diagramStore';
 import { runAnalysis } from '../../lib/analysisClient';
@@ -10,8 +10,6 @@ import { useCapabilities } from '../../lib/capabilities';
 import { Button } from '../ui/Button';
 
 interface AnalysisPanelProps {
-  open: boolean;
-  onClose: () => void;
   projectId?: string;
   diagramId?: string;
 }
@@ -56,7 +54,7 @@ function linspace(a: number, b: number, count: number): number[] {
   return Array.from({ length: count }, (_, i) => a + ((b - a) * i) / (count - 1));
 }
 
-export function AnalysisPanel({ open, onClose, projectId, diagramId }: AnalysisPanelProps) {
+export function AnalysisPanel({ projectId, diagramId }: AnalysisPanelProps) {
   const nodes = useDiagramStore((s) => s.nodes);
   const edges = useDiagramStore((s) => s.edges);
   const diagramType = useDiagramStore((s) => s.diagramType);
@@ -76,20 +74,18 @@ export function AnalysisPanel({ open, onClose, projectId, diagramId }: AnalysisP
   const { serverAnalysis } = useCapabilities();
   const canRunOnServer = Boolean(projectId && diagramId) && serverAnalysis;
 
-  // On open, restore the most recent stored result for this diagram.
+  // Restore the most recent stored result for this diagram.
   useEffect(() => {
-    if (open && !result && diagramId) {
+    if (!result && diagramId) {
       const latest = getLatestResult(diagramId);
       if (latest) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- restore the persisted result when the panel opens
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- restore the persisted result when the tab mounts
         setResult(latest.response);
         setMethod(latest.method);
         setCached(true);
       }
     }
-  }, [open, diagramId, result]);
-
-  if (!open) return null;
+  }, [diagramId, result]);
 
   const showMissionTime = diagramType !== 'fault_tree';
 
@@ -167,14 +163,7 @@ export function AnalysisPanel({ open, onClose, projectId, diagramId }: AnalysisP
   }
 
   return (
-    <div className="absolute bottom-4 right-4 w-80 rounded-md border border-surface-200 dark:border-surface-400 bg-white dark:bg-surface-100 shadow-lg">
-      <div className="flex items-center justify-between border-b border-surface-100 dark:border-surface-300 px-3 py-2">
-        <span className="text-xs font-semibold text-surface-700">Analysis</span>
-        <button onClick={onClose} className="rounded p-0.5 text-surface-300 hover:text-surface-600" title="Close">
-          <X className="h-3.5 w-3.5" />
-        </button>
-      </div>
-
+    <div className="h-full overflow-y-auto">
       {!methods ? (
         <div className="px-3 py-4 text-xs text-surface-500">
           Analysis is available for Markov chains, fault trees, RBDs, event trees, and bow-ties.
@@ -274,7 +263,7 @@ function Results({ result }: { result: AnalyzeResponse }) {
       : null;
 
   return (
-    <div className="max-h-64 overflow-y-auto rounded border border-surface-100 dark:border-surface-300 p-2 text-[11px]">
+    <div className="rounded border border-surface-100 dark:border-surface-300 p-2 text-[11px]">
       {scalarMetrics.length > 0 && (
         <table className="w-full">
           <tbody>

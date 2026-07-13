@@ -1,56 +1,54 @@
-import { useState } from 'react';
-import { MessageSquare, Settings2 } from 'lucide-react';
+import { MessageSquare, Settings2, BarChart3 } from 'lucide-react';
 import { PropertyPanel } from './PropertyPanel';
 import { ChatPanel } from './ChatPanel';
+import { AnalysisPanel } from './AnalysisPanel';
 import { useCapabilities } from '../../lib/capabilities';
+import { useEditorPrefs, type RightTab } from '../../stores/editorPrefs';
 import { cn } from '../../lib/utils';
 
-type Tab = 'properties' | 'chat';
+interface RightPanelProps {
+  projectId?: string;
+  diagramId?: string;
+}
 
-export function RightPanel() {
-  const [activeTab, setActiveTab] = useState<Tab>('properties');
+export function RightPanel({ projectId, diagramId }: RightPanelProps) {
+  const activeTab = useEditorPrefs((s) => s.rightTab);
+  const setRightTab = useEditorPrefs((s) => s.setRightTab);
   const { aiChat } = useCapabilities();
 
-  // When the deployment has no AI configured, the panel is properties-only:
-  // no tab bar, no dead "AI Chat" tab.
-  const showChat = aiChat;
-  const tab: Tab = showChat ? activeTab : 'properties';
+  // No dead "AI Chat" tab when the deployment has no AI configured.
+  const tabs: Array<{ id: RightTab; label: string; icon: typeof Settings2 }> = [
+    { id: 'properties', label: 'Properties', icon: Settings2 },
+    { id: 'analysis', label: 'Analysis', icon: BarChart3 },
+    ...(aiChat ? [{ id: 'chat' as const, label: 'AI Chat', icon: MessageSquare }] : []),
+  ];
+  const tab: RightTab = tabs.some((t) => t.id === activeTab) ? activeTab : 'properties';
 
   return (
     <aside className="flex w-72 shrink-0 min-h-0 flex-col border-l border-surface-200 bg-white dark:bg-surface-100">
-      {showChat && (
-        <div className="flex border-b border-surface-200">
+      <div className="flex border-b border-surface-200">
+        {tabs.map(({ id, label, icon: Icon }) => (
           <button
-            onClick={() => setActiveTab('properties')}
+            key={id}
+            onClick={() => setRightTab(id)}
             className={cn(
-              'flex flex-1 items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors',
-              tab === 'properties'
+              'flex flex-1 items-center justify-center gap-1.5 px-2 py-2 text-xs font-medium transition-colors',
+              tab === id
                 ? 'border-b-2 border-primary-500 text-primary-600'
                 : 'text-surface-400 hover:text-surface-600',
             )}
           >
-            <Settings2 className="h-3.5 w-3.5" />
-            Properties
+            <Icon className="h-3.5 w-3.5" />
+            {label}
           </button>
-          <button
-            onClick={() => setActiveTab('chat')}
-            className={cn(
-              'flex flex-1 items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors',
-              tab === 'chat'
-                ? 'border-b-2 border-primary-500 text-primary-600'
-                : 'text-surface-400 hover:text-surface-600',
-            )}
-          >
-            <MessageSquare className="h-3.5 w-3.5" />
-            AI Chat
-          </button>
-        </div>
-      )}
+        ))}
+      </div>
 
       {/* Tab content */}
       <div className="flex-1 overflow-hidden">
         {tab === 'properties' && <PropertyPanel />}
-        {tab === 'chat' && showChat && <ChatPanel />}
+        {tab === 'analysis' && <AnalysisPanel projectId={projectId} diagramId={diagramId} />}
+        {tab === 'chat' && aiChat && <ChatPanel />}
       </div>
     </aside>
   );

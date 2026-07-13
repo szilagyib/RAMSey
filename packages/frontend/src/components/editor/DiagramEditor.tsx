@@ -19,7 +19,6 @@ import { Sidebar } from './Sidebar';
 import { RightPanel } from './RightPanel';
 import { Toolbar } from './Toolbar';
 import { ValidationPanel } from './ValidationPanel';
-import { AnalysisPanel } from './AnalysisPanel';
 import { CursorsOverlay } from './CursorsOverlay';
 import { SelectionOverlay } from './SelectionOverlay';
 import { GuideOverlay } from './GuideOverlay';
@@ -59,6 +58,7 @@ function DiagramEditorInner({ onNavigateBack, onSave, onCreateSnapshot, diagramN
 
   const background = useEditorPrefs((s) => s.background);
   const minimap = useEditorPrefs((s) => s.minimap);
+  const setRightTab = useEditorPrefs((s) => s.setRightTab);
 
   const config = getDiagramTypeConfig(diagramType);
   const nodeTypes = useMemo(() => config?.nodeTypes ?? {}, [config]);
@@ -76,7 +76,6 @@ function DiagramEditorInner({ onNavigateBack, onSave, onCreateSnapshot, diagramN
   );
 
   const [validationOpen, setValidationOpen] = useState(false);
-  const [analysisOpen, setAnalysisOpen] = useState(false);
 
   const { peers, cursors, selections, setCursor, setSelection } = useCollaboration({
     projectId,
@@ -255,7 +254,7 @@ function DiagramEditorInner({ onNavigateBack, onSave, onCreateSnapshot, diagramN
         onSave={onSave}
         onCreateSnapshot={onCreateSnapshot}
         onValidate={() => setValidationOpen(true)}
-        onAnalyze={() => setAnalysisOpen(true)}
+        onAnalyze={() => setRightTab('analysis')}
         diagramName={diagramName}
         isSaving={isSaving}
         collaborators={peers}
@@ -355,9 +354,8 @@ function DiagramEditorInner({ onNavigateBack, onSave, onCreateSnapshot, diagramN
             <CursorsOverlay cursors={cursors} />
           </ReactFlow>
           <ValidationPanel open={validationOpen} onClose={() => setValidationOpen(false)} />
-          <AnalysisPanel open={analysisOpen} onClose={() => setAnalysisOpen(false)} projectId={projectId} diagramId={diagramId} />
         </div>
-        <RightPanel />
+        <RightPanel projectId={projectId} diagramId={diagramId} />
       </div>
     </div>
   );

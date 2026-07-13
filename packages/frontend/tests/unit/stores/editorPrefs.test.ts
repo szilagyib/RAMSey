@@ -28,6 +28,19 @@ describe('editor background preference', () => {
   });
 });
 
+describe('sidebar tab', () => {
+  beforeEach(() => state().setRightTab('properties'));
+
+  it('starts on properties', () => {
+    expect(state().rightTab).toBe('properties');
+  });
+
+  it('switches to analysis — running analysis docks it in the sidebar', () => {
+    state().setRightTab('analysis');
+    expect(state().rightTab).toBe('analysis');
+  });
+});
+
 describe('inline label editing state', () => {
   beforeEach(() => state().stopEditing());
 

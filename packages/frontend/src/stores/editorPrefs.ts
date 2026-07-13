@@ -30,7 +30,14 @@ interface EditorPrefsStore {
   editing: { kind: 'node' | 'edge'; id: string } | null;
   startEditing: (kind: 'node' | 'edge', id: string) => void;
   stopEditing: () => void;
+
+  /** Which sidebar tab is showing. Analysis lives here rather than in a card
+   *  floating over the canvas, so running it never hides the diagram. */
+  rightTab: RightTab;
+  setRightTab: (tab: RightTab) => void;
 }
+
+export type RightTab = 'properties' | 'analysis' | 'chat';
 
 export const useEditorPrefs = create<EditorPrefsStore>((set, get) => ({
   background: load(),
@@ -54,4 +61,7 @@ export const useEditorPrefs = create<EditorPrefsStore>((set, get) => ({
   editing: null,
   startEditing: (kind, id) => set({ editing: { kind, id } }),
   stopEditing: () => set({ editing: null }),
+
+  rightTab: 'properties',
+  setRightTab: (tab) => set({ rightTab: tab }),
 }));
