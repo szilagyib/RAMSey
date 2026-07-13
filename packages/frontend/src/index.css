@@ -170,6 +170,31 @@ body {
   border-bottom: none;
 }
 
+/* React Flow's attribution. The library is MIT and its authors ask that the
+   credit stay, so we keep it — but as a quiet footnote in the app's own type
+   and colors, not the default white chip stamped on the canvas. It fades up on
+   hover so it stays discoverable without competing with the diagram. */
+.react-flow__attribution {
+  background: transparent;
+  padding: 0 0.5rem 0.25rem 0;
+}
+
+.react-flow__attribution a {
+  color: rgb(var(--surface-400));
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  opacity: 0.5;
+  transition:
+    opacity 0.15s ease,
+    color 0.15s ease;
+}
+
+.react-flow__attribution a:hover {
+  color: rgb(var(--surface-600));
+  opacity: 1;
+}
+
 /* Selection styles */
 .react-flow__node.selected {
   box-shadow: none;

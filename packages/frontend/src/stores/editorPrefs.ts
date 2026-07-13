@@ -5,6 +5,8 @@ export type BackgroundMode = 'dots' | 'grid' | 'none';
 
 const STORAGE_KEY = 'ramsey-bg-mode';
 const MINIMAP_KEY = 'ramsey-minimap';
+const PALETTE_KEY = 'ramsey-palette';
+const INSPECTOR_KEY = 'ramsey-inspector';
 const MODES: BackgroundMode[] = ['dots', 'grid', 'none'];
 
 function load(): BackgroundMode {
@@ -17,6 +19,11 @@ function loadMinimap(): boolean {
   return typeof localStorage !== 'undefined' && localStorage.getItem(MINIMAP_KEY) === 'on';
 }
 
+/** Side panels are open unless the user collapsed them (stored as 'off'). */
+function loadPanel(key: string): boolean {
+  return typeof localStorage === 'undefined' || localStorage.getItem(key) !== 'off';
+}
+
 interface EditorPrefsStore {
   background: BackgroundMode;
   setBackground: (mode: BackgroundMode) => void;
@@ -25,6 +32,13 @@ interface EditorPrefsStore {
 
   minimap: boolean;
   toggleMinimap: () => void;
+
+  /** Collapse the node palette (left) / the inspector (right) to give the
+   *  canvas the full width. Persisted — a workspace layout choice. */
+  palette: boolean;
+  togglePalette: () => void;
+  inspector: boolean;
+  toggleInspector: () => void;
 
   /** Element whose label is being edited in place (double-click), if any. */
   editing: { kind: 'node' | 'edge'; id: string } | null;
@@ -55,6 +69,20 @@ export const useEditorPrefs = create<EditorPrefsStore>((set, get) => ({
     const next = !get().minimap;
     localStorage.setItem(MINIMAP_KEY, next ? 'on' : 'off');
     set({ minimap: next });
+  },
+
+  palette: loadPanel(PALETTE_KEY),
+  togglePalette: () => {
+    const next = !get().palette;
+    localStorage.setItem(PALETTE_KEY, next ? 'on' : 'off');
+    set({ palette: next });
+  },
+
+  inspector: loadPanel(INSPECTOR_KEY),
+  toggleInspector: () => {
+    const next = !get().inspector;
+    localStorage.setItem(INSPECTOR_KEY, next ? 'on' : 'off');
+    set({ inspector: next });
   },
 
   // Transient UI state (not persisted).

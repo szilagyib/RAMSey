@@ -1,4 +1,4 @@
-import { MessageSquare, Settings2, BarChart3 } from 'lucide-react';
+import { MessageSquare, Settings2, BarChart3, PanelRightClose, PanelRightOpen } from 'lucide-react';
 import { PropertyPanel } from './PropertyPanel';
 import { ChatPanel } from './ChatPanel';
 import { AnalysisPanel } from './AnalysisPanel';
@@ -14,7 +14,25 @@ interface RightPanelProps {
 export function RightPanel({ projectId, diagramId }: RightPanelProps) {
   const activeTab = useEditorPrefs((s) => s.rightTab);
   const setRightTab = useEditorPrefs((s) => s.setRightTab);
+  const inspector = useEditorPrefs((s) => s.inspector);
+  const toggleInspector = useEditorPrefs((s) => s.toggleInspector);
   const { aiChat } = useCapabilities();
+
+  // Collapsed: a rail wide enough to click, so the canvas gets the width back.
+  if (!inspector) {
+    return (
+      <aside className="flex w-8 shrink-0 flex-col items-center border-l border-surface-200 bg-white py-2 dark:bg-surface-100">
+        <button
+          onClick={toggleInspector}
+          title="Show properties and analysis"
+          aria-label="Show properties and analysis"
+          className="rounded p-1 text-surface-400 hover:bg-surface-100 hover:text-surface-700 dark:hover:bg-surface-200"
+        >
+          <PanelRightOpen className="h-4 w-4" />
+        </button>
+      </aside>
+    );
+  }
 
   // No dead "AI Chat" tab when the deployment has no AI configured.
   const tabs: Array<{ id: RightTab; label: string; icon: typeof Settings2 }> = [
@@ -26,7 +44,7 @@ export function RightPanel({ projectId, diagramId }: RightPanelProps) {
 
   return (
     <aside className="flex w-72 shrink-0 min-h-0 flex-col border-l border-surface-200 bg-white dark:bg-surface-100">
-      <div className="flex border-b border-surface-200">
+      <div className="flex items-stretch border-b border-surface-200">
         {tabs.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
@@ -42,6 +60,14 @@ export function RightPanel({ projectId, diagramId }: RightPanelProps) {
             {label}
           </button>
         ))}
+        <button
+          onClick={toggleInspector}
+          title="Collapse panel"
+          aria-label="Collapse panel"
+          className="shrink-0 px-2 text-surface-400 hover:text-surface-700"
+        >
+          <PanelRightClose className="h-4 w-4" />
+        </button>
       </div>
 
       {/* Tab content */}

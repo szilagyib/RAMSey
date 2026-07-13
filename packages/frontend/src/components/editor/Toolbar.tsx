@@ -78,6 +78,10 @@ export function Toolbar({ onNavigateBack, onSave, onCreateSnapshot, onValidate, 
   const cycleBackground = useEditorPrefs((s) => s.cycleBackground);
   const minimap = useEditorPrefs((s) => s.minimap);
   const toggleMinimap = useEditorPrefs((s) => s.toggleMinimap);
+  const palette = useEditorPrefs((s) => s.palette);
+  const togglePalette = useEditorPrefs((s) => s.togglePalette);
+  const inspector = useEditorPrefs((s) => s.inspector);
+  const toggleInspector = useEditorPrefs((s) => s.toggleInspector);
   const alignSelection = useDiagramStore((s) => s.alignSelection);
   const distributeSelection = useDiagramStore((s) => s.distributeSelection);
   // Align needs 2+ nodes; distribute needs 3+ (there must be a gap to even out).
@@ -376,6 +380,14 @@ export function Toolbar({ onNavigateBack, onSave, onCreateSnapshot, onValidate, 
         {
           label: `${minimap ? '✓ ' : '  '}Minimap`,
           onClick: toggleMinimap,
+        },
+        {
+          label: `${palette ? '✓ ' : '  '}Palette`,
+          onClick: togglePalette,
+        },
+        {
+          label: `${inspector ? '✓ ' : '  '}Properties panel`,
+          onClick: toggleInspector,
         },
         { divider: true },
         {

@@ -28,6 +28,36 @@ describe('editor background preference', () => {
   });
 });
 
+describe('collapsible side panels', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    if (!state().palette) state().togglePalette();
+    if (!state().inspector) state().toggleInspector();
+  });
+
+  it('both are open by default', () => {
+    expect(state().palette).toBe(true);
+    expect(state().inspector).toBe(true);
+  });
+
+  it('collapsing persists, so the layout survives a reload', () => {
+    state().togglePalette();
+    expect(state().palette).toBe(false);
+    expect(localStorage.getItem('ramsey-palette')).toBe('off');
+
+    state().toggleInspector();
+    expect(state().inspector).toBe(false);
+    expect(localStorage.getItem('ramsey-inspector')).toBe('off');
+  });
+
+  it('re-expanding clears the stored collapse', () => {
+    state().togglePalette();
+    state().togglePalette();
+    expect(state().palette).toBe(true);
+    expect(localStorage.getItem('ramsey-palette')).toBe('on');
+  });
+});
+
 describe('sidebar tab', () => {
   beforeEach(() => state().setRightTab('properties'));
 

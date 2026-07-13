@@ -1,5 +1,7 @@
 import { type DragEvent, useMemo } from 'react';
+import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useDiagramStore } from '../../stores/diagramStore';
+import { useEditorPrefs } from '../../stores/editorPrefs';
 import { getDiagramTypeConfig, type SidebarItem } from '../../diagram-types/registry';
 import { cn } from '../../lib/utils';
 
@@ -240,6 +242,8 @@ export function Sidebar() {
   const nodes = useDiagramStore((s) => s.nodes);
   const edges = useDiagramStore((s) => s.edges);
   const diagramType = useDiagramStore((s) => s.diagramType);
+  const palette = useEditorPrefs((s) => s.palette);
+  const togglePalette = useEditorPrefs((s) => s.togglePalette);
 
   const config = getDiagramTypeConfig(diagramType);
 
@@ -247,8 +251,35 @@ export function Sidebar() {
   // produce a fresh array each render and defeat the memo.
   const groups = useMemo(() => groupItems(config?.sidebarItems ?? []), [config]);
 
+  // Collapsed: a rail wide enough to click, so the canvas gets the width back.
+  if (!palette) {
+    return (
+      <aside className="flex w-8 shrink-0 flex-col items-center border-r border-surface-200 bg-white py-2 dark:bg-surface-100">
+        <button
+          onClick={togglePalette}
+          title="Show palette"
+          aria-label="Show palette"
+          className="rounded p-1 text-surface-400 hover:bg-surface-100 hover:text-surface-700 dark:hover:bg-surface-200"
+        >
+          <PanelLeftOpen className="h-4 w-4" />
+        </button>
+      </aside>
+    );
+  }
+
   return (
     <aside className="flex w-52 shrink-0 min-h-0 flex-col border-r border-surface-200 bg-white dark:bg-surface-100">
+      <div className="flex justify-end border-b border-surface-200 px-2 py-1">
+        <button
+          onClick={togglePalette}
+          title="Collapse palette"
+          aria-label="Collapse palette"
+          className="rounded p-1 text-surface-400 hover:bg-surface-100 hover:text-surface-700 dark:hover:bg-surface-200"
+        >
+          <PanelLeftClose className="h-4 w-4" />
+        </button>
+      </div>
+
       <div className="flex-1 overflow-y-auto p-3">
         {groups.map(({ group, items }) => (
           <div key={group} className="mb-4">
