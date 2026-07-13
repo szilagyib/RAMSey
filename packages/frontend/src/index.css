@@ -63,15 +63,17 @@
 :root {
   --dg-canvas-dots: #d8dee9;
   --dg-edge: #64748b;
-  --dg-edge-selected: #3b82f6;
+  --dg-edge-selected: #6366f1;
   --dg-label-bg: #ffffff;
   --dg-label-border: #e2e8f0;
   --dg-label-text: #475569;
-  --dg-select-glow: rgba(59, 130, 246, 0.55);
+  --dg-select-glow: rgba(99, 102, 241, 0.55);
 
-  /* Fault tree (IEC 61025) */
-  --dg-gate-fill: #eff6ff;
-  --dg-gate-stroke: #3b82f6;
+  /* Fault tree (IEC 61025). Gates are graphite line art, per the convention —
+     and so the only accent on the canvas is the selection, never the notation.
+     They used to be the old primary blue, which left them fighting the UI. */
+  --dg-gate-fill: #f1f5f9;
+  --dg-gate-stroke: #475569;
   --dg-basic-fill: #ecfdf5;
   --dg-basic-stroke: #10b981;
   --dg-basic-text: #065f46;
@@ -98,14 +100,14 @@
 :root.dark {
   --dg-canvas-dots: #273449;
   --dg-edge: #7d8aa0;
-  --dg-edge-selected: #5b8ff0;
+  --dg-edge-selected: #818cf8;
   --dg-label-bg: #0f172a;
   --dg-label-border: #1f2937;
   --dg-label-text: #cbd5e1;
-  --dg-select-glow: rgba(91, 143, 240, 0.6);
+  --dg-select-glow: rgba(129, 140, 248, 0.6);
 
-  --dg-gate-fill: #12233d;
-  --dg-gate-stroke: #5b8ff0;
+  --dg-gate-fill: #1e293b;
+  --dg-gate-stroke: #94a3b8;
   --dg-basic-fill: #0c2a1e;
   --dg-basic-stroke: #34d399;
   --dg-basic-text: #a7f3d0;
@@ -175,7 +177,10 @@ body {
    and colors, not the default white chip stamped on the canvas. It fades up on
    hover so it stays discoverable without competing with the diagram. */
 .react-flow__attribution {
-  background: transparent;
+  /* React Flow's own stylesheet loads after this one and paints a translucent
+     chip behind the link (white in light, grey in dark). Set its variable
+     rather than trying to out-specify it. */
+  --xy-attribution-background-color: transparent;
   padding: 0 0.5rem 0.25rem 0;
 }
 

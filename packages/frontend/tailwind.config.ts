@@ -71,18 +71,21 @@ const config: Config = {
           900: '#fdf2dc',
           950: '#fff8eb',
         },
+        // Indigo → violet. Deliberately clear of the notation colours (green =
+        // operational, amber = degraded, red = failed) so the UI accent can
+        // never be mistaken for a state, and it matches the brand mark.
         primary: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
-          950: '#172554',
+          50: '#eef2ff',
+          100: '#e0e7ff',
+          200: '#c7d2fe',
+          300: '#a5b4fc',
+          400: '#818cf8',
+          500: '#6366f1',
+          600: '#4f46e5',
+          700: '#4338ca',
+          800: '#3730a3',
+          900: '#312e81',
+          950: '#1e1b4b',
         },
         surface: {
           50: 'rgb(var(--surface-50) / <alpha-value>)',
