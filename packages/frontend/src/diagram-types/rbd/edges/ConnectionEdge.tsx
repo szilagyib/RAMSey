@@ -45,11 +45,9 @@ function ConnectionEdgeComponent({
   return (
     <>
       <BaseEdge id={id} path={edgePath} style={{ stroke, strokeWidth: selected ? 2 : 1.5 }} />
-      {displayLabel && (
-        <EdgeLabel x={labelX} y={labelY} accent={selected ? 'var(--dg-edge-selected)' : (custom ?? undefined)}>
+              <EdgeLabel edgeId={id} x={labelX} y={labelY} accent={selected ? 'var(--dg-edge-selected)' : (custom ?? undefined)}>
           {displayLabel}
         </EdgeLabel>
-      )}
       {selected && (
         <EdgeControlPoint edgeId={id} x={cp?.x ?? labelX} y={cp?.y ?? labelY - 26} active={!!cp} />
       )}

@@ -25,6 +25,11 @@ interface EditorPrefsStore {
 
   minimap: boolean;
   toggleMinimap: () => void;
+
+  /** Element whose label is being edited in place (double-click), if any. */
+  editing: { kind: 'node' | 'edge'; id: string } | null;
+  startEditing: (kind: 'node' | 'edge', id: string) => void;
+  stopEditing: () => void;
 }
 
 export const useEditorPrefs = create<EditorPrefsStore>((set, get) => ({
@@ -44,4 +49,9 @@ export const useEditorPrefs = create<EditorPrefsStore>((set, get) => ({
     localStorage.setItem(MINIMAP_KEY, next ? 'on' : 'off');
     set({ minimap: next });
   },
+
+  // Transient UI state (not persisted).
+  editing: null,
+  startEditing: (kind, id) => set({ editing: { kind, id } }),
+  stopEditing: () => set({ editing: null }),
 }));

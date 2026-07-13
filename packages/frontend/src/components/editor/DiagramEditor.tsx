@@ -7,6 +7,7 @@ import {
   MarkerType,
   MiniMap,
   SelectionMode,
+  ViewportPortal,
   type NodeChange,
   type ReactFlowInstance,
 } from '@xyflow/react';
@@ -23,6 +24,7 @@ import { AnalysisPanel } from './AnalysisPanel';
 import { CursorsOverlay } from './CursorsOverlay';
 import { SelectionOverlay } from './SelectionOverlay';
 import { GuideOverlay } from './GuideOverlay';
+import { InlineLabelEditor } from './InlineLabelEditor';
 import { computeSnap, boxOf, type Guide } from '../../lib/alignmentGuides';
 import { useCollaboration } from '../../hooks/useCollaboration';
 
@@ -169,6 +171,18 @@ function DiagramEditorInner({ onNavigateBack, onSave, onCreateSnapshot, diagramN
     [deleteSelected, clearSelection, nudgeSelection],
   );
 
+  // ---- Inline label editing ---------------------------------------------
+  // Double-click a node or an edge to rename it on the canvas instead of going
+  // to the property panel — labelling is the most frequent edit in these
+  // diagrams (every transition carries a rate).
+  const editing = useEditorPrefs((s) => s.editing);
+  const startEditing = useEditorPrefs((s) => s.startEditing);
+  const stopEditing = useEditorPrefs((s) => s.stopEditing);
+  const updateNodeData = useDiagramStore((s) => s.updateNodeData);
+
+  const editingNode =
+    editing?.kind === 'node' ? nodes.find((n) => n.id === editing.id) : undefined;
+
   const onNodeClick = useCallback(
     (e: React.MouseEvent, node: { id: string }) => {
       // With a multi-select modifier held, React Flow manages the selection
@@ -263,6 +277,8 @@ function DiagramEditorInner({ onNavigateBack, onSave, onCreateSnapshot, diagramN
             onDragOver={onDragOver}
             onDrop={onDrop}
             onNodeDragStop={() => setGuides([])}
+            onNodeDoubleClick={(_, node) => startEditing('node', node.id)}
+            onEdgeDoubleClick={(_, edge) => startEditing('edge', edge.id)}
             onNodeClick={onNodeClick}
             onEdgeClick={onEdgeClick}
             onPaneClick={onPaneClick}
@@ -312,6 +328,30 @@ function DiagramEditorInner({ onNavigateBack, onSave, onCreateSnapshot, diagramN
               />
             )}
             <GuideOverlay guides={guides} />
+
+            {/* Node label editor, positioned over the node in flow space. */}
+            {editingNode && (
+              <ViewportPortal>
+                <div
+                  className="absolute"
+                  style={{
+                    left: editingNode.position.x,
+                    top: editingNode.position.y + (boxOf(editingNode).h - 24) / 2,
+                    width: boxOf(editingNode).w,
+                    zIndex: 20,
+                  }}
+                >
+                  <InlineLabelEditor
+                    value={String((editingNode.data as { label?: unknown })?.label ?? '')}
+                    onCommit={(next: string) => {
+                      updateNodeData(editingNode.id, { label: next });
+                      stopEditing();
+                    }}
+                    onCancel={stopEditing}
+                  />
+                </div>
+              </ViewportPortal>
+            )}
             <SelectionOverlay selections={selections} nodes={nodes} />
             <CursorsOverlay cursors={cursors} />
           </ReactFlow>

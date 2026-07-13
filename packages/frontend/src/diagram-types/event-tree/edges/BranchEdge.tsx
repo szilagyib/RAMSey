@@ -54,11 +54,9 @@ function BranchEdgeComponent({
           strokeWidth: selected ? 2.5 : 1.5,
         }}
       />
-      {displayLabel && (
-        <EdgeLabel x={labelX} y={labelY} accent={stroke}>
+              <EdgeLabel edgeId={id} x={labelX} y={labelY} accent={stroke}>
           {displayLabel}
         </EdgeLabel>
-      )}
       {selected && (
         <EdgeControlPoint edgeId={id} x={cp?.x ?? labelX} y={cp?.y ?? labelY - 26} active={!!cp} />
       )}
