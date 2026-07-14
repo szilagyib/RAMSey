@@ -112,6 +112,64 @@ export function validate(nodes: Node[], edges: Edge[]): ValidationResult {
     }
   }
 
+  // --- A gate outputs one event, and an event is produced by one gate ---
+  //
+  // The solver identifies a gate by the signal it produces. So a gate wired
+  // straight into another gate cannot be resolved, and two gates sharing an
+  // output collide — one of them, and every basic event beneath it, silently
+  // drops out of the cut sets. Both of those draw perfectly well on the canvas
+  // and yield a confident, wrong answer, so they are errors, not warnings.
+  const nodeById = new Map(nodes.map((n) => [n.id, n]));
+  const nameOf = (id: string) =>
+    (nodeById.get(id)?.data as FaultTreeNodeData | undefined)?.label || id;
+  const isGate = (id: string) =>
+    (nodeById.get(id)?.data as FaultTreeNodeData | undefined)?.nodeKind === 'gate';
+
+  const outputsBySource = new Map<string, string[]>();
+  for (const edge of edges) {
+    const list = outputsBySource.get(edge.source) ?? [];
+    list.push(edge.target);
+    outputsBySource.set(edge.source, list);
+  }
+
+  const producedBy = new Map<string, string[]>();
+  for (const gate of gateNodes) {
+    const outputs = outputsBySource.get(gate.id) ?? [];
+
+    if (outputs.length === 0) {
+      addError(
+        result,
+        'GATE_NO_OUTPUT',
+        `Gate "${nameOf(gate.id)}" has no output connection. Connect it to the event it causes.`,
+        [gate.id],
+      );
+    }
+
+    for (const target of outputs) {
+      if (isGate(target)) {
+        addError(
+          result,
+          'GATE_FEEDS_GATE',
+          `Gate "${nameOf(gate.id)}" feeds gate "${nameOf(target)}" directly. A gate must output an intermediate event, and that event feeds the next gate — otherwise the analysis silently drops one of them.`,
+          [gate.id, target],
+        );
+      } else {
+        producedBy.set(target, [...(producedBy.get(target) ?? []), nameOf(gate.id)]);
+      }
+    }
+  }
+
+  for (const [eventId, gateNames] of producedBy) {
+    if (gateNames.length > 1) {
+      addError(
+        result,
+        'EVENT_MULTIPLE_GATES',
+        `Event "${nameOf(eventId)}" is the output of ${gateNames.length} gates (${gateNames.join(', ')}). An event must be produced by at most one gate; otherwise only one of them is analysed.`,
+        [eventId],
+      );
+    }
+  }
+
   // --- No orphan nodes (nodes with no edges at all, except when only 1 node) ---
   if (nodes.length > 1) {
     const connectedNodeIds = new Set<string>();

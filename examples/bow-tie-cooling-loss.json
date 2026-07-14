@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "name": "Loss of cooling water (bow-tie)",
+  "type": "bow_tie",
+  "exportedAt": "2026-07-14T09:00:00.000Z",
+  "description": "The same cooling system as one picture: threats on the left, consequences on the right, the loss of flow in the middle. Each threat has a likelihood, and each barrier an effectiveness — a barrier lets through (1 − effectiveness) of what reaches it, so a threat's contribution to the top event is its likelihood times the leak of every preventive barrier on its path. The left side is the fault tree; the right side is the event tree; the bow-tie is what you show management. Note that the barrier with the highest effectiveness is not the one that matters most — the pump seal threat is common enough that its 0.90 barrier still leaks more than the rare power threat does through its 0.95 one. Run 'Top event & consequences'.",
+  "nodes": [
+    {
+      "id": "threat-0",
+      "type": "threatNode",
+      "position": { "x": 40, "y": 120 },
+      "data": { "label": "Pump seal failure", "nodeKind": "threat", "probability": "0.12" }
+    },
+    {
+      "id": "threat-1",
+      "type": "threatNode",
+      "position": { "x": 40, "y": 300 },
+      "data": { "label": "Loss of station power", "nodeKind": "threat", "probability": "0.03" }
+    },
+    {
+      "id": "threat-2",
+      "type": "threatNode",
+      "position": { "x": 40, "y": 480 },
+      "data": { "label": "Suction strainer blockage", "nodeKind": "threat", "probability": "0.06" }
+    },
+    {
+      "id": "barrier-0",
+      "type": "barrierNode",
+      "position": { "x": 280, "y": 120 },
+      "data": {
+        "label": "Vibration monitoring",
+        "nodeKind": "preventive_barrier",
+        "effectiveness": "0.9"
+      }
+    },
+    {
+      "id": "barrier-1",
+      "type": "barrierNode",
+      "position": { "x": 280, "y": 300 },
+      "data": {
+        "label": "UPS + diesel generator",
+        "nodeKind": "preventive_barrier",
+        "effectiveness": "0.95"
+      }
+    },
+    {
+      "id": "barrier-2",
+      "type": "barrierNode",
+      "position": { "x": 280, "y": 480 },
+      "data": {
+        "label": "Duplex strainer + dP alarm",
+        "nodeKind": "preventive_barrier",
+        "effectiveness": "0.85"
+      }
+    },
+    {
+      "id": "top-0",
+      "type": "topEventNode",
+      "position": { "x": 540, "y": 290 },
+      "data": { "label": "Loss of cooling water flow", "nodeKind": "top_event" }
+    },
+    {
+      "id": "barrier-3",
+      "type": "barrierNode",
+      "position": { "x": 780, "y": 180 },
+      "data": {
+        "label": "Automatic plant trip",
+        "nodeKind": "mitigative_barrier",
+        "effectiveness": "0.98"
+      }
+    },
+    {
+      "id": "barrier-4",
+      "type": "barrierNode",
+      "position": { "x": 780, "y": 420 },
+      "data": {
+        "label": "Emergency cooling injection",
+        "nodeKind": "mitigative_barrier",
+        "effectiveness": "0.8"
+      }
+    },
+    {
+      "id": "consequence-0",
+      "type": "consequenceNode",
+      "position": { "x": 1020, "y": 180 },
+      "data": { "label": "Plant trip", "nodeKind": "consequence" }
+    },
+    {
+      "id": "consequence-1",
+      "type": "consequenceNode",
+      "position": { "x": 1020, "y": 420 },
+      "data": { "label": "Equipment damage", "nodeKind": "consequence" }
+    }
+  ],
+  "edges": [
+    { "id": "flow-0", "type": "flowEdge", "source": "threat-0", "target": "barrier-0", "data": { "label": "" } },
+    { "id": "flow-1", "type": "flowEdge", "source": "threat-1", "target": "barrier-1", "data": { "label": "" } },
+    { "id": "flow-2", "type": "flowEdge", "source": "threat-2", "target": "barrier-2", "data": { "label": "" } },
+    { "id": "flow-3", "type": "flowEdge", "source": "barrier-0", "target": "top-0", "data": { "label": "" } },
+    { "id": "flow-4", "type": "flowEdge", "source": "barrier-1", "target": "top-0", "data": { "label": "" } },
+    { "id": "flow-5", "type": "flowEdge", "source": "barrier-2", "target": "top-0", "data": { "label": "" } },
+    { "id": "flow-6", "type": "flowEdge", "source": "top-0", "target": "barrier-3", "data": { "label": "" } },
+    { "id": "flow-7", "type": "flowEdge", "source": "top-0", "target": "barrier-4", "data": { "label": "" } },
+    { "id": "flow-8", "type": "flowEdge", "source": "barrier-3", "target": "consequence-0", "data": { "label": "" } },
+    { "id": "flow-9", "type": "flowEdge", "source": "barrier-4", "target": "consequence-1", "data": { "label": "" } }
+  ]
+}

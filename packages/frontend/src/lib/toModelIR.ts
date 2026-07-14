@@ -195,10 +195,14 @@ export function bowTieToModelIR(nodes: Node[], edges: Edge[]): ModelIR | null {
     nodes: nodes.map((n) => {
       const d = n.data as BowTieNodeData;
       const eff = parseNum(d.effectiveness);
+      // Threat likelihood. Without it the solver falls back to 1 — every threat
+      // certain to occur — so the top-event frequency was never really a result.
+      const prob = parseNum(d.probability);
       return {
         id: n.id,
         kind: d.nodeKind,
         ...(eff !== undefined ? { effectiveness: eff } : {}),
+        ...(prob !== undefined ? { probability: prob } : {}),
       };
     }),
     edges: edges.map((e) => ({ from: e.source, to: e.target })),

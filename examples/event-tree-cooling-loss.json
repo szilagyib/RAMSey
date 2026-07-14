@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "name": "Loss of cooling water (event tree)",
+  "type": "event_tree",
+  "exportedAt": "2026-07-14T09:00:00.000Z",
+  "description": "The same cooling system read forwards instead of backwards. Where the fault tree asks what has to fail to lose flow, the event tree starts from the loss (0.05 per year) and asks what happens next: does the standby pump start, and if not, does the operator isolate in time. Each branch point splits success (up) and failure (down), and the branch probabilities out of a node sum to 1, so the consequence probabilities sum back to the initiating frequency: safe shutdown 0.0432/yr, plant trip 0.0048/yr, equipment damage 0.0020/yr. Note where the risk actually sits — the rarest branch is not the mildest outcome. Run 'Consequence probabilities'.",
+  "nodes": [
+    {
+      "id": "initiating-0",
+      "type": "initiatingEventNode",
+      "position": { "x": 60, "y": 300 },
+      "data": {
+        "label": "Loss of main cooling water",
+        "nodeKind": "initiating_event",
+        "probability": "0.05",
+        "description": "Initiating frequency, per year"
+      }
+    },
+    {
+      "id": "header-0",
+      "type": "headerNode",
+      "position": { "x": 340, "y": 300 },
+      "data": { "label": "Standby pump starts", "nodeKind": "header" }
+    },
+    {
+      "id": "header-1",
+      "type": "headerNode",
+      "position": { "x": 620, "y": 200 },
+      "data": { "label": "Operator isolates in 30 min", "nodeKind": "header" }
+    },
+    {
+      "id": "consequence-0",
+      "type": "consequenceNode",
+      "position": { "x": 900, "y": 100 },
+      "data": { "label": "Safe shutdown", "nodeKind": "consequence" }
+    },
+    {
+      "id": "consequence-1",
+      "type": "consequenceNode",
+      "position": { "x": 900, "y": 280 },
+      "data": { "label": "Plant trip", "nodeKind": "consequence" }
+    },
+    {
+      "id": "consequence-2",
+      "type": "consequenceNode",
+      "position": { "x": 900, "y": 440 },
+      "data": { "label": "Equipment damage", "nodeKind": "consequence" }
+    }
+  ],
+  "edges": [
+    {
+      "id": "branch-0",
+      "type": "branchEdge",
+      "source": "initiating-0",
+      "target": "header-0",
+      "data": { "label": "", "branchType": "success", "probability": "1" }
+    },
+    {
+      "id": "branch-1",
+      "type": "branchEdge",
+      "source": "header-0",
+      "target": "header-1",
+      "data": { "label": "starts", "branchType": "success", "probability": "0.96" }
+    },
+    {
+      "id": "branch-2",
+      "type": "branchEdge",
+      "source": "header-0",
+      "target": "consequence-2",
+      "data": { "label": "fails to start", "branchType": "failure", "probability": "0.04" }
+    },
+    {
+      "id": "branch-3",
+      "type": "branchEdge",
+      "source": "header-1",
+      "target": "consequence-0",
+      "data": { "label": "isolated", "branchType": "success", "probability": "0.9" }
+    },
+    {
+      "id": "branch-4",
+      "type": "branchEdge",
+      "source": "header-1",
+      "target": "consequence-1",
+      "data": { "label": "not isolated", "branchType": "failure", "probability": "0.1" }
+    }
+  ]
+}

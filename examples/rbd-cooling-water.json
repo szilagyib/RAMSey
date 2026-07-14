@@ -1,0 +1,134 @@
+{
+  "schemaVersion": 1,
+  "name": "Emergency cooling water — two trains with a cross-tie",
+  "type": "reliability_block_diagram",
+  "exportedAt": "2026-07-14T09:00:00.000Z",
+  "description": "Two redundant cooling trains (pump → heat exchanger) with a cross-tie valve that lets train A's pump feed train B's exchanger. That cross-tie makes the network NON series-parallel — it cannot be reduced by the usual series/parallel folding, and is solved from its minimal path sets by inclusion-exclusion: {PMP-A,HX-A}, {PMP-B,HX-B}, {PMP-A,XTIE,HX-B}. It is the classic bridge structure, and the reason this tool solves general two-terminal networks rather than only nested series/parallel ones. Rates are per hour: pumps λ=3e-5 (MTBF ≈ 33,000 h, MTTR 8 h), heat exchangers λ=5e-6 (fouling; MTTR 50 h), cross-tie valve λ=1e-5 (MTTR 16 h). Try reliability at the 8760 h mission, then availability, then delete the cross-tie and re-run to see exactly what the extra path buys you.",
+  "nodes": [
+    {
+      "id": "terminal-0",
+      "type": "terminalNode",
+      "position": { "x": 60, "y": 260 },
+      "data": { "label": "IN", "nodeKind": "input_terminal" }
+    },
+    {
+      "id": "block-0",
+      "type": "blockNode",
+      "position": { "x": 240, "y": 140 },
+      "data": {
+        "label": "PMP-A",
+        "nodeKind": "block",
+        "failureRate": "0.00003",
+        "repairRate": "0.125"
+      }
+    },
+    {
+      "id": "block-1",
+      "type": "blockNode",
+      "position": { "x": 240, "y": 380 },
+      "data": {
+        "label": "PMP-B",
+        "nodeKind": "block",
+        "failureRate": "0.00003",
+        "repairRate": "0.125"
+      }
+    },
+    {
+      "id": "block-2",
+      "type": "blockNode",
+      "position": { "x": 460, "y": 260 },
+      "data": {
+        "label": "XTIE",
+        "nodeKind": "block",
+        "failureRate": "0.00001",
+        "repairRate": "0.0625"
+      }
+    },
+    {
+      "id": "block-3",
+      "type": "blockNode",
+      "position": { "x": 680, "y": 140 },
+      "data": {
+        "label": "HX-A",
+        "nodeKind": "block",
+        "failureRate": "0.000005",
+        "repairRate": "0.02"
+      }
+    },
+    {
+      "id": "block-4",
+      "type": "blockNode",
+      "position": { "x": 680, "y": 380 },
+      "data": {
+        "label": "HX-B",
+        "nodeKind": "block",
+        "failureRate": "0.000005",
+        "repairRate": "0.02"
+      }
+    },
+    {
+      "id": "terminal-1",
+      "type": "terminalNode",
+      "position": { "x": 900, "y": 260 },
+      "data": { "label": "OUT", "nodeKind": "output_terminal" }
+    }
+  ],
+  "edges": [
+    {
+      "id": "connection-0",
+      "type": "connectionEdge",
+      "source": "terminal-0",
+      "target": "block-0",
+      "data": { "label": "" }
+    },
+    {
+      "id": "connection-1",
+      "type": "connectionEdge",
+      "source": "terminal-0",
+      "target": "block-1",
+      "data": { "label": "" }
+    },
+    {
+      "id": "connection-2",
+      "type": "connectionEdge",
+      "source": "block-0",
+      "target": "block-3",
+      "data": { "label": "" }
+    },
+    {
+      "id": "connection-3",
+      "type": "connectionEdge",
+      "source": "block-1",
+      "target": "block-4",
+      "data": { "label": "" }
+    },
+    {
+      "id": "connection-4",
+      "type": "connectionEdge",
+      "source": "block-0",
+      "target": "block-2",
+      "data": { "label": "cross-tie" }
+    },
+    {
+      "id": "connection-5",
+      "type": "connectionEdge",
+      "source": "block-2",
+      "target": "block-4",
+      "data": { "label": "" }
+    },
+    {
+      "id": "connection-6",
+      "type": "connectionEdge",
+      "source": "block-3",
+      "target": "terminal-1",
+      "data": { "label": "" }
+    },
+    {
+      "id": "connection-7",
+      "type": "connectionEdge",
+      "source": "block-4",
+      "target": "terminal-1",
+      "data": { "label": "" }
+    }
+  ]
+}

@@ -1,0 +1,430 @@
+{
+  "schemaVersion": 1,
+  "name": "No cooling flow on demand (fault tree)",
+  "type": "fault_tree",
+  "exportedAt": "2026-07-14T09:00:00.000Z",
+  "description": "The same emergency cooling system as the RBD example, read backwards: what has to fail for there to be no cooling flow when it is called for. The top event is an OR of four ways to lose flow — both trains fail (an AND over the two per-train ORs, which is where the redundancy lives), the shared suction header blocks, station power is lost, or the 2-out-of-3 start logic fails to command the pumps (a K/N gate, k=2 of 3 sensors). Note the notation: a gate feeds an intermediate event, and that event feeds the next gate. Gates never wire straight into other gates. Top-event probability is 0.0059, from 9 minimal cut sets: 2 of order 1 (suction header, station power) and 7 of order 2 (four two-train combinations, three sensor pairs). The lesson is in the importance measures. Station power has a probability of just 0.004 — a fifth of the 0.02 pump failure — yet it carries a Fussell-Vesely of 0.68 against the pump's 0.08, because power is a single point of failure while pumps only matter in pairs. Redundancy is worth nothing against the things it does not cover. Run minimal cut sets, then importance measures.",
+  "nodes": [
+    {
+      "id": "event-0",
+      "type": "eventNode",
+      "position": {
+        "x": 520,
+        "y": 40
+      },
+      "data": {
+        "label": "No cooling flow on demand",
+        "nodeKind": "event",
+        "eventType": "top"
+      }
+    },
+    {
+      "id": "gate-0",
+      "type": "gateNode",
+      "position": {
+        "x": 556,
+        "y": 160
+      },
+      "data": {
+        "label": "OR1",
+        "nodeKind": "gate",
+        "gateType": "OR"
+      }
+    },
+    {
+      "id": "gate-1",
+      "type": "gateNode",
+      "position": {
+        "x": 200,
+        "y": 300
+      },
+      "data": {
+        "label": "AND1",
+        "nodeKind": "gate",
+        "gateType": "AND"
+      }
+    },
+    {
+      "id": "gate-2",
+      "type": "gateNode",
+      "position": {
+        "x": 80,
+        "y": 440
+      },
+      "data": {
+        "label": "OR-A",
+        "nodeKind": "gate",
+        "gateType": "OR"
+      }
+    },
+    {
+      "id": "gate-3",
+      "type": "gateNode",
+      "position": {
+        "x": 320,
+        "y": 440
+      },
+      "data": {
+        "label": "OR-B",
+        "nodeKind": "gate",
+        "gateType": "OR"
+      }
+    },
+    {
+      "id": "gate-4",
+      "type": "gateNode",
+      "position": {
+        "x": 900,
+        "y": 300
+      },
+      "data": {
+        "label": "2oo3",
+        "nodeKind": "gate",
+        "gateType": "K_OF_N",
+        "k": 2
+      }
+    },
+    {
+      "id": "event-1",
+      "type": "eventNode",
+      "position": {
+        "x": 20,
+        "y": 580
+      },
+      "data": {
+        "label": "Pump A fails",
+        "nodeKind": "event",
+        "eventType": "basic",
+        "probability": "0.02"
+      }
+    },
+    {
+      "id": "event-2",
+      "type": "eventNode",
+      "position": {
+        "x": 160,
+        "y": 580
+      },
+      "data": {
+        "label": "HX A fouled",
+        "nodeKind": "event",
+        "eventType": "basic",
+        "probability": "0.005"
+      }
+    },
+    {
+      "id": "event-3",
+      "type": "eventNode",
+      "position": {
+        "x": 300,
+        "y": 580
+      },
+      "data": {
+        "label": "Pump B fails",
+        "nodeKind": "event",
+        "eventType": "basic",
+        "probability": "0.02"
+      }
+    },
+    {
+      "id": "event-4",
+      "type": "eventNode",
+      "position": {
+        "x": 440,
+        "y": 580
+      },
+      "data": {
+        "label": "HX B fouled",
+        "nodeKind": "event",
+        "eventType": "basic",
+        "probability": "0.005"
+      }
+    },
+    {
+      "id": "event-5",
+      "type": "eventNode",
+      "position": {
+        "x": 600,
+        "y": 300
+      },
+      "data": {
+        "label": "Suction header blocked",
+        "nodeKind": "event",
+        "eventType": "basic",
+        "probability": "0.001"
+      }
+    },
+    {
+      "id": "event-6",
+      "type": "eventNode",
+      "position": {
+        "x": 750,
+        "y": 300
+      },
+      "data": {
+        "label": "Station power lost",
+        "nodeKind": "event",
+        "eventType": "basic",
+        "probability": "0.004"
+      }
+    },
+    {
+      "id": "event-7",
+      "type": "eventNode",
+      "position": {
+        "x": 820,
+        "y": 440
+      },
+      "data": {
+        "label": "Start sensor 1 fails",
+        "nodeKind": "event",
+        "eventType": "basic",
+        "probability": "0.01"
+      }
+    },
+    {
+      "id": "event-8",
+      "type": "eventNode",
+      "position": {
+        "x": 960,
+        "y": 440
+      },
+      "data": {
+        "label": "Start sensor 2 fails",
+        "nodeKind": "event",
+        "eventType": "basic",
+        "probability": "0.01"
+      }
+    },
+    {
+      "id": "event-9",
+      "type": "eventNode",
+      "position": {
+        "x": 1100,
+        "y": 440
+      },
+      "data": {
+        "label": "Start sensor 3 fails",
+        "nodeKind": "event",
+        "eventType": "basic",
+        "probability": "0.01"
+      }
+    },
+    {
+      "id": "event-10",
+      "type": "eventNode",
+      "position": {
+        "x": 176,
+        "y": 300
+      },
+      "data": {
+        "label": "Both trains unavailable",
+        "nodeKind": "event",
+        "eventType": "intermediate"
+      }
+    },
+    {
+      "id": "event-11",
+      "type": "eventNode",
+      "position": {
+        "x": 56,
+        "y": 440
+      },
+      "data": {
+        "label": "Train A unavailable",
+        "nodeKind": "event",
+        "eventType": "intermediate"
+      }
+    },
+    {
+      "id": "event-12",
+      "type": "eventNode",
+      "position": {
+        "x": 296,
+        "y": 440
+      },
+      "data": {
+        "label": "Train B unavailable",
+        "nodeKind": "event",
+        "eventType": "intermediate"
+      }
+    },
+    {
+      "id": "event-13",
+      "type": "eventNode",
+      "position": {
+        "x": 876,
+        "y": 300
+      },
+      "data": {
+        "label": "Start logic fails",
+        "nodeKind": "event",
+        "eventType": "intermediate"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "tree-0",
+      "type": "treeEdge",
+      "source": "gate-0",
+      "target": "event-0",
+      "data": {
+        "label": ""
+      }
+    },
+    {
+      "id": "tree-1",
+      "type": "treeEdge",
+      "source": "event-10",
+      "target": "gate-0",
+      "data": {
+        "label": ""
+      }
+    },
+    {
+      "id": "tree-2",
+      "type": "treeEdge",
+      "source": "event-5",
+      "target": "gate-0",
+      "data": {
+        "label": ""
+      }
+    },
+    {
+      "id": "tree-3",
+      "type": "treeEdge",
+      "source": "event-6",
+      "target": "gate-0",
+      "data": {
+        "label": ""
+      }
+    },
+    {
+      "id": "tree-4",
+      "type": "treeEdge",
+      "source": "event-13",
+      "target": "gate-0",
+      "data": {
+        "label": ""
+      }
+    },
+    {
+      "id": "tree-5",
+      "type": "treeEdge",
+      "source": "event-11",
+      "target": "gate-1",
+      "data": {
+        "label": ""
+      }
+    },
+    {
+      "id": "tree-6",
+      "type": "treeEdge",
+      "source": "event-12",
+      "target": "gate-1",
+      "data": {
+        "label": ""
+      }
+    },
+    {
+      "id": "tree-7",
+      "type": "treeEdge",
+      "source": "event-1",
+      "target": "gate-2",
+      "data": {
+        "label": ""
+      }
+    },
+    {
+      "id": "tree-8",
+      "type": "treeEdge",
+      "source": "event-2",
+      "target": "gate-2",
+      "data": {
+        "label": ""
+      }
+    },
+    {
+      "id": "tree-9",
+      "type": "treeEdge",
+      "source": "event-3",
+      "target": "gate-3",
+      "data": {
+        "label": ""
+      }
+    },
+    {
+      "id": "tree-10",
+      "type": "treeEdge",
+      "source": "event-4",
+      "target": "gate-3",
+      "data": {
+        "label": ""
+      }
+    },
+    {
+      "id": "tree-11",
+      "type": "treeEdge",
+      "source": "event-7",
+      "target": "gate-4",
+      "data": {
+        "label": ""
+      }
+    },
+    {
+      "id": "tree-12",
+      "type": "treeEdge",
+      "source": "event-8",
+      "target": "gate-4",
+      "data": {
+        "label": ""
+      }
+    },
+    {
+      "id": "tree-13",
+      "type": "treeEdge",
+      "source": "event-9",
+      "target": "gate-4",
+      "data": {
+        "label": ""
+      }
+    },
+    {
+      "id": "tree-14",
+      "type": "treeEdge",
+      "source": "gate-1",
+      "target": "event-10",
+      "data": {
+        "label": ""
+      }
+    },
+    {
+      "id": "tree-15",
+      "type": "treeEdge",
+      "source": "gate-2",
+      "target": "event-11",
+      "data": {
+        "label": ""
+      }
+    },
+    {
+      "id": "tree-16",
+      "type": "treeEdge",
+      "source": "gate-3",
+      "target": "event-12",
+      "data": {
+        "label": ""
+      }
+    },
+    {
+      "id": "tree-17",
+      "type": "treeEdge",
+      "source": "gate-4",
+      "target": "event-13",
+      "data": {
+        "label": ""
+      }
+    }
+  ]
+}

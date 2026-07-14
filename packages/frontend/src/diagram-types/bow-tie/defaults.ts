@@ -33,7 +33,7 @@ export const DEFAULT_NODE_DATA: Record<
   BowTieNodeData['nodeKind'],
   Omit<BowTieNodeData, 'label'>
 > = {
-  threat: { nodeKind: 'threat' },
+  threat: { nodeKind: 'threat', probability: '' },
   preventive_barrier: { nodeKind: 'preventive_barrier', effectiveness: '' },
   top_event: { nodeKind: 'top_event' },
   mitigative_barrier: { nodeKind: 'mitigative_barrier', effectiveness: '' },

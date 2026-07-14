@@ -105,14 +105,32 @@ npm run typecheck     # tsc across all workspaces
 
 Open any diagram, then **File → Import JSON…** and pick one of:
 
-- [`examples/markov-redundant-power.json`](examples/markov-redundant-power.json) —
-  a repairable redundant-PSU model (all four state types, λ/μ/β rates) ending in an
-  absorbing blackout state, so it suits reliability, transient and **MTTF** analysis.
-- [`examples/markov-2oo3-pump-station.json`](examples/markov-2oo3-pump-station.json) —
-  a 2-out-of-3 pump station with common-cause failure, proof-test maintenance and
-  spurious trips. It has no absorbing state, so **steady-state availability and
-  MTBF/MTTR converge** (≈0.9986 available, MTBF ≈1780 h) — the metrics an absorbing
-  model drives to zero.
+**Markov chains**
+
+- [`markov-redundant-power.json`](examples/markov-redundant-power.json) — a repairable
+  redundant-PSU model (all four state types, λ/μ/β rates) ending in an absorbing
+  blackout state, so it suits reliability, transient and **MTTF** analysis.
+- [`markov-2oo3-pump-station.json`](examples/markov-2oo3-pump-station.json) — a
+  2-out-of-3 pump station with common-cause failure, proof-test maintenance and
+  spurious trips. No absorbing state, so **steady-state availability and MTBF/MTTR
+  converge** (≈0.9986 available, MTBF ≈1780 h) — the metrics an absorbing model
+  drives to zero.
+
+**One system, four notations.** The remaining examples are all the *same* emergency
+cooling-water system, so you can see what each notation shows and what it hides:
+
+- [`rbd-cooling-water.json`](examples/rbd-cooling-water.json) — two trains with a
+  cross-tie, which makes the network **non series-parallel**: it can't be folded by
+  series/parallel reduction and is solved from its three minimal path sets.
+- [`fault-tree-cooling-loss.json`](examples/fault-tree-cooling-loss.json) — the same
+  system backwards. 9 minimal cut sets; importance ranks **station power above pump
+  failure despite being 5× less likely**, because power is a single point of failure
+  and pumps only matter in pairs.
+- [`event-tree-cooling-loss.json`](examples/event-tree-cooling-loss.json) — the same
+  system forwards: from the loss, through the barriers, to the consequences.
+- [`bow-tie-cooling-loss.json`](examples/bow-tie-cooling-loss.json) — threats, top
+  event and consequences in one picture. The left half is the fault tree, the right
+  half is the event tree.
 
 ### Environment Variables
 

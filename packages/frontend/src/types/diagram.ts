@@ -85,6 +85,9 @@ export interface BowTieNodeData {
   label: string;
   nodeKind: 'threat' | 'preventive_barrier' | 'top_event' | 'mitigative_barrier' | 'consequence';
   effectiveness?: string;
+  /** Likelihood of a threat being realised. The solver defaults it to 1 (i.e.
+   *  certain) when absent, which makes every top-event frequency meaningless. */
+  probability?: string;
   description?: string;
   [key: string]: unknown;
 }
