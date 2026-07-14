@@ -23,7 +23,7 @@
       "type": "gateNode",
       "position": {
         "x": 556,
-        "y": 160
+        "y": 150
       },
       "data": {
         "label": "OR1",
@@ -35,8 +35,8 @@
       "id": "gate-1",
       "type": "gateNode",
       "position": {
-        "x": 200,
-        "y": 300
+        "x": 206,
+        "y": 360
       },
       "data": {
         "label": "AND1",
@@ -48,8 +48,8 @@
       "id": "gate-2",
       "type": "gateNode",
       "position": {
-        "x": 80,
-        "y": 440
+        "x": 76,
+        "y": 580
       },
       "data": {
         "label": "OR-A",
@@ -61,8 +61,8 @@
       "id": "gate-3",
       "type": "gateNode",
       "position": {
-        "x": 320,
-        "y": 440
+        "x": 336,
+        "y": 580
       },
       "data": {
         "label": "OR-B",
@@ -74,8 +74,8 @@
       "id": "gate-4",
       "type": "gateNode",
       "position": {
-        "x": 900,
-        "y": 300
+        "x": 896,
+        "y": 360
       },
       "data": {
         "label": "2oo3",
@@ -88,8 +88,8 @@
       "id": "event-1",
       "type": "eventNode",
       "position": {
-        "x": 20,
-        "y": 580
+        "x": 10,
+        "y": 690
       },
       "data": {
         "label": "Pump A fails",
@@ -102,8 +102,8 @@
       "id": "event-2",
       "type": "eventNode",
       "position": {
-        "x": 160,
-        "y": 580
+        "x": 150,
+        "y": 690
       },
       "data": {
         "label": "HX A fouled",
@@ -116,8 +116,8 @@
       "id": "event-3",
       "type": "eventNode",
       "position": {
-        "x": 300,
-        "y": 580
+        "x": 290,
+        "y": 690
       },
       "data": {
         "label": "Pump B fails",
@@ -130,8 +130,8 @@
       "id": "event-4",
       "type": "eventNode",
       "position": {
-        "x": 440,
-        "y": 580
+        "x": 430,
+        "y": 690
       },
       "data": {
         "label": "HX B fouled",
@@ -144,8 +144,8 @@
       "id": "event-5",
       "type": "eventNode",
       "position": {
-        "x": 600,
-        "y": 300
+        "x": 560,
+        "y": 250
       },
       "data": {
         "label": "Suction header blocked",
@@ -158,8 +158,8 @@
       "id": "event-6",
       "type": "eventNode",
       "position": {
-        "x": 750,
-        "y": 300
+        "x": 700,
+        "y": 250
       },
       "data": {
         "label": "Station power lost",
@@ -172,8 +172,8 @@
       "id": "event-7",
       "type": "eventNode",
       "position": {
-        "x": 820,
-        "y": 440
+        "x": 760,
+        "y": 470
       },
       "data": {
         "label": "Start sensor 1 fails",
@@ -186,8 +186,8 @@
       "id": "event-8",
       "type": "eventNode",
       "position": {
-        "x": 960,
-        "y": 440
+        "x": 900,
+        "y": 470
       },
       "data": {
         "label": "Start sensor 2 fails",
@@ -200,8 +200,8 @@
       "id": "event-9",
       "type": "eventNode",
       "position": {
-        "x": 1100,
-        "y": 440
+        "x": 1040,
+        "y": 470
       },
       "data": {
         "label": "Start sensor 3 fails",
@@ -214,8 +214,8 @@
       "id": "event-10",
       "type": "eventNode",
       "position": {
-        "x": 176,
-        "y": 300
+        "x": 170,
+        "y": 250
       },
       "data": {
         "label": "Both trains unavailable",
@@ -227,8 +227,8 @@
       "id": "event-11",
       "type": "eventNode",
       "position": {
-        "x": 56,
-        "y": 440
+        "x": 40,
+        "y": 470
       },
       "data": {
         "label": "Train A unavailable",
@@ -240,8 +240,8 @@
       "id": "event-12",
       "type": "eventNode",
       "position": {
-        "x": 296,
-        "y": 440
+        "x": 300,
+        "y": 470
       },
       "data": {
         "label": "Train B unavailable",
@@ -253,8 +253,8 @@
       "id": "event-13",
       "type": "eventNode",
       "position": {
-        "x": 876,
-        "y": 300
+        "x": 860,
+        "y": 250
       },
       "data": {
         "label": "Start logic fails",

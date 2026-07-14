@@ -38,10 +38,21 @@ export async function deleteAccount(page: Page): Promise<void> {
 /**
  * Create a diagram from the dashboard form (creates a project + diagram and
  * navigates into the editor).
+ *
+ * `typeLabel` picks the diagram type (e.g. 'Fault Tree'); it defaults to Markov.
+ * Importing a file of a different type than the diagram is refused by design, so
+ * a test that imports one must create the matching type here.
  */
-export async function createDiagram(page: Page, name: string): Promise<void> {
+export async function createDiagram(
+  page: Page,
+  name: string,
+  typeLabel?: string,
+): Promise<void> {
   await page.getByRole('button', { name: 'New Diagram' }).first().click();
   await page.getByPlaceholder('e.g. Pump System Reliability').fill(name);
+  if (typeLabel) {
+    await page.locator('select').first().selectOption({ label: typeLabel });
+  }
   await page.getByRole('button', { name: 'Create', exact: true }).click();
   await page.waitForURL(/\/projects\/.+\/diagrams\/.+/);
   await expect(page.locator('.react-flow')).toBeVisible();

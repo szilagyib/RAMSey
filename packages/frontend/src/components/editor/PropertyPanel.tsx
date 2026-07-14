@@ -1,5 +1,6 @@
 import { useDiagramStore } from '../../stores/diagramStore';
 import { Input } from '../ui/Input';
+import { Select } from '../ui/Select';
 import {
   getNodeColor,
   getNodeFill,
@@ -7,6 +8,13 @@ import {
   getEdgeColor,
   NODE_COLOR_PRESETS,
 } from '../../lib/nodeColor';
+import {
+  ENUM_OPTIONS,
+  HIDDEN_FIELDS,
+  READONLY_FIELDS,
+  fieldLabel,
+  optionLabel,
+} from '../../lib/fieldSchema';
 import { cn } from '../../lib/utils';
 
 /**
@@ -106,9 +114,7 @@ function GenericNodeProperties({ nodeId }: { nodeId: string }) {
   // Color channels get dedicated pickers below, not raw text inputs.
   const editableKeys = Object.keys(data).filter(
     (key) =>
-      key !== 'color' &&
-      key !== 'fillColor' &&
-      key !== 'textColor' &&
+      !HIDDEN_FIELDS.has(key) &&
       (typeof data[key] === 'string' || typeof data[key] === 'number' || typeof data[key] === 'boolean'),
   );
 
@@ -120,16 +126,44 @@ function GenericNodeProperties({ nodeId }: { nodeId: string }) {
 
       {editableKeys.map((key) => {
         const value = data[key];
+
+        // What kind of node this is picks the component that draws it, so it
+        // can't be re-typed here — but seeing it tells you what you selected.
+        if (READONLY_FIELDS.has(key)) {
+          return <ReadOnlyField key={key} label={fieldLabel(key)} value={optionLabel(String(value ?? ''))} />;
+        }
+
+        const options = ENUM_OPTIONS[key];
+        if (options) {
+          return (
+            <Select
+              key={key}
+              label={fieldLabel(key)}
+              value={String(value ?? '')}
+              options={options.map((o) => ({ value: o, label: optionLabel(o) }))}
+              onChange={(e) =>
+                useDiagramStore
+                  .getState()
+                  .runInHistoryEntry(() => updateNodeData(nodeId, { [key]: e.target.value }))
+              }
+            />
+          );
+        }
+
         if (typeof value === 'boolean') {
           return (
             <label key={key} className="flex items-center gap-2 text-sm text-surface-700">
               <input
                 type="checkbox"
                 checked={value}
-                onChange={(e) => updateNodeData(nodeId, { [key]: e.target.checked })}
+                onChange={(e) =>
+                  useDiagramStore
+                    .getState()
+                    .runInHistoryEntry(() => updateNodeData(nodeId, { [key]: e.target.checked }))
+                }
                 className="h-4 w-4 rounded border-surface-300 text-primary-600 focus:ring-primary-500"
               />
-              {key}
+              {fieldLabel(key)}
             </label>
           );
         }
@@ -137,7 +171,7 @@ function GenericNodeProperties({ nodeId }: { nodeId: string }) {
         return (
           <Input
             key={key}
-            label={key}
+            label={fieldLabel(key)}
             value={String(value ?? '')}
             onChange={(e) => {
               const newValue = typeof value === 'number' ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value;
@@ -151,6 +185,18 @@ function GenericNodeProperties({ nodeId }: { nodeId: string }) {
       <NodeColorControls nodeId={nodeId} data={data} />
 
       <p className="text-xs text-surface-400">ID: {nodeId}</p>
+    </div>
+  );
+}
+
+/** A field the user can read but not change (see READONLY_FIELDS). */
+function ReadOnlyField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-sm font-medium text-surface-700">{label}</span>
+      <p className="rounded-md border border-surface-200 bg-surface-50 px-3 py-2 text-sm text-surface-500 dark:bg-surface-200">
+        {value}
+      </p>
     </div>
   );
 }
@@ -171,9 +217,7 @@ function GenericEdgeProperties({ edgeId }: { edgeId: string }) {
   // as text).
   const editableKeys = Object.keys(data).filter(
     (key) =>
-      key !== 'color' &&
-      key !== 'cpX' &&
-      key !== 'cpY' &&
+      !HIDDEN_FIELDS.has(key) &&
       (typeof data[key] === 'string' || typeof data[key] === 'number'),
   );
 
@@ -185,10 +229,24 @@ function GenericEdgeProperties({ edgeId }: { edgeId: string }) {
 
       {editableKeys.map((key) => {
         const value = data[key];
+
+        const options = ENUM_OPTIONS[key];
+        if (options) {
+          return (
+            <Select
+              key={key}
+              label={fieldLabel(key)}
+              value={String(value ?? '')}
+              options={options.map((o) => ({ value: o, label: optionLabel(o) }))}
+              onChange={(e) => setDiscrete({ [key]: e.target.value })}
+            />
+          );
+        }
+
         return (
           <Input
             key={key}
-            label={key}
+            label={fieldLabel(key)}
             value={String(value ?? '')}
             onChange={(e) => {
               const newValue = typeof value === 'number' ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value;
