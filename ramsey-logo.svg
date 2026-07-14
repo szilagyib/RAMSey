@@ -1,28 +1,24 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 120" width="400" height="120">
   <!--
-    RAMSey lockup: the mark (see packages/frontend/public/favicon.svg) plus the
-    wordmark. The mark is a transition entering an absorbing state — the double
-    circle every Markov reliability model is built to reach.
+    RAMSey lockup: the mark (packages/frontend/public/favicon.svg) plus the
+    wordmark. Same mark, same gradient — the icon in the browser tab and the
+    logo on the page are one thing, and both average to primary-600, the colour
+    of the buttons.
   -->
   <defs>
     <linearGradient id="ramsey-brand" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#6366f1" />
-      <stop offset="100%" stop-color="#8b5cf6" />
+      <stop offset="100%" stop-color="#4338ca" />
     </linearGradient>
   </defs>
 
   <g transform="translate(16, 18)">
-    <rect width="84" height="84" rx="19" fill="url(#ramsey-brand)" />
-
-    <g stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M 11 42 H 22" fill="none" stroke-width="6" />
-      <path d="M 22 34.5 L 32 42 L 22 49.5 Z" fill="#ffffff" stroke-width="2" />
-      <circle cx="55" cy="42" r="17.5" fill="none" stroke-width="6" />
-      <circle cx="55" cy="42" r="7.5" fill="#ffffff" stroke="none" />
-    </g>
+    <rect width="84" height="84" rx="20" fill="url(#ramsey-brand)" />
+    <circle cx="42" cy="42" r="24" fill="none" stroke="#ffffff" stroke-width="10" />
+    <circle cx="42" cy="42" r="9.5" fill="#ffffff" />
   </g>
 
-  <!-- Wordmark: the stem is the acronym, the suffix carries the brand colour. -->
+  <!-- Wordmark: the acronym in ink, the suffix in the brand colour. -->
   <text
     x="118"
     y="70"
@@ -32,7 +28,7 @@
     fill="#0f172a"
     letter-spacing="-1.5"
   >
-    <tspan>RAMS</tspan><tspan fill="url(#ramsey-brand)" font-weight="500">ey</tspan>
+    <tspan>RAMS</tspan><tspan fill="#4f46e5" font-weight="500">ey</tspan>
   </text>
 
   <text
