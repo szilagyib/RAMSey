@@ -61,7 +61,11 @@ export function parseDiagramJson(text: string): ImportedDiagram | { error: strin
   const nodeIds = new Set((obj.nodes as Node[]).map((n) => n.id));
   for (const e of obj.edges) {
     const edge = e as Partial<Edge>;
-    if (typeof edge?.id !== 'string' || typeof edge?.source !== 'string' || typeof edge?.target !== 'string') {
+    if (
+      typeof edge?.id !== 'string' ||
+      typeof edge?.source !== 'string' ||
+      typeof edge?.target !== 'string'
+    ) {
       return { error: 'An edge is malformed (needs id, source, target).' };
     }
     if (!nodeIds.has(edge.source) || !nodeIds.has(edge.target)) {

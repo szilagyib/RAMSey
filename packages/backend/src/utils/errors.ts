@@ -121,9 +121,7 @@ export function globalErrorHandler(
   reply.status(500).send({
     error: 'InternalServerError',
     message:
-      process.env['NODE_ENV'] === 'production'
-        ? 'An unexpected error occurred'
-        : error.message,
+      process.env['NODE_ENV'] === 'production' ? 'An unexpected error occurred' : error.message,
     statusCode: 500,
   });
 }

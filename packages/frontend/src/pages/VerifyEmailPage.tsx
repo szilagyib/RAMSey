@@ -52,8 +52,8 @@ export function VerifyEmailPage() {
           <>
             <h1 className="mb-2 text-xl font-semibold text-surface-900">Verification failed</h1>
             <p className="mb-6 text-sm text-surface-500">
-              This verification link is invalid or has expired. Sign in and request a new one
-              from your account.
+              This verification link is invalid or has expired. Sign in and request a new one from
+              your account.
             </p>
             <Link
               to="/login"

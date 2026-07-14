@@ -4,7 +4,13 @@ import { contentHash, type AnalysisMethod, type AnalyzeResponse } from '@ramsey/
 import { useDiagramStore } from '../../stores/diagramStore';
 import { runAnalysis } from '../../lib/analysisClient';
 import { getCachedResult, setCachedResult, getLatestResult } from '../../lib/analysisCache';
-import { markovToModelIR, faultTreeToModelIR, rbdToModelIR, eventTreeToModelIR, bowTieToModelIR } from '../../lib/toModelIR';
+import {
+  markovToModelIR,
+  faultTreeToModelIR,
+  rbdToModelIR,
+  eventTreeToModelIR,
+  bowTieToModelIR,
+} from '../../lib/toModelIR';
 import { api } from '../../services/api';
 import { useCapabilities } from '../../lib/capabilities';
 import { Button } from '../ui/Button';
@@ -103,7 +109,9 @@ export function AnalysisPanel({ projectId, diagramId }: AnalysisPanelProps) {
     modelIR: ReturnType<typeof buildIR>,
     options: Record<string, unknown>,
   ): Promise<AnalyzeResponse | null> {
-    const { jobId } = (await api.analysis.create(projectId!, diagramId!, { modelIR, method, options })).data;
+    const { jobId } = (
+      await api.analysis.create(projectId!, diagramId!, { modelIR, method, options })
+    ).data;
     for (let i = 0; i < 120; i++) {
       await sleep(1000);
       const job = (await api.analysis.get(projectId!, diagramId!, jobId)).data;
@@ -179,14 +187,18 @@ export function AnalysisPanel({ projectId, diagramId }: AnalysisPanelProps) {
               className="w-full rounded border border-surface-300 bg-white dark:bg-surface-200 px-2 py-1 text-xs"
             >
               {methods.map(([m, label]) => (
-                <option key={m} value={m}>{label}</option>
+                <option key={m} value={m}>
+                  {label}
+                </option>
               ))}
             </select>
           </div>
 
           {showMissionTime && (
             <div>
-              <label className="mb-1 block text-[11px] font-medium text-surface-500">Mission time</label>
+              <label className="mb-1 block text-[11px] font-medium text-surface-500">
+                Mission time
+              </label>
               <input
                 type="number"
                 value={missionTime}
@@ -220,7 +232,9 @@ export function AnalysisPanel({ projectId, diagramId }: AnalysisPanelProps) {
             </div>
           )}
           {cached && result && (
-            <span className="-mb-1 text-[10px] text-surface-400">Cached result (model unchanged)</span>
+            <span className="-mb-1 text-[10px] text-surface-400">
+              Cached result (model unchanged)
+            </span>
           )}
           {result && <Results result={result} />}
         </div>
@@ -228,17 +242,24 @@ export function AnalysisPanel({ projectId, diagramId }: AnalysisPanelProps) {
 
       {result && methods && (
         <div className="border-t border-surface-100 dark:border-surface-300 px-3 py-2">
-          <button onClick={() => setShowTrace(!showTrace)} className="flex items-center gap-1 text-[11px] text-surface-500">
+          <button
+            onClick={() => setShowTrace(!showTrace)}
+            className="flex items-center gap-1 text-[11px] text-surface-500"
+          >
             {showTrace ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
             Method &amp; assumptions
           </button>
           {showTrace && (
             <div className="mt-1 space-y-1 text-[11px] text-surface-500">
-              <div><span className="text-surface-400">method:</span> {result.numericMetadata.method}</div>
+              <div>
+                <span className="text-surface-400">method:</span> {result.numericMetadata.method}
+              </div>
               {result.trace.assumptions.map((a, i) => (
                 <div key={i}>• {a}</div>
               ))}
-              {result.trace.methodDetails && <div className="text-surface-400">{result.trace.methodDetails}</div>}
+              {result.trace.methodDetails && (
+                <div className="text-surface-400">{result.trace.methodDetails}</div>
+              )}
             </div>
           )}
         </div>
@@ -256,10 +277,16 @@ function Results({ result }: { result: AnalyzeResponse }) {
     );
   }
 
-  const scalarMetrics = Object.entries(result.metrics).filter(([, v]) => typeof v === 'number') as [string, number][];
+  const scalarMetrics = Object.entries(result.metrics).filter(([, v]) => typeof v === 'number') as [
+    string,
+    number,
+  ][];
   const timeSeries =
     Array.isArray(result.metrics.time) && Array.isArray(result.metrics.availability)
-      ? (result.metrics.time as number[]).map((t, i) => [t, (result.metrics.availability as number[])[i]])
+      ? (result.metrics.time as number[]).map((t, i) => [
+          t,
+          (result.metrics.availability as number[])[i],
+        ])
       : null;
 
   return (
@@ -312,7 +339,9 @@ function Results({ result }: { result: AnalyzeResponse }) {
       {result.warnings.length > 0 && (
         <div className="mt-2 space-y-0.5">
           {result.warnings.map((w, i) => (
-            <div key={i} className="text-state-degraded-600">⚠ {w.message}</div>
+            <div key={i} className="text-state-degraded-600">
+              ⚠ {w.message}
+            </div>
           ))}
         </div>
       )}

@@ -47,10 +47,7 @@ export const useChatStore = create<ChatStore>((set) => ({
   addUserMessage: (content: string) => {
     const id = `msg-${++messageCounter}`;
     set((state) => ({
-      messages: [
-        ...state.messages,
-        { id, role: 'user', content },
-      ],
+      messages: [...state.messages, { id, role: 'user', content }],
       error: null,
     }));
   },
@@ -68,27 +65,21 @@ export const useChatStore = create<ChatStore>((set) => ({
 
   appendToAssistantMessage: (id: string, text: string) => {
     set((state) => ({
-      messages: state.messages.map((m) =>
-        m.id === id ? { ...m, content: m.content + text } : m,
-      ),
+      messages: state.messages.map((m) => (m.id === id ? { ...m, content: m.content + text } : m)),
     }));
   },
 
   addToolCallToMessage: (id: string, toolCall: ToolCall) => {
     set((state) => ({
       messages: state.messages.map((m) =>
-        m.id === id
-          ? { ...m, toolCalls: [...(m.toolCalls ?? []), toolCall] }
-          : m,
+        m.id === id ? { ...m, toolCalls: [...(m.toolCalls ?? []), toolCall] } : m,
       ),
     }));
   },
 
   finishAssistantMessage: (id: string) => {
     set((state) => ({
-      messages: state.messages.map((m) =>
-        m.id === id ? { ...m, isStreaming: false } : m,
-      ),
+      messages: state.messages.map((m) => (m.id === id ? { ...m, isStreaming: false } : m)),
     }));
   },
 

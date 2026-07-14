@@ -29,7 +29,11 @@ export class ShareService {
     });
   }
 
-  async createProjectShare(projectId: string, data: CreateProjectShareInput, grantedById: string): Promise<ProjectShare> {
+  async createProjectShare(
+    projectId: string,
+    data: CreateProjectShareInput,
+    grantedById: string,
+  ): Promise<ProjectShare> {
     return this.prisma.projectShare.upsert({
       where: {
         projectId_userId: {
@@ -60,7 +64,11 @@ export class ShareService {
     });
   }
 
-  async createShareLink(projectId: string, data: CreateShareLinkInput, createdById: string): Promise<ShareLink> {
+  async createShareLink(
+    projectId: string,
+    data: CreateShareLinkInput,
+    createdById: string,
+  ): Promise<ShareLink> {
     return this.prisma.shareLink.create({
       data: {
         projectId,

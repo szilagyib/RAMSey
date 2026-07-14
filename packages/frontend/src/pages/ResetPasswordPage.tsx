@@ -41,7 +41,9 @@ export function ResetPasswordPage() {
     <div className="flex min-h-screen items-center justify-center bg-surface-50 px-4">
       <div className="w-full max-w-sm rounded-lg border border-surface-200 bg-white dark:bg-surface-100 p-8 shadow-sm">
         <img src="/favicon.svg" alt="RAMSey" className="mx-auto mb-4 h-12 w-12" />
-        <h1 className="mb-1 text-center text-xl font-semibold text-surface-900">Set a new password</h1>
+        <h1 className="mb-1 text-center text-xl font-semibold text-surface-900">
+          Set a new password
+        </h1>
 
         {!token ? (
           <>
@@ -60,7 +62,11 @@ export function ResetPasswordPage() {
             <p className="mb-6 mt-2 text-center text-sm text-surface-500">
               Your password has been reset. You can sign in with it now.
             </p>
-            <Button size="lg" className="w-full" onClick={() => navigate('/login', { replace: true })}>
+            <Button
+              size="lg"
+              className="w-full"
+              onClick={() => navigate('/login', { replace: true })}
+            >
               Sign in
             </Button>
           </>

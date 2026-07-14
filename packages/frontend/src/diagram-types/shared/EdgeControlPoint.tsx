@@ -22,14 +22,11 @@ export function EdgeControlPoint({
   const { screenToFlowPosition } = useReactFlow();
   const dragging = useRef(false);
 
-  const onPointerDown = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      e.stopPropagation();
-      dragging.current = true;
-      (e.target as HTMLElement).setPointerCapture(e.pointerId);
-    },
-    [],
-  );
+  const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    dragging.current = true;
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  }, []);
 
   const onPointerMove = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {

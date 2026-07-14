@@ -73,14 +73,10 @@ function applyToolCall(
         const config = getDiagramTypeConfig(diagramStore.diagramType);
         if (config) {
           const edgeCounter = diagramStore.edgeCounter;
-          const newEdge = config.createEdge(
-            sourceNode.id,
-            targetNode.id,
-            edgeCounter,
-          );
+          const newEdge = config.createEdge(sourceNode.id, targetNode.id, edgeCounter);
 
           const edgeData: Record<string, unknown> = {
-            ...(newEdge.data as Record<string, unknown> ?? {}),
+            ...((newEdge.data as Record<string, unknown>) ?? {}),
             ...properties,
           };
           if (label) edgeData.label = label;
@@ -100,9 +96,7 @@ function applyToolCall(
       if (node) {
         useDiagramStore.setState((state) => ({
           nodes: state.nodes.filter((n) => n.id !== node.id),
-          edges: state.edges.filter(
-            (e) => e.source !== node.id && e.target !== node.id,
-          ),
+          edges: state.edges.filter((e) => e.source !== node.id && e.target !== node.id),
         }));
       }
       break;
@@ -150,14 +144,8 @@ function applyToolCall(
   }
 }
 
-function findNode(
-  nodes: Array<{ id: string; data: Record<string, unknown> }>,
-  ref: string,
-) {
-  return (
-    nodes.find((n) => n.id === ref) ||
-    nodes.find((n) => (n.data?.label as string) === ref)
-  );
+function findNode(nodes: Array<{ id: string; data: Record<string, unknown> }>, ref: string) {
+  return nodes.find((n) => n.id === ref) || nodes.find((n) => (n.data?.label as string) === ref);
 }
 
 function calcNextX(nodes: Array<{ position: { x: number } }>): number {

@@ -17,9 +17,7 @@ const COLOR_FIX = (s: string) => s.replace('amber', 'orange');
 
 export function bowTieToTikz(nodes: Node[], edges: Edge[]): string {
   const tf = makeTransform(nodes);
-  const lines: string[] = [
-    '\\begin{tikzpicture}[>=Stealth, every node/.style={font=\\small}]',
-  ];
+  const lines: string[] = ['\\begin{tikzpicture}[>=Stealth, every node/.style={font=\\small}]'];
 
   for (const n of nodes) {
     const d = n.data as BowTieNodeData;

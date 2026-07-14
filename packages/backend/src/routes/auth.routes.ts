@@ -56,28 +56,48 @@ const authRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
 
     fastify.get('/api/auth/google/callback', async (request, reply) => {
       try {
-        const oauthClient = (fastify as FastifyInstance & { googleOAuth2: OAuth2Namespace }).googleOAuth2;
+        const oauthClient = (fastify as FastifyInstance & { googleOAuth2: OAuth2Namespace })
+          .googleOAuth2;
         const { token } = await oauthClient.getAccessTokenFromAuthorizationCodeFlow(request);
         const profileRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
           headers: { Authorization: `Bearer ${token.access_token}` },
         });
-        const profile = await profileRes.json() as { id: string; email: string; name?: string; picture?: string };
+        const profile = (await profileRes.json()) as {
+          id: string;
+          email: string;
+          name?: string;
+          picture?: string;
+        };
 
         // Upsert user
         let user = await fastify.prisma.user.findUnique({ where: { googleId: profile.id } });
         if (!user) {
           user = await fastify.prisma.user.findUnique({ where: { email: profile.email } });
           if (user) {
-            user = await fastify.prisma.user.update({ where: { id: user.id }, data: { googleId: profile.id, emailVerified: user.emailVerified ?? new Date() } });
+            user = await fastify.prisma.user.update({
+              where: { id: user.id },
+              data: { googleId: profile.id, emailVerified: user.emailVerified ?? new Date() },
+            });
           } else {
             // OAuth provider already verified the address.
             user = await fastify.prisma.user.create({
-              data: { email: profile.email, name: profile.name, image: profile.picture, googleId: profile.id, emailVerified: new Date() },
+              data: {
+                email: profile.email,
+                name: profile.name,
+                image: profile.picture,
+                googleId: profile.id,
+                emailVerified: new Date(),
+              },
             });
           }
         }
 
-        const jwtToken = signToken({ userId: user.id, email: user.email, name: user.name ?? undefined, tokenVersion: user.tokenVersion });
+        const jwtToken = signToken({
+          userId: user.id,
+          email: user.email,
+          name: user.name ?? undefined,
+          tokenVersion: user.tokenVersion,
+        });
         reply.setCookie(COOKIE_NAME, jwtToken, COOKIE_OPTIONS);
         return reply.redirect(env.FRONTEND_URL);
       } catch (err) {
@@ -91,27 +111,32 @@ const authRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
     '/api/auth/register',
     { config: { rateLimit: limits.rateLimits.authRegister } },
     async (request, reply) => {
-    const body = registerSchema.parse(request.body);
-    const existing = await fastify.prisma.user.findUnique({ where: { email: body.email } });
-    if (existing) {
-      return reply.status(409).send({ message: 'Email already registered' });
-    }
-    const passwordHash = await bcrypt.hash(body.password, 12);
-    const user = await fastify.prisma.user.create({
-      data: { email: body.email, name: body.name, passwordHash },
-    });
-    // Send an email-verification link (best-effort — registration succeeds
-    // regardless; verification is soft and does not block login).
-    try {
-      const tokens = new VerificationTokenService(fastify.prisma);
-      const raw = await tokens.issue(user.id, 'EMAIL_VERIFY');
-      await sendVerificationEmail(user.email, `${env.FRONTEND_URL}/verify-email?token=${raw}`);
-    } catch (err) {
-      fastify.log.error(err, 'failed to send verification email');
-    }
-    const token = signToken({ userId: user.id, email: user.email, name: user.name ?? undefined, tokenVersion: user.tokenVersion });
-    reply.setCookie(COOKIE_NAME, token, COOKIE_OPTIONS);
-    return reply.status(201).send({ data: { id: user.id, email: user.email, name: user.name } });
+      const body = registerSchema.parse(request.body);
+      const existing = await fastify.prisma.user.findUnique({ where: { email: body.email } });
+      if (existing) {
+        return reply.status(409).send({ message: 'Email already registered' });
+      }
+      const passwordHash = await bcrypt.hash(body.password, 12);
+      const user = await fastify.prisma.user.create({
+        data: { email: body.email, name: body.name, passwordHash },
+      });
+      // Send an email-verification link (best-effort — registration succeeds
+      // regardless; verification is soft and does not block login).
+      try {
+        const tokens = new VerificationTokenService(fastify.prisma);
+        const raw = await tokens.issue(user.id, 'EMAIL_VERIFY');
+        await sendVerificationEmail(user.email, `${env.FRONTEND_URL}/verify-email?token=${raw}`);
+      } catch (err) {
+        fastify.log.error(err, 'failed to send verification email');
+      }
+      const token = signToken({
+        userId: user.id,
+        email: user.email,
+        name: user.name ?? undefined,
+        tokenVersion: user.tokenVersion,
+      });
+      reply.setCookie(COOKIE_NAME, token, COOKIE_OPTIONS);
+      return reply.status(201).send({ data: { id: user.id, email: user.email, name: user.name } });
     },
   );
 
@@ -119,18 +144,23 @@ const authRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
     '/api/auth/login',
     { config: { rateLimit: limits.rateLimits.authLogin } },
     async (request, reply) => {
-    const body = loginSchema.parse(request.body);
-    const user = await fastify.prisma.user.findUnique({ where: { email: body.email } });
-    if (!user || !user.passwordHash) {
-      return reply.status(401).send({ message: 'Invalid email or password' });
-    }
-    const valid = await bcrypt.compare(body.password, user.passwordHash);
-    if (!valid) {
-      return reply.status(401).send({ message: 'Invalid email or password' });
-    }
-    const token = signToken({ userId: user.id, email: user.email, name: user.name ?? undefined, tokenVersion: user.tokenVersion });
-    reply.setCookie(COOKIE_NAME, token, COOKIE_OPTIONS);
-    return reply.send({ data: { id: user.id, email: user.email, name: user.name } });
+      const body = loginSchema.parse(request.body);
+      const user = await fastify.prisma.user.findUnique({ where: { email: body.email } });
+      if (!user || !user.passwordHash) {
+        return reply.status(401).send({ message: 'Invalid email or password' });
+      }
+      const valid = await bcrypt.compare(body.password, user.passwordHash);
+      if (!valid) {
+        return reply.status(401).send({ message: 'Invalid email or password' });
+      }
+      const token = signToken({
+        userId: user.id,
+        email: user.email,
+        name: user.name ?? undefined,
+        tokenVersion: user.tokenVersion,
+      });
+      reply.setCookie(COOKIE_NAME, token, COOKIE_OPTIONS);
+      return reply.send({ data: { id: user.id, email: user.email, name: user.name } });
     },
   );
 
@@ -142,7 +172,14 @@ const authRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
   fastify.get('/api/auth/me', { preHandler: [authenticate] }, async (request, reply) => {
     const user = await fastify.prisma.user.findUnique({
       where: { id: request.user!.id },
-      select: { id: true, email: true, name: true, image: true, emailVerified: true, createdAt: true },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        image: true,
+        emailVerified: true,
+        createdAt: true,
+      },
     });
     if (!user) return reply.status(404).send({ message: 'User not found' });
     return reply.send({ data: user });
@@ -200,7 +237,10 @@ const authRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
       if (!userId) {
         return reply.status(400).send({ message: 'Invalid or expired verification link' });
       }
-      await fastify.prisma.user.update({ where: { id: userId }, data: { emailVerified: new Date() } });
+      await fastify.prisma.user.update({
+        where: { id: userId },
+        data: { emailVerified: new Date() },
+      });
       return reply.send({ data: { ok: true } });
     },
   );
@@ -226,7 +266,14 @@ const authRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
     const [profile, projects, diagrams, teamMemberships, comments] = await Promise.all([
       fastify.prisma.user.findUnique({
         where: { id: userId },
-        select: { id: true, email: true, name: true, image: true, emailVerified: true, createdAt: true },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          image: true,
+          emailVerified: true,
+          createdAt: true,
+        },
       }),
       fastify.prisma.project.findMany({ where: { createdById: userId } }),
       fastify.prisma.diagram.findMany({ where: { createdById: userId } }),

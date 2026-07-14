@@ -137,12 +137,9 @@ export function MenuBar({ menus }: MenuBarProps) {
   }));
 
   // Close on Escape
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Escape') setOpenIndex(null);
-    },
-    [],
-  );
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') setOpenIndex(null);
+  }, []);
 
   return (
     <div ref={barRef} className="flex items-center gap-0.5" onKeyDown={handleKeyDown}>

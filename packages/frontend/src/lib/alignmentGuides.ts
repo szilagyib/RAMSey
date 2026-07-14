@@ -83,7 +83,7 @@ export function computeSnap(dragged: Box, others: Box[]): SnapResult {
 
     // The guide spans both boxes on the perpendicular axis, so it visually
     // connects what it aligned rather than crossing the whole canvas.
-    const movedStart = (axis === 'x' ? dragged.y : dragged.x);
+    const movedStart = axis === 'x' ? dragged.y : dragged.x;
     const movedEnd = movedStart + (axis === 'x' ? dragged.h : dragged.w);
     const otherStart = axis === 'x' ? best.other.y : best.other.x;
     const otherEnd = otherStart + (axis === 'x' ? best.other.h : best.other.w);

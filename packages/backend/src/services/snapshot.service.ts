@@ -20,7 +20,11 @@ export class SnapshotService {
     });
   }
 
-  async createFromDiagram(diagramId: string, createdById: string, label?: string): Promise<DiagramSnapshot> {
+  async createFromDiagram(
+    diagramId: string,
+    createdById: string,
+    label?: string,
+  ): Promise<DiagramSnapshot> {
     const diagram = await this.prisma.diagram.findUnique({
       where: { id: diagramId },
       select: { yjsState: true },

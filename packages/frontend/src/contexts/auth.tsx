@@ -1,4 +1,12 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 import { api } from '../services/api';
 
 export interface AuthUser {
@@ -35,7 +43,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    api.auth.me()
+    api.auth
+      .me()
       .then((res) => setUser(res.data))
       .catch(() => setUser(getOrCreateGuestUser()))
       .finally(() => setIsLoading(false));

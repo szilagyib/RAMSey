@@ -52,9 +52,7 @@ export class ProjectService {
         OR: [
           { createdById: userId },
           { ownerType: 'user', ownerId: userId },
-          ...(teamIds.length > 0
-            ? [{ ownerType: 'team', ownerId: { in: teamIds } }]
-            : []),
+          ...(teamIds.length > 0 ? [{ ownerType: 'team', ownerId: { in: teamIds } }] : []),
           {
             shares: {
               some: {

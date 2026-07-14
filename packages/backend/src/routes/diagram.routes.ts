@@ -64,10 +64,7 @@ const diagramRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
       });
 
       if (!parseResult.success) {
-        throw new ValidationError(
-          'Invalid diagram data',
-          parseResult.error.flatten(),
-        );
+        throw new ValidationError('Invalid diagram data', parseResult.error.flatten());
       }
 
       const userId = request.user!.id;
@@ -99,10 +96,7 @@ const diagramRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
       const parseResult = UpdateDiagramInputSchema.safeParse(request.body);
 
       if (!parseResult.success) {
-        throw new ValidationError(
-          'Invalid update data',
-          parseResult.error.flatten(),
-        );
+        throw new ValidationError('Invalid update data', parseResult.error.flatten());
       }
 
       // Verify diagram exists
@@ -168,9 +162,7 @@ const diagramRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
       const state = await diagramService.getState(diagramId);
 
       if (!state) {
-        throw new NotFoundError(
-          `No state found for diagram '${diagramId}'`,
-        );
+        throw new NotFoundError(`No state found for diagram '${diagramId}'`);
       }
 
       reply.header('Content-Type', 'application/octet-stream');
@@ -205,9 +197,7 @@ const diagramRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
       } else if (typeof body === 'string') {
         buffer = Buffer.from(body, 'base64');
       } else {
-        throw new ValidationError(
-          'Request body must be binary data (application/octet-stream)',
-        );
+        throw new ValidationError('Request body must be binary data (application/octet-stream)');
       }
 
       await diagramService.saveState(diagramId, buffer);
@@ -250,13 +240,11 @@ const diagramRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
         throw new ValidationError('Invalid snapshot data', parseResult.error.flatten());
       }
 
-      const snapshot = await snapshotService.createFromDiagram(
-        request.params.diagramId,
-        request.user!.id,
-        parseResult.data.label,
-      ).catch((err) => {
-        throw new ValidationError(err?.message ?? 'Failed to create snapshot');
-      });
+      const snapshot = await snapshotService
+        .createFromDiagram(request.params.diagramId, request.user!.id, parseResult.data.label)
+        .catch((err) => {
+          throw new ValidationError(err?.message ?? 'Failed to create snapshot');
+        });
 
       await auditLogService.log({
         userId: request.user!.id,

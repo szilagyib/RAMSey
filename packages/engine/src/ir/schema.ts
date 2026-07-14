@@ -233,11 +233,7 @@ export type Dependency =
 // Repair policy
 // ---------------------------------------------------------------------------
 
-export type RepairPolicyType =
-  | 'unlimited'
-  | 'single_repairman'
-  | 'priority_queue'
-  | 'k_repairmen';
+export type RepairPolicyType = 'unlimited' | 'single_repairman' | 'priority_queue' | 'k_repairmen';
 
 export interface RepairPolicy {
   type: RepairPolicyType;

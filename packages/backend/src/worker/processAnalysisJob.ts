@@ -10,14 +10,20 @@ import { logger } from '../config/logger.js';
 // unit-tested without a queue/worker runtime.
 // ---------------------------------------------------------------------------
 
-export async function processAnalysisJob(payload: AnalysisJobPayload, prisma: PrismaClient): Promise<void> {
+export async function processAnalysisJob(
+  payload: AnalysisJobPayload,
+  prisma: PrismaClient,
+): Promise<void> {
   const notifications = new NotificationService(prisma);
   const job = await prisma.analysisJob.findUnique({ where: { id: payload.jobId } });
   if (!job) {
     logger.warn({ jobId: payload.jobId }, 'analysis job vanished before processing');
     return;
   }
-  logger.info({ jobId: job.id, diagramId: job.diagramId, method: job.method }, 'analysis job started');
+  logger.info(
+    { jobId: job.id, diagramId: job.diagramId, method: job.method },
+    'analysis job started',
+  );
 
   await prisma.analysisJob.update({
     where: { id: payload.jobId },
@@ -38,11 +44,19 @@ export async function processAnalysisJob(payload: AnalysisJobPayload, prisma: Pr
         where: { id: payload.jobId },
         data: { status: 'FAILED', finishedAt: new Date(), errorMessage },
       });
-      logger.warn({ jobId: job.id, method: job.method, errorMessage }, 'analysis job failed (engine error)');
+      logger.warn(
+        { jobId: job.id, method: job.method, errorMessage },
+        'analysis job failed (engine error)',
+      );
       await notifications.create({
         userId: job.requestedById,
         type: 'ANALYSIS_FAILED',
-        payload: { jobId: job.id, diagramId: job.diagramId, method: job.method, error: errorMessage },
+        payload: {
+          jobId: job.id,
+          diagramId: job.diagramId,
+          method: job.method,
+          error: errorMessage,
+        },
       });
       return;
     }
@@ -83,7 +97,10 @@ export async function processAnalysisJob(payload: AnalysisJobPayload, prisma: Pr
       where: { id: payload.jobId },
       data: { status: 'COMPLETED', finishedAt: new Date(), progress: 1 },
     });
-    logger.info({ jobId: job.id, method: job.method, computeTimeMs: resultData.computeTimeMs }, 'analysis job completed');
+    logger.info(
+      { jobId: job.id, method: job.method, computeTimeMs: resultData.computeTimeMs },
+      'analysis job completed',
+    );
     await notifications.create({
       userId: job.requestedById,
       type: 'ANALYSIS_COMPLETE',

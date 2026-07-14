@@ -23,8 +23,13 @@ export function ValidationPanel({ open, onClose }: ValidationPanelProps) {
     return (
       <div className="absolute bottom-4 right-4 flex items-center gap-2 rounded-md border border-state-operational-200 bg-white dark:bg-surface-100 px-3 py-2 text-xs text-state-operational-700 shadow-md">
         <CheckCircle className="h-3.5 w-3.5 shrink-0" />
-        <span>{nodes.length === 0 ? 'No nodes to validate.' : 'Diagram is valid — no issues found.'}</span>
-        <button onClick={onClose} className="ml-1 rounded p-0.5 text-state-operational-400 hover:text-state-operational-700 transition-colors">
+        <span>
+          {nodes.length === 0 ? 'No nodes to validate.' : 'Diagram is valid — no issues found.'}
+        </span>
+        <button
+          onClick={onClose}
+          className="ml-1 rounded p-0.5 text-state-operational-400 hover:text-state-operational-700 transition-colors"
+        >
           <X className="h-3 w-3" />
         </button>
       </div>
@@ -45,7 +50,8 @@ export function ValidationPanel({ open, onClose }: ValidationPanelProps) {
             <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-state-degraded-500" />
           )}
           <span className="text-surface-700">
-            {errorCount} error{errorCount !== 1 ? 's' : ''}, {warningCount} warning{warningCount !== 1 ? 's' : ''}
+            {errorCount} error{errorCount !== 1 ? 's' : ''}, {warningCount} warning
+            {warningCount !== 1 ? 's' : ''}
           </span>
           {expanded ? (
             <ChevronDown className="h-3.5 w-3.5 text-surface-400" />

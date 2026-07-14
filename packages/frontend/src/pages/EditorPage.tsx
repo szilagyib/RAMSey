@@ -49,7 +49,11 @@ export function EditorPage() {
       setDiagramName(diagram.name);
       setDiagramType(engineType);
 
-      const content = diagram.content as { nodes?: unknown[]; edges?: unknown[]; rows?: unknown[] } | null;
+      const content = diagram.content as {
+        nodes?: unknown[];
+        edges?: unknown[];
+        rows?: unknown[];
+      } | null;
 
       if (engineType === 'fmea' && content?.rows) {
         loadFMEARows(content.rows as typeof fmeaRows);
@@ -83,9 +87,7 @@ export function EditorPage() {
     if (!isGuest && !isTableBased) return;
     setSaving(true);
     try {
-      const content = isTableBased
-        ? { rows: fmeaRows }
-        : { nodes, edges };
+      const content = isTableBased ? { rows: fmeaRows } : { nodes, edges };
 
       await ds.diagrams.update(projectId, diagramId, { content });
     } catch (err) {
@@ -105,15 +107,18 @@ export function EditorPage() {
     }
   }, [projectId, diagramId, ds]);
 
-  const handleRename = useCallback(async (newName: string) => {
-    if (!projectId || !diagramId) return;
-    setDiagramName(newName);
-    try {
-      await ds.diagrams.update(projectId, diagramId, { name: newName });
-    } catch {
-      // Revert on failure handled silently — name is already updated locally
-    }
-  }, [projectId, diagramId, ds]);
+  const handleRename = useCallback(
+    async (newName: string) => {
+      if (!projectId || !diagramId) return;
+      setDiagramName(newName);
+      try {
+        await ds.diagrams.update(projectId, diagramId, { name: newName });
+      } catch {
+        // Revert on failure handled silently — name is already updated locally
+      }
+    },
+    [projectId, diagramId, ds],
+  );
 
   const handleBack = useCallback(() => {
     navigate('/');
@@ -165,7 +170,12 @@ export function EditorPage() {
       items: [
         { label: 'New Diagram', shortcut: '', onClick: () => handleBack(), disabled: false },
         { divider: true },
-        { label: saving ? 'Saving...' : 'Save', shortcut: 'Ctrl+S', onClick: () => handleSave(), disabled: saving },
+        {
+          label: saving ? 'Saving...' : 'Save',
+          shortcut: 'Ctrl+S',
+          onClick: () => handleSave(),
+          disabled: saving,
+        },
         { divider: true },
         { label: 'Back to Dashboard', onClick: () => handleBack() },
       ],
@@ -220,9 +230,7 @@ export function EditorPage() {
                   {diagramName}
                 </span>
               )}
-              {saving && (
-                <span className="mr-1 text-[10px] text-surface-400">Saving…</span>
-              )}
+              {saving && <span className="mr-1 text-[10px] text-surface-400">Saving…</span>}
               {user && (
                 <div
                   className={cn(

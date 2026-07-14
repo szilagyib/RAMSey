@@ -7,11 +7,7 @@ import type { FaultTreeNodeData, FaultTreeEdgeData } from '../../types/diagram';
 
 export type GateSubType = 'and_gate' | 'or_gate' | 'not_gate' | 'k_of_n_gate' | 'xor_gate';
 
-export type EventSubType =
-  | 'basic_event'
-  | 'intermediate_event'
-  | 'top_event'
-  | 'undeveloped_event';
+export type EventSubType = 'basic_event' | 'intermediate_event' | 'top_event' | 'undeveloped_event';
 
 export type FaultTreeSubType = GateSubType | EventSubType;
 
@@ -89,9 +85,7 @@ export function createNode(
 ): Node<FaultTreeNodeData> {
   const st = (subType ?? 'basic_event') as FaultTreeSubType;
   const isGate = isGateSubType(st);
-  const defaults = isGate
-    ? GATE_SUBTYPES[st as GateSubType]
-    : EVENT_SUBTYPES[st as EventSubType];
+  const defaults = isGate ? GATE_SUBTYPES[st as GateSubType] : EVENT_SUBTYPES[st as EventSubType];
 
   return {
     id: `ft-node-${counter}`,

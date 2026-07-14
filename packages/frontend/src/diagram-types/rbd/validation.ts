@@ -21,15 +21,11 @@ export function validate(nodes: Node[], edges: Edge[]): ValidationResult {
   }
 
   // --- Terminal count checks ---
-  const inputTerminals = nodes.filter(
-    (n) => (n.data as RBDNodeData).nodeKind === 'input_terminal',
-  );
+  const inputTerminals = nodes.filter((n) => (n.data as RBDNodeData).nodeKind === 'input_terminal');
   const outputTerminals = nodes.filter(
     (n) => (n.data as RBDNodeData).nodeKind === 'output_terminal',
   );
-  const blocks = nodes.filter(
-    (n) => (n.data as RBDNodeData).nodeKind === 'block',
-  );
+  const blocks = nodes.filter((n) => (n.data as RBDNodeData).nodeKind === 'block');
 
   if (inputTerminals.length === 0) {
     errors.push({

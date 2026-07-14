@@ -44,7 +44,12 @@ function FlowEdgeComponent({
 
   return (
     <>
-      <BaseEdge id={id} path={edgePath} markerEnd={ARROW_MARKER} style={{ stroke, strokeWidth: selected ? 2 : 1.5 }} />
+      <BaseEdge
+        id={id}
+        path={edgePath}
+        markerEnd={ARROW_MARKER}
+        style={{ stroke, strokeWidth: selected ? 2 : 1.5 }}
+      />
       <EdgeLabel
         edgeId={id}
         x={labelX}

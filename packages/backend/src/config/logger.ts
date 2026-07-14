@@ -2,8 +2,7 @@ import pino from 'pino';
 import type { LoggerOptions } from 'pino';
 
 function buildLoggerOptions(): LoggerOptions {
-  const isDevelopment =
-    !process.env['NODE_ENV'] || process.env['NODE_ENV'] === 'development';
+  const isDevelopment = !process.env['NODE_ENV'] || process.env['NODE_ENV'] === 'development';
 
   const baseOptions: LoggerOptions = {
     level: process.env['LOG_LEVEL'] ?? (isDevelopment ? 'debug' : 'info'),

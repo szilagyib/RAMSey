@@ -48,9 +48,7 @@ export function ShareRedeemPage() {
           You&apos;ve been invited to collaborate on a RAMSey project.
         </p>
         {accepted ? (
-          <p className="text-sm text-green-600">
-            Invitation accepted! Redirecting to dashboard...
-          </p>
+          <p className="text-sm text-green-600">Invitation accepted! Redirecting to dashboard...</p>
         ) : (
           <>
             {error && <p className="mb-4 text-sm text-red-500">{error}</p>}

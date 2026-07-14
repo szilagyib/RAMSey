@@ -137,10 +137,7 @@ const shareRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
     '/api/share-links/:token/redeem',
     { preHandler: [authenticate] },
     async (request, reply) => {
-      const share = await shareService.redeemShareLink(
-        request.params.token,
-        request.user!.id,
-      );
+      const share = await shareService.redeemShareLink(request.params.token, request.user!.id);
 
       if (!share) {
         throw new NotFoundError('Share link is invalid or expired');

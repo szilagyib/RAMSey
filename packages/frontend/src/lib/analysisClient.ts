@@ -19,9 +19,15 @@ function getWorker(): Worker | null {
   if (worker) return worker;
   if (workerBroken || typeof Worker === 'undefined') return null;
   try {
-    worker = new Worker(new URL('../workers/analysisWorker.ts', import.meta.url), { type: 'module' });
+    worker = new Worker(new URL('../workers/analysisWorker.ts', import.meta.url), {
+      type: 'module',
+    });
     worker.onmessage = (e: MessageEvent) => {
-      const { id, response, error } = e.data as { id: number; response?: AnalyzeResponse; error?: string };
+      const { id, response, error } = e.data as {
+        id: number;
+        response?: AnalyzeResponse;
+        error?: string;
+      };
       const p = pending.get(id);
       if (!p) return;
       pending.delete(id);

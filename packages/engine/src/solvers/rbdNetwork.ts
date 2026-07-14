@@ -58,7 +58,12 @@ export function minimalPathSets(net: RbdNetwork, isComponent: (id: string) => bo
 }
 
 /** True if source reaches sink using only `up` components (terminals always pass). */
-function connected(net: RbdNetwork, adj: Map<string, string[]>, isComponent: (id: string) => boolean, up: Set<string>): boolean {
+function connected(
+  net: RbdNetwork,
+  adj: Map<string, string[]>,
+  isComponent: (id: string) => boolean,
+  up: Set<string>,
+): boolean {
   const seen = new Set([net.source]);
   const queue = [net.source];
   while (queue.length) {
@@ -80,11 +85,20 @@ export function analyzeNetwork(req: AnalyzeRequest, net: RbdNetwork): AnalyzeRes
   const warnings: Warning[] = [];
   const components = new Map(ir.components.map((c) => [c.id, c]));
   const isComponent = (id: string) => components.has(id);
-  const mt = resolveValue(req.options.missionTime ?? ir.missionTime, ir.parameters, warnings, 'mission time', 0);
+  const mt = resolveValue(
+    req.options.missionTime ?? ir.missionTime,
+    ir.parameters,
+    warnings,
+    'mission time',
+    0,
+  );
 
   const pathSets = minimalPathSets(net, isComponent);
   if (pathSets.length === 0) {
-    warnings.push({ code: 'disconnected', message: 'No source→sink path; system reliability is 0.' });
+    warnings.push({
+      code: 'disconnected',
+      message: 'No source→sink path; system reliability is 0.',
+    });
   }
 
   const reliabilityOf: ProbOf = (id) => {
@@ -98,14 +112,24 @@ export function analyzeNetwork(req: AnalyzeRequest, net: RbdNetwork): AnalyzeRes
     if (!c) return 1;
     const lambda = resolveValue(c.failureRate, ir.parameters, warnings, `failure rate of ${id}`);
     if (c.repairRate === undefined) {
-      warnings.push({ code: 'no_repair', message: `Component ${id} has no repair rate; using reliability as proxy.` });
+      warnings.push({
+        code: 'no_repair',
+        message: `Component ${id} has no repair rate; using reliability as proxy.`,
+      });
       return Math.exp(-lambda * mt);
     }
     const mu = resolveValue(c.repairRate, ir.parameters, warnings, `repair rate of ${id}`);
     return lambda + mu === 0 ? 1 : mu / (lambda + mu);
   };
 
-  const base = { solverName: NAME, solverVersion: VERSION, modelIR: ir, method: req.method, startTime: start, warnings };
+  const base = {
+    solverName: NAME,
+    solverVersion: VERSION,
+    modelIR: ir,
+    method: req.method,
+    startTime: start,
+    warnings,
+  };
   const assumptions = [
     'Two-terminal network reliability via minimal path sets + inclusion–exclusion',
     'Independent components; exponential time-to-failure (R=e^{−λt})',
@@ -132,16 +156,21 @@ export function analyzeNetwork(req: AnalyzeRequest, net: RbdNetwork): AnalyzeRes
     const sensitivity: Record<string, number> = {};
     for (const c of ir.components) {
       const r = reliabilityOf(c.id);
-      const perturbed: ProbOf = (id) => (id === c.id ? Math.min(1, r * (1 + eps)) : reliabilityOf(id));
+      const perturbed: ProbOf = (id) =>
+        id === c.id ? Math.min(1, r * (1 + eps)) : reliabilityOf(id);
       const rPert = pathSets.length === 0 ? 0 : topProbability(pathSets, perturbed);
-      sensitivity[c.id] = baseR !== 0 ? ((rPert - baseR) / baseR) / eps : 0;
+      sensitivity[c.id] = baseR !== 0 ? (rPert - baseR) / baseR / eps : 0;
     }
     return buildResponse({
       ...base,
       metrics: { reliability: baseR },
       contributions: { sensitivity },
       numericMetadata: { method: 'finite difference (relative)' },
-      trace: { assumptions, methodDetails: 'Normalized sensitivity of system reliability to each component reliability.' },
+      trace: {
+        assumptions,
+        methodDetails:
+          'Normalized sensitivity of system reliability to each component reliability.',
+      },
     });
   }
 
@@ -161,11 +190,22 @@ export function analyzeNetwork(req: AnalyzeRequest, net: RbdNetwork): AnalyzeRes
     return buildResponse({
       ...base,
       metrics: { reliability: p, samples: N },
-      errorBounds: { reliability: { lower: Math.max(0, p - 1.96 * se), upper: Math.min(1, p + 1.96 * se) } },
+      errorBounds: {
+        reliability: { lower: Math.max(0, p - 1.96 * se), upper: Math.min(1, p + 1.96 * se) },
+      },
       numericMetadata: { method: 'Monte Carlo (connectivity sampling)', iterations: N },
-      trace: { assumptions, methodDetails: `${N} samples, seed ${req.options.seed ?? 12345}; 95% CI in errorBounds.` },
+      trace: {
+        assumptions,
+        methodDetails: `${N} samples, seed ${req.options.seed ?? 12345}; 95% CI in errorBounds.`,
+      },
     });
   }
 
-  return errorResponse(ir, req.method, `RBD network solver does not support method '${req.method}'`, NAME, start);
+  return errorResponse(
+    ir,
+    req.method,
+    `RBD network solver does not support method '${req.method}'`,
+    NAME,
+    start,
+  );
 }

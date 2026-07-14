@@ -26,9 +26,7 @@ function eventStyle(eventType: FaultTreeNodeData['eventType']): string {
 
 export function faultTreeToTikz(nodes: Node[], edges: Edge[]): string {
   const tf = makeTransform(nodes);
-  const lines: string[] = [
-    '\\begin{tikzpicture}[>=Stealth, every node/.style={font=\\small}]',
-  ];
+  const lines: string[] = ['\\begin{tikzpicture}[>=Stealth, every node/.style={font=\\small}]'];
 
   for (const n of nodes) {
     const d = n.data as FaultTreeNodeData;

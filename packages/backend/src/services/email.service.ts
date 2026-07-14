@@ -37,10 +37,7 @@ async function deliver(msg: EmailMessage): Promise<void> {
   }
 
   // No provider configured — log so the link works in dev. Never silently drop.
-  logger.warn(
-    { to: msg.to, subject: msg.subject },
-    `[email:dev] no SMTP configured — ${msg.text}`,
-  );
+  logger.warn({ to: msg.to, subject: msg.subject }, `[email:dev] no SMTP configured — ${msg.text}`);
 }
 
 export async function sendVerificationEmail(to: string, link: string): Promise<void> {

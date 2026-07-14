@@ -46,15 +46,11 @@ export interface BuildAppOptions extends FastifyServerOptions {
  * Creates and configures the Fastify instance with all plugins and routes.
  * The factory pattern makes it easy to create instances for testing.
  */
-export async function buildApp(
-  opts: BuildAppOptions = {},
-): Promise<FastifyInstance> {
+export async function buildApp(opts: BuildAppOptions = {}): Promise<FastifyInstance> {
   const { skipPrisma, prismaOverride, rateLimitRedis, loggerInstance, ...fastifyOpts } = opts;
 
   const app = Fastify({
-    ...(loggerInstance
-      ? { loggerInstance }
-      : { logger: fastifyOpts.logger ?? loggerOptions }),
+    ...(loggerInstance ? { loggerInstance } : { logger: fastifyOpts.logger ?? loggerOptions }),
     requestIdHeader: 'x-request-id',
     genReqId: () => crypto.randomUUID(),
     ...fastifyOpts,

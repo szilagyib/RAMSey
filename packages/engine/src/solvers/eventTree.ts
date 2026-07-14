@@ -36,7 +36,13 @@ function computeConsequences(
     }
   }
 
-  const start = resolveValue(et.initiatingProbability, parameters, warnings, 'initiating probability', 1);
+  const start = resolveValue(
+    et.initiatingProbability,
+    parameters,
+    warnings,
+    'initiating probability',
+    1,
+  );
   const consequences: Record<string, number> = {};
   const label = (id: string) => et.labels?.[id] ?? id;
 
@@ -73,7 +79,13 @@ export class EventTreeSolver implements Solver {
       return errorResponse(ir, req.method, 'Event-tree model has no branches', NAME, start);
     }
     if (req.method !== 'frequency') {
-      return errorResponse(ir, req.method, `Event-tree solver does not support method '${req.method}'`, NAME, start);
+      return errorResponse(
+        ir,
+        req.method,
+        `Event-tree solver does not support method '${req.method}'`,
+        NAME,
+        start,
+      );
     }
 
     const consequences = computeConsequences(ir.eventTree, ir.parameters, warnings);

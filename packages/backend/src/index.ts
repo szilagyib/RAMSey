@@ -9,10 +9,7 @@ import { startPgBoss, stopPgBoss, createPgBossQueue } from './queue/pgBossQueue.
 async function start(): Promise<void> {
   try {
     initSentry();
-    logger.info(
-      { env: env.NODE_ENV },
-      'Starting RAMSey backend server...',
-    );
+    logger.info({ env: env.NODE_ENV }, 'Starting RAMSey backend server...');
 
     // Shared store for rate limiting so per-IP limits hold across replicas.
     // Fail-fast command settings + an error handler keep a flaky Redis from

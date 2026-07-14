@@ -148,8 +148,7 @@ function GateNodeComponent({ data, selected }: NodeProps) {
   const gateType = nodeData.gateType ?? 'AND';
   const ShapeComponent = gateShapes[gateType] ?? gateShapes.AND;
 
-  const kOfNProps =
-    gateType === 'K_OF_N' ? { k: nodeData.k ?? 1, n: undefined } : {};
+  const kOfNProps = gateType === 'K_OF_N' ? { k: nodeData.k ?? 1, n: undefined } : {};
 
   // User-picked colors re-point the gate tokens for this node only — the SVG
   // shapes resolve var(--dg-gate-*) from the nearest ancestor.
@@ -162,7 +161,10 @@ function GateNodeComponent({ data, selected }: NodeProps) {
   const wrapperStyle: React.CSSProperties = {
     ...(selected ? { filter: 'drop-shadow(0 0 6px var(--dg-select-glow))' } : {}),
     ...(custom
-      ? ({ '--dg-gate-fill': tokens.fill, '--dg-gate-stroke': tokens.stroke } as React.CSSProperties)
+      ? ({
+          '--dg-gate-fill': tokens.fill,
+          '--dg-gate-stroke': tokens.stroke,
+        } as React.CSSProperties)
       : {}),
   };
 

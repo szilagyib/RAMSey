@@ -65,11 +65,7 @@ export function createNode(
   };
 }
 
-export function createEdge(
-  source: string,
-  target: string,
-  counter: number,
-): Edge<BowTieEdgeData> {
+export function createEdge(source: string, target: string, counter: number): Edge<BowTieEdgeData> {
   return {
     id: `bt-edge-${counter}`,
     type: 'flowEdge',

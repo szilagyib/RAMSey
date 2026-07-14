@@ -65,7 +65,12 @@ export const localDb = {
       return { data: project };
     },
 
-    create: async (data: { name: string; description?: string; ownerId?: string; ownerType?: string }): Promise<{ data: { id: string; name: string; description?: string } }> => {
+    create: async (data: {
+      name: string;
+      description?: string;
+      ownerId?: string;
+      ownerType?: string;
+    }): Promise<{ data: { id: string; name: string; description?: string } }> => {
       const db = loadDb();
       const id = newId();
       const ts = now();
@@ -103,7 +108,10 @@ export const localDb = {
       return { data: diagrams };
     },
 
-    get: async (projectId: string, diagramId: string): Promise<{ data: LocalDiagram & { project?: { id: string; name: string } } }> => {
+    get: async (
+      projectId: string,
+      diagramId: string,
+    ): Promise<{ data: LocalDiagram & { project?: { id: string; name: string } } }> => {
       const db = loadDb();
       const diagram = db.diagrams[diagramKey(projectId, diagramId)];
       if (!diagram) throw new Error(`Diagram not found: ${diagramId}`);
@@ -116,7 +124,10 @@ export const localDb = {
       };
     },
 
-    create: async (projectId: string, data: { name: string; type: string }): Promise<{ data: { id: string; name: string; type: string } }> => {
+    create: async (
+      projectId: string,
+      data: { name: string; type: string },
+    ): Promise<{ data: { id: string; name: string; type: string } }> => {
       const db = loadDb();
       const id = newId();
       const ts = now();
@@ -134,7 +145,11 @@ export const localDb = {
       return { data: { id, name: diagram.name, type: diagram.type } };
     },
 
-    update: async (projectId: string, diagramId: string, data: { name?: string; content?: unknown }): Promise<{ data: LocalDiagram }> => {
+    update: async (
+      projectId: string,
+      diagramId: string,
+      data: { name?: string; content?: unknown },
+    ): Promise<{ data: LocalDiagram }> => {
       const db = loadDb();
       const key = diagramKey(projectId, diagramId);
       const diagram = db.diagrams[key];
@@ -153,7 +168,11 @@ export const localDb = {
       saveDb(db);
     },
 
-    createSnapshot: async (_projectId: string, _diagramId: string, _data?: { label?: string }): Promise<{ data: { id: string; createdAt: string } }> => {
+    createSnapshot: async (
+      _projectId: string,
+      _diagramId: string,
+      _data?: { label?: string },
+    ): Promise<{ data: { id: string; createdAt: string } }> => {
       // No-op for local mode — snapshots are not supported without a backend
       return { data: { id: newId(), createdAt: now() } };
     },

@@ -1,12 +1,7 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { Prisma } from '@prisma/client';
 import { authenticate } from '../middleware/authenticate.js';
-import {
-  ConflictError,
-  ForbiddenError,
-  NotFoundError,
-  ValidationError,
-} from '../utils/errors.js';
+import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../utils/errors.js';
 import { AuditLogService } from '../services/audit-log.service.js';
 import { NotificationService } from '../services/notification.service.js';
 import {
@@ -44,42 +39,33 @@ const teamRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
     },
   );
 
-  fastify.post(
-    '/api/teams',
-    { preHandler: [authenticate] },
-    async (request, reply) => {
-      const parseResult = CreateTeamInputSchema.safeParse(request.body);
-      if (!parseResult.success) {
-        throw new ValidationError('Invalid team data', parseResult.error.flatten());
+  fastify.post('/api/teams', { preHandler: [authenticate] }, async (request, reply) => {
+    const parseResult = CreateTeamInputSchema.safeParse(request.body);
+    if (!parseResult.success) {
+      throw new ValidationError('Invalid team data', parseResult.error.flatten());
+    }
+
+    let team;
+    try {
+      team = await teamService.create(parseResult.data, request.user!.id);
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        throw new ConflictError(`A team with slug '${parseResult.data.slug}' already exists`);
       }
+      throw err;
+    }
 
-      let team;
-      try {
-        team = await teamService.create(parseResult.data, request.user!.id);
-      } catch (err) {
-        if (
-          err instanceof Prisma.PrismaClientKnownRequestError &&
-          err.code === 'P2002'
-        ) {
-          throw new ConflictError(
-            `A team with slug '${parseResult.data.slug}' already exists`,
-          );
-        }
-        throw err;
-      }
+    await auditLogService.log({
+      userId: request.user!.id,
+      action: 'TEAM_CREATED',
+      objectType: 'team',
+      objectId: team.id,
+      metadata: { name: team.name, slug: team.slug },
+    });
 
-      await auditLogService.log({
-        userId: request.user!.id,
-        action: 'TEAM_CREATED',
-        objectType: 'team',
-        objectId: team.id,
-        metadata: { name: team.name, slug: team.slug },
-      });
-
-      reply.status(201);
-      return { data: team };
-    },
-  );
+    reply.status(201);
+    return { data: team };
+  });
 
   fastify.delete<{ Params: { teamId: string } }>(
     '/api/teams/:teamId',

@@ -21,15 +21,12 @@ export function validate(nodes: Node[], edges: Edge[]): ValidationResult {
   }
 
   // --- Exactly one top event ---
-  const topEvents = nodes.filter(
-    (n) => (n.data as BowTieNodeData).nodeKind === 'top_event',
-  );
+  const topEvents = nodes.filter((n) => (n.data as BowTieNodeData).nodeKind === 'top_event');
 
   if (topEvents.length === 0) {
     errors.push({
       code: 'NO_TOP_EVENT',
-      message:
-        'A bow-tie diagram must have exactly one top event. Add a top event node.',
+      message: 'A bow-tie diagram must have exactly one top event. Add a top event node.',
       affectedIds: [],
     });
   } else if (topEvents.length > 1) {
@@ -53,9 +50,7 @@ export function validate(nodes: Node[], edges: Edge[]): ValidationResult {
   }
 
   // --- Threats should have at least one outgoing edge ---
-  const threats = nodes.filter(
-    (n) => (n.data as BowTieNodeData).nodeKind === 'threat',
-  );
+  const threats = nodes.filter((n) => (n.data as BowTieNodeData).nodeKind === 'threat');
   for (const threat of threats) {
     const hasOutgoing = edges.some((e) => e.source === threat.id);
     if (!hasOutgoing) {
@@ -68,9 +63,7 @@ export function validate(nodes: Node[], edges: Edge[]): ValidationResult {
   }
 
   // --- Consequences should have at least one incoming edge ---
-  const consequences = nodes.filter(
-    (n) => (n.data as BowTieNodeData).nodeKind === 'consequence',
-  );
+  const consequences = nodes.filter((n) => (n.data as BowTieNodeData).nodeKind === 'consequence');
   for (const consequence of consequences) {
     const hasIncoming = edges.some((e) => e.target === consequence.id);
     if (!hasIncoming) {

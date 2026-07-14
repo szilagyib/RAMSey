@@ -126,9 +126,7 @@ function nodeBox(n: Node): { x: number; y: number; w: number; h: number } {
 function selectedNodes(state: { nodes: Node[]; selectedNodeId: string | null }): Node[] {
   const flagged = state.nodes.filter((n) => n.selected);
   if (flagged.length > 0) return flagged;
-  return state.selectedNodeId
-    ? state.nodes.filter((n) => n.id === state.selectedNodeId)
-    : [];
+  return state.selectedNodeId ? state.nodes.filter((n) => n.id === state.selectedNodeId) : [];
 }
 
 function takeSnapshot(state: {
@@ -355,8 +353,7 @@ export const useDiagramStore = create<DiagramStore>((set, get) => ({
     // the overall extent doesn't change.
     const first = boxes[0];
     const last = boxes[boxes.length - 1];
-    const totalSpan =
-      axis === 'horizontal' ? last.x + last.w - first.x : last.y + last.h - first.y;
+    const totalSpan = axis === 'horizontal' ? last.x + last.w - first.x : last.y + last.h - first.y;
     const usedBySizes = boxes.reduce((sum, b) => sum + (axis === 'horizontal' ? b.w : b.h), 0);
     const gap = (totalSpan - usedBySizes) / (boxes.length - 1);
 
@@ -374,10 +371,7 @@ export const useDiagramStore = create<DiagramStore>((set, get) => ({
         if (t === undefined) return n;
         return {
           ...n,
-          position:
-            axis === 'horizontal'
-              ? { x: t, y: n.position.y }
-              : { x: n.position.x, y: t },
+          position: axis === 'horizontal' ? { x: t, y: n.position.y } : { x: n.position.x, y: t },
         };
       }),
     });
@@ -393,9 +387,7 @@ export const useDiagramStore = create<DiagramStore>((set, get) => ({
     get().recordHistory('nudge');
     set({
       nodes: state.nodes.map((n) =>
-        ids.has(n.id)
-          ? { ...n, position: { x: n.position.x + dx, y: n.position.y + dy } }
-          : n,
+        ids.has(n.id) ? { ...n, position: { x: n.position.x + dx, y: n.position.y + dy } } : n,
       ),
     });
   },
@@ -474,9 +466,7 @@ export const useDiagramStore = create<DiagramStore>((set, get) => ({
     get().recordHistory(`node-props:${nodeId}`);
     set((state) => ({
       nodes: state.nodes.map((node) =>
-        node.id === nodeId
-          ? { ...node, data: { ...node.data, ...data } }
-          : node,
+        node.id === nodeId ? { ...node, data: { ...node.data, ...data } } : node,
       ),
     }));
   },
@@ -486,9 +476,7 @@ export const useDiagramStore = create<DiagramStore>((set, get) => ({
     get().recordHistory(`edge-props:${edgeId}`);
     set((state) => ({
       edges: state.edges.map((edge) =>
-        edge.id === edgeId
-          ? { ...edge, data: { ...edge.data, ...data } }
-          : edge,
+        edge.id === edgeId ? { ...edge, data: { ...edge.data, ...data } } : edge,
       ),
     }));
   },

@@ -3,7 +3,12 @@ import { BaseEdge, getBezierPath, type EdgeProps } from '@xyflow/react';
 import { EdgeLabel } from '../../shared/EdgeLabel';
 import { ARROW_MARKER } from '../../shared/EdgeMarkers';
 import { EdgeControlPoint } from '../../shared/EdgeControlPoint';
-import { getControlPoint, quadraticPath, trimQuadraticAtDisc, type Disc } from '../../shared/edgeShape';
+import {
+  getControlPoint,
+  quadraticPath,
+  trimQuadraticAtDisc,
+  type Disc,
+} from '../../shared/edgeShape';
 import { getEdgeColor } from '../../../lib/nodeColor';
 import { useDiagramStore } from '../../../stores/diagramStore';
 import type { MarkovEdgeData } from '../../../types/diagram';

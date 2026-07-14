@@ -48,8 +48,7 @@ export type StreamEvent =
 const TOOLS: Tool[] = [
   {
     name: 'add_node',
-    description:
-      'Add a new node to the diagram. Returns the ID of the created node.',
+    description: 'Add a new node to the diagram. Returns the ID of the created node.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -65,7 +64,8 @@ const TOOLS: Tool[] = [
         },
         label: {
           type: 'string',
-          description: 'Custom label for the node. If not provided, an auto-generated label is used.',
+          description:
+            'Custom label for the node. If not provided, an auto-generated label is used.',
         },
         positionX: {
           type: 'number',
@@ -142,7 +142,7 @@ const TOOLS: Tool[] = [
   },
   {
     name: 'update_node',
-    description: 'Update an existing node\'s data properties.',
+    description: "Update an existing node's data properties.",
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -161,7 +161,7 @@ const TOOLS: Tool[] = [
   },
   {
     name: 'update_edge',
-    description: 'Update an existing edge\'s data properties.',
+    description: "Update an existing edge's data properties.",
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -190,8 +190,7 @@ const TOOLS: Tool[] = [
   },
   {
     name: 'validate_diagram',
-    description:
-      'Run validation on the current diagram and return any errors or warnings.',
+    description: 'Run validation on the current diagram and return any errors or warnings.',
     input_schema: {
       type: 'object' as const,
       properties: {},
@@ -269,10 +268,7 @@ ${diagramState}`;
  * outside it. Mirrors the portfolio chatbot's wrapVisitorInput.
  */
 function wrapUserInput(text: string): string {
-  const escaped = text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+  const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   return `<user>${escaped}</user>`;
 }
 
@@ -345,26 +341,17 @@ export async function* streamChat(
     let currentToolId = '';
 
     for await (const event of stream) {
-      if (
-        event.type === 'content_block_delta' &&
-        event.delta.type === 'text_delta'
-      ) {
+      if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
         yield { type: 'text_delta', text: event.delta.text };
       }
 
-      if (
-        event.type === 'content_block_start' &&
-        event.content_block.type === 'tool_use'
-      ) {
+      if (event.type === 'content_block_start' && event.content_block.type === 'tool_use') {
         currentToolName = event.content_block.name;
         currentToolId = event.content_block.id;
         currentToolInput = '';
       }
 
-      if (
-        event.type === 'content_block_delta' &&
-        event.delta.type === 'input_json_delta'
-      ) {
+      if (event.type === 'content_block_delta' && event.delta.type === 'input_json_delta') {
         currentToolInput += event.delta.partial_json;
       }
 
@@ -397,7 +384,10 @@ export async function* streamChat(
     inputTokens += finalMessage.usage?.input_tokens ?? 0;
     outputTokens += finalMessage.usage?.output_tokens ?? 0;
 
-    if (finalMessage.stop_reason === 'tool_use' && toolCallsEmitted >= limits.chat.maxToolCallsPerTurn) {
+    if (
+      finalMessage.stop_reason === 'tool_use' &&
+      toolCallsEmitted >= limits.chat.maxToolCallsPerTurn
+    ) {
       // Cap reached mid-build: tell the user instead of silently truncating.
       yield {
         type: 'text_delta',

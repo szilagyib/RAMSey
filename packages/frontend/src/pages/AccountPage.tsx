@@ -48,7 +48,11 @@ export function AccountPage() {
     <div className="min-h-screen bg-surface-50">
       <header className="border-b border-surface-200 bg-white dark:bg-surface-100">
         <div className="mx-auto flex max-w-3xl items-center gap-3 px-6 py-4">
-          <Link to="/" className="text-surface-400 hover:text-surface-600" title="Back to dashboard">
+          <Link
+            to="/"
+            className="text-surface-400 hover:text-surface-600"
+            title="Back to dashboard"
+          >
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <h1 className="text-lg font-semibold text-surface-900">Account</h1>
@@ -73,7 +77,8 @@ export function AccountPage() {
         <section className="mb-8 rounded-lg border border-surface-200 bg-white dark:bg-surface-100 p-6">
           <h2 className="mb-1 text-sm font-semibold text-surface-700">Export your data</h2>
           <p className="mb-4 text-sm text-surface-400">
-            Download a JSON copy of your profile, projects, diagrams, team memberships, and comments.
+            Download a JSON copy of your profile, projects, diagrams, team memberships, and
+            comments.
           </p>
           <Button variant="outline" onClick={handleExport} disabled={busy !== null}>
             {busy === 'export' ? 'Preparing…' : 'Export my data'}
@@ -92,7 +97,11 @@ export function AccountPage() {
             </p>
           )}
           {!confirming ? (
-            <Button variant="destructive" onClick={() => setConfirming(true)} disabled={busy !== null}>
+            <Button
+              variant="destructive"
+              onClick={() => setConfirming(true)}
+              disabled={busy !== null}
+            >
               Delete my account
             </Button>
           ) : (

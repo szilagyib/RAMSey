@@ -50,10 +50,22 @@ export async function analyze(request: AnalyzeRequest): Promise<AnalyzeResponse>
   const { modelIR, method } = request;
   const solver = getSolver(modelIR.type);
   if (!solver) {
-    return errorResponse(modelIR, method, `No solver available for diagram type '${modelIR.type}'`, 'dispatcher', Date.now());
+    return errorResponse(
+      modelIR,
+      method,
+      `No solver available for diagram type '${modelIR.type}'`,
+      'dispatcher',
+      Date.now(),
+    );
   }
   if (!solver.supportedMethods.includes(method)) {
-    return errorResponse(modelIR, method, `Method '${method}' is not supported for ${modelIR.type}`, solver.name, Date.now());
+    return errorResponse(
+      modelIR,
+      method,
+      `Method '${method}' is not supported for ${modelIR.type}`,
+      solver.name,
+      Date.now(),
+    );
   }
   return solver.analyze(request);
 }

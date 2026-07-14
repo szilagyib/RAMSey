@@ -23,7 +23,10 @@ async function main(): Promise<void> {
         // reaching here means a hard failure (e.g. DB unavailable). Log it and
         // rethrow so pg-boss applies its retry policy instead of silently
         // dropping the job.
-        logger.error({ err, queueJobId: job.id }, 'analysis worker handler error; pg-boss will retry');
+        logger.error(
+          { err, queueJobId: job.id },
+          'analysis worker handler error; pg-boss will retry',
+        );
         captureException(err);
         throw err;
       }

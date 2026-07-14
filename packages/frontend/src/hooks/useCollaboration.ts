@@ -3,7 +3,13 @@ import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import { useAuth } from '../contexts/auth';
 import { useDiagramStore } from '../stores/diagramStore';
-import { bindStore, pushStoreToDoc, loadDocToStore, isDocEmpty, type BindableStore } from '../lib/yjsBinding';
+import {
+  bindStore,
+  pushStoreToDoc,
+  loadDocToStore,
+  isDocEmpty,
+  type BindableStore,
+} from '../lib/yjsBinding';
 import type { RemoteCursor } from '../components/editor/CursorsOverlay';
 import type { RemoteSelection } from '../components/editor/SelectionOverlay';
 
@@ -17,7 +23,16 @@ interface AwarenessLike {
   setLocalStateField(field: string, value: unknown): void;
 }
 
-const COLORS = ['#60a5fa', '#f472b6', '#34d399', '#fbbf24', '#a78bfa', '#fb7185', '#22d3ee', '#a3e635'];
+const COLORS = [
+  '#60a5fa',
+  '#f472b6',
+  '#34d399',
+  '#fbbf24',
+  '#a78bfa',
+  '#fb7185',
+  '#22d3ee',
+  '#a3e635',
+];
 function colorFor(id: string): string {
   let h = 0;
   for (const ch of id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
@@ -49,9 +64,14 @@ export function useCollaboration(params: {
     const store = useDiagramStore as unknown as BindableStore;
     const doc = new Y.Doc();
     const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const provider = new WebsocketProvider(`${proto}://${window.location.host}/yjs`, diagramId, doc, {
-      connect: true,
-    });
+    const provider = new WebsocketProvider(
+      `${proto}://${window.location.host}/yjs`,
+      diagramId,
+      doc,
+      {
+        connect: true,
+      },
+    );
 
     // Presence/awareness.
     awarenessRef.current = provider.awareness;

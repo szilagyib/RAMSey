@@ -19,9 +19,7 @@ function edgeLabel(d: EventTreeEdgeData | undefined): string {
 
 export function eventTreeToTikz(nodes: Node[], edges: Edge[]): string {
   const tf = makeTransform(nodes);
-  const lines: string[] = [
-    '\\begin{tikzpicture}[>=Stealth, every node/.style={font=\\small}]',
-  ];
+  const lines: string[] = ['\\begin{tikzpicture}[>=Stealth, every node/.style={font=\\small}]'];
 
   for (const n of nodes) {
     const d = n.data as EventTreeNodeData;

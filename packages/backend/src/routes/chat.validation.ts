@@ -85,7 +85,10 @@ export function validateChatRequest(raw: unknown): ChatValidationResult {
 
   let sessionId: string | undefined;
   if (body.sessionId !== undefined) {
-    if (typeof body.sessionId !== 'string' || body.sessionId.length > limits.chat.maxSessionIdChars) {
+    if (
+      typeof body.sessionId !== 'string' ||
+      body.sessionId.length > limits.chat.maxSessionIdChars
+    ) {
       return { ok: false, error: 'invalid sessionId' };
     }
     sessionId = body.sessionId;

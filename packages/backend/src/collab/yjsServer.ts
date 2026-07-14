@@ -149,7 +149,11 @@ export async function handleConnection(conn: WSConn, docName: string): Promise<v
         syncProtocol.readSyncMessage(decoder, encoder, shared.doc, conn);
         if (encoding.length(encoder) > 1) send(conn, encoding.toUint8Array(encoder));
       } else if (messageType === MESSAGE_AWARENESS) {
-        awarenessProtocol.applyAwarenessUpdate(shared.awareness, decoding.readVarUint8Array(decoder), conn);
+        awarenessProtocol.applyAwarenessUpdate(
+          shared.awareness,
+          decoding.readVarUint8Array(decoder),
+          conn,
+        );
       }
     } catch {
       conn.close();
@@ -160,7 +164,11 @@ export async function handleConnection(conn: WSConn, docName: string): Promise<v
     const controlled = shared.conns.get(conn);
     shared.conns.delete(conn);
     if (controlled && controlled.size > 0) {
-      awarenessProtocol.removeAwarenessStates(shared.awareness, [...controlled], 'connection closed');
+      awarenessProtocol.removeAwarenessStates(
+        shared.awareness,
+        [...controlled],
+        'connection closed',
+      );
     }
     if (shared.conns.size === 0) {
       // Last client left: persist immediately and evict the in-memory doc.

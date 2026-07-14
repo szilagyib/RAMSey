@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type DragEvent,
+  type KeyboardEvent,
+} from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -41,7 +49,15 @@ interface DiagramEditorProps {
   diagramId?: string;
 }
 
-function DiagramEditorInner({ onNavigateBack, onSave, onCreateSnapshot, diagramName, isSaving, projectId, diagramId }: DiagramEditorProps) {
+function DiagramEditorInner({
+  onNavigateBack,
+  onSave,
+  onCreateSnapshot,
+  diagramName,
+  isSaving,
+  projectId,
+  diagramId,
+}: DiagramEditorProps) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
 
@@ -142,9 +158,7 @@ function DiagramEditorInner({ onNavigateBack, onSave, onCreateSnapshot, diagramN
       // A node's position is its top-left, but the cursor grabs the preview by
       // its middle — so drop it centred, and it lands where the preview was.
       const size = parseNodeSize(event.dataTransfer.getData(NODE_SIZE_MIME));
-      const position = size
-        ? { x: point.x - size.width / 2, y: point.y - size.height / 2 }
-        : point;
+      const position = size ? { x: point.x - size.width / 2, y: point.y - size.height / 2 } : point;
 
       addNode(position, subType);
     },
@@ -199,8 +213,7 @@ function DiagramEditorInner({ onNavigateBack, onSave, onCreateSnapshot, diagramN
   // it across a remount would pop an editor open on whatever reuses that id.
   useEffect(() => stopEditing, [stopEditing]);
 
-  const editingNode =
-    editing?.kind === 'node' ? nodes.find((n) => n.id === editing.id) : undefined;
+  const editingNode = editing?.kind === 'node' ? nodes.find((n) => n.id === editing.id) : undefined;
 
   const onNodeClick = useCallback(
     (e: React.MouseEvent, node: { id: string }) => {
@@ -239,7 +252,9 @@ function DiagramEditorInner({ onNavigateBack, onSave, onCreateSnapshot, diagramN
       // FINAL one of a drag (dragging: false), which otherwise overwrites the
       // snapped position with the raw pointer position.
       const move = changes.find(
-        (c): c is NodeChange & {
+        (
+          c,
+        ): c is NodeChange & {
           id: string;
           position: { x: number; y: number };
           dragging?: boolean;
@@ -283,7 +298,12 @@ function DiagramEditorInner({ onNavigateBack, onSave, onCreateSnapshot, diagramN
       />
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <Sidebar />
-        <div className="relative flex-1" ref={reactFlowWrapper} onPointerMove={onPointerMove} onPointerLeave={onPointerLeave}>
+        <div
+          className="relative flex-1"
+          ref={reactFlowWrapper}
+          onPointerMove={onPointerMove}
+          onPointerLeave={onPointerLeave}
+        >
           <ReactFlow
             nodes={styledNodes}
             edges={edges}
@@ -331,9 +351,7 @@ function DiagramEditorInner({ onNavigateBack, onSave, onCreateSnapshot, diagramN
                 // A dot has to be a touch heavier than a grid line to read at
                 // all; a grid line has to be lighter than a dot not to shout.
                 size={background === 'grid' ? 1 : 1.6}
-                color={
-                  background === 'grid' ? 'var(--dg-canvas-grid)' : 'var(--dg-canvas-dots)'
-                }
+                color={background === 'grid' ? 'var(--dg-canvas-grid)' : 'var(--dg-canvas-dots)'}
               />
             )}
             {minimap && (
@@ -343,9 +361,9 @@ function DiagramEditorInner({ onNavigateBack, onSave, onCreateSnapshot, diagramN
                 // Mirror each node's custom color so the minimap is readable
                 // against a recolored diagram.
                 nodeColor={(n) =>
-                  ((n.data as { color?: string })?.color ??
-                    (n.data as { fillColor?: string })?.fillColor ??
-                    '#94a3b8')
+                  (n.data as { color?: string })?.color ??
+                  (n.data as { fillColor?: string })?.fillColor ??
+                  '#94a3b8'
                 }
                 className="!bg-white dark:!bg-surface-100 !border !border-surface-200 dark:!border-surface-300"
               />
@@ -388,7 +406,15 @@ function DiagramEditorInner({ onNavigateBack, onSave, onCreateSnapshot, diagramN
   );
 }
 
-export function DiagramEditor({ onNavigateBack, onSave, onCreateSnapshot, diagramName, isSaving, projectId, diagramId }: DiagramEditorProps) {
+export function DiagramEditor({
+  onNavigateBack,
+  onSave,
+  onCreateSnapshot,
+  diagramName,
+  isSaving,
+  projectId,
+  diagramId,
+}: DiagramEditorProps) {
   return (
     <ReactFlowProvider>
       <DiagramEditorInner

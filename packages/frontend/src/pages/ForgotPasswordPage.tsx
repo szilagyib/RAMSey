@@ -28,14 +28,15 @@ export function ForgotPasswordPage() {
     <div className="flex min-h-screen items-center justify-center bg-surface-50 px-4">
       <div className="w-full max-w-sm rounded-lg border border-surface-200 bg-white dark:bg-surface-100 p-8 shadow-sm">
         <img src="/favicon.svg" alt="RAMSey" className="mx-auto mb-4 h-12 w-12" />
-        <h1 className="mb-1 text-center text-xl font-semibold text-surface-900">Reset your password</h1>
+        <h1 className="mb-1 text-center text-xl font-semibold text-surface-900">
+          Reset your password
+        </h1>
 
         {sent ? (
           <>
             <p className="mb-6 mt-2 text-center text-sm text-surface-500">
-              If an account exists for{' '}
-              <span className="font-medium text-surface-700">{email}</span>, a reset link is
-              on its way. Check your inbox.
+              If an account exists for <span className="font-medium text-surface-700">{email}</span>
+              , a reset link is on its way. Check your inbox.
             </p>
             <Link
               to="/login"

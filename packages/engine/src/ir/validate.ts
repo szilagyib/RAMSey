@@ -89,9 +89,7 @@ function validateGeneric(ir: ModelIR): ValidationResult {
 
   // Duplicate component IDs
   const componentIds = ir.components.map((c) => c.id);
-  const duplicateComponentIds = componentIds.filter(
-    (id, idx) => componentIds.indexOf(id) !== idx,
-  );
+  const duplicateComponentIds = componentIds.filter((id, idx) => componentIds.indexOf(id) !== idx);
   if (duplicateComponentIds.length > 0) {
     addError(
       result,
@@ -137,12 +135,7 @@ export function validateMarkovChain(ir: ModelIR): ValidationResult {
 
   // Must have at least one state
   if (ir.states.length === 0) {
-    addError(
-      result,
-      'NO_STATES',
-      'A Markov chain must contain at least one state.',
-      [],
-    );
+    addError(result, 'NO_STATES', 'A Markov chain must contain at least one state.', []);
     // Early return — further checks are meaningless without states
     return result;
   }
@@ -178,10 +171,7 @@ export function validateMarkovChain(ir: ModelIR): ValidationResult {
         invalidRefs,
       );
     }
-    const total = Object.values(ir.initialCondition.probabilities).reduce(
-      (sum, p) => sum + p,
-      0,
-    );
+    const total = Object.values(ir.initialCondition.probabilities).reduce((sum, p) => sum + p, 0);
     if (Math.abs(total - 1.0) > 1e-9) {
       addWarning(
         result,

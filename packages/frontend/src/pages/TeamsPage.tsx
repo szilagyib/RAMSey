@@ -20,7 +20,10 @@ interface TeamMember {
 }
 
 function toSlug(name: string) {
-  return name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+  return name
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '');
 }
 
 function GuestTeamsPage() {
@@ -29,7 +32,10 @@ function GuestTeamsPage() {
       <header className="border-b border-surface-200 bg-white dark:bg-surface-100 px-6">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link to="/" className="rounded-md p-1 text-surface-400 hover:bg-surface-50 hover:text-surface-600 transition-colors">
+            <Link
+              to="/"
+              className="rounded-md p-1 text-surface-400 hover:bg-surface-50 hover:text-surface-600 transition-colors"
+            >
               <ArrowLeft className="h-4 w-4" />
             </Link>
             <span className="h-4 w-px bg-surface-200" />
@@ -67,8 +73,12 @@ export function TeamsPage() {
   const [inviteError, setInviteError] = useState('');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { if (!isGuest) loadTeams(); }, [isGuest]);
-  useEffect(() => { if (selectedTeam) loadMembers(selectedTeam.id); }, [selectedTeam]);
+  useEffect(() => {
+    if (!isGuest) loadTeams();
+  }, [isGuest]);
+  useEffect(() => {
+    if (selectedTeam) loadMembers(selectedTeam.id);
+  }, [selectedTeam]);
 
   async function loadTeams() {
     try {
@@ -127,7 +137,11 @@ export function TeamsPage() {
   }
 
   async function handleDeleteTeam() {
-    if (!selectedTeam || !window.confirm(`Delete team "${selectedTeam.name}"? This cannot be undone.`)) return;
+    if (
+      !selectedTeam ||
+      !window.confirm(`Delete team "${selectedTeam.name}"? This cannot be undone.`)
+    )
+      return;
     try {
       await api.teams.delete(selectedTeam.id);
       dropSelectedTeam();
@@ -155,7 +169,10 @@ export function TeamsPage() {
       <header className="border-b border-surface-200 bg-white dark:bg-surface-100 px-6">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link to="/" className="rounded-md p-1 text-surface-400 hover:bg-surface-50 hover:text-surface-600 transition-colors">
+            <Link
+              to="/"
+              className="rounded-md p-1 text-surface-400 hover:bg-surface-50 hover:text-surface-600 transition-colors"
+            >
               <ArrowLeft className="h-4 w-4" />
             </Link>
             <span className="h-4 w-px bg-surface-200" />
@@ -169,7 +186,9 @@ export function TeamsPage() {
           {/* Left: team list + create */}
           <div>
             <div className="mb-4 flex items-center gap-2.5">
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-surface-400">Your Teams</h2>
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-surface-400">
+                Your Teams
+              </h2>
               {teams.length > 0 && (
                 <span className="rounded-full bg-surface-100 dark:bg-surface-300 px-2 py-0.5 font-mono text-[11px] text-surface-500">
                   {teams.length}
@@ -194,13 +213,13 @@ export function TeamsPage() {
                     <div className="mt-0.5 font-mono text-[11px] text-surface-400">{team.slug}</div>
                   </button>
                 ))}
-                {teams.length === 0 && (
-                  <p className="text-sm text-surface-400">No teams yet.</p>
-                )}
+                {teams.length === 0 && <p className="text-sm text-surface-400">No teams yet.</p>}
               </div>
             )}
             <div className="mt-4 rounded-lg border border-surface-200 dark:border-surface-300 bg-white dark:bg-surface-100 p-4">
-              <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-surface-400">Create Team</h3>
+              <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-surface-400">
+                Create Team
+              </h3>
               <div className="flex gap-2">
                 <Input
                   value={newTeamName}
@@ -213,7 +232,9 @@ export function TeamsPage() {
                 </Button>
               </div>
               {newTeamName && (
-                <p className="mt-1.5 font-mono text-[11px] text-surface-400">slug: {toSlug(newTeamName)}</p>
+                <p className="mt-1.5 font-mono text-[11px] text-surface-400">
+                  slug: {toSlug(newTeamName)}
+                </p>
               )}
             </div>
           </div>
@@ -223,9 +244,11 @@ export function TeamsPage() {
             {selectedTeam ? (
               <>
                 <div className="mb-4 flex items-center justify-between gap-2.5">
-                  <h2 className="text-xs font-semibold uppercase tracking-wider text-surface-400">{selectedTeam.name}</h2>
-                  {members.length > 0 && (
-                    isAdmin ? (
+                  <h2 className="text-xs font-semibold uppercase tracking-wider text-surface-400">
+                    {selectedTeam.name}
+                  </h2>
+                  {members.length > 0 &&
+                    (isAdmin ? (
                       <button
                         onClick={handleDeleteTeam}
                         className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
@@ -239,11 +262,12 @@ export function TeamsPage() {
                       >
                         <LogOut className="h-3.5 w-3.5" /> Leave
                       </button>
-                    )
-                  )}
+                    ))}
                 </div>
                 <div className="rounded-lg border border-surface-200 dark:border-surface-300 bg-white dark:bg-surface-100 p-4">
-                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-surface-400">Members</h3>
+                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-surface-400">
+                    Members
+                  </h3>
                   <div className="flex flex-col gap-2">
                     {members.map((m) => (
                       <div key={m.id} className="flex items-center justify-between gap-2">
@@ -255,11 +279,13 @@ export function TeamsPage() {
                             <span className="text-sm font-medium text-surface-800">
                               {m.user.name ?? m.user.email}
                             </span>
-                            <span className={`ml-2 rounded-sm px-1.5 py-0.5 font-mono text-[10px] font-medium ${
-                              m.role === 'ADMIN'
-                                ? 'bg-primary-50 dark:bg-primary-950/30 text-primary-600'
-                                : 'bg-surface-100 dark:bg-surface-300 text-surface-500 dark:text-surface-600'
-                            }`}>
+                            <span
+                              className={`ml-2 rounded-sm px-1.5 py-0.5 font-mono text-[10px] font-medium ${
+                                m.role === 'ADMIN'
+                                  ? 'bg-primary-50 dark:bg-primary-950/30 text-primary-600'
+                                  : 'bg-surface-100 dark:bg-surface-300 text-surface-500 dark:text-surface-600'
+                              }`}
+                            >
                               {m.role}
                             </span>
                           </div>
@@ -277,7 +303,9 @@ export function TeamsPage() {
                     ))}
                   </div>
                   <div className="mt-4 border-t border-surface-200 dark:border-surface-300 pt-4">
-                    <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-surface-400">Invite by Email</h3>
+                    <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-surface-400">
+                      Invite by Email
+                    </h3>
                     <div className="flex gap-2">
                       <Input
                         value={inviteEmail}

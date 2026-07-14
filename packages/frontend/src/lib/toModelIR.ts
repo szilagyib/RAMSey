@@ -147,7 +147,9 @@ export function rbdToModelIR(nodes: Node[], edges: Edge[], missionTime: number):
  * Returns null if there is no initiating event.
  */
 export function eventTreeToModelIR(nodes: Node[], edges: Edge[]): ModelIR | null {
-  const initiating = nodes.find((n) => (n.data as EventTreeNodeData).nodeKind === 'initiating_event');
+  const initiating = nodes.find(
+    (n) => (n.data as EventTreeNodeData).nodeKind === 'initiating_event',
+  );
   if (!initiating) return null;
 
   const labels: Record<string, string> = {};

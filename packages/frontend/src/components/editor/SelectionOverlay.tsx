@@ -13,7 +13,13 @@ const DEFAULT_H = 60;
  * Outlines nodes that remote collaborators have selected, in their cursor
  * color. Rendered in flow coordinates via ViewportPortal so it tracks pan/zoom.
  */
-export function SelectionOverlay({ selections, nodes }: { selections: RemoteSelection[]; nodes: Node[] }) {
+export function SelectionOverlay({
+  selections,
+  nodes,
+}: {
+  selections: RemoteSelection[];
+  nodes: Node[];
+}) {
   const byId = new Map(nodes.map((n) => [n.id, n]));
   return (
     <ViewportPortal>

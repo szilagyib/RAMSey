@@ -173,7 +173,9 @@ function GenericNodeProperties({ nodeId }: { nodeId: string }) {
   const editableKeys = Object.keys(data).filter(
     (key) =>
       !HIDDEN_FIELDS.has(key) &&
-      (typeof data[key] === 'string' || typeof data[key] === 'number' || typeof data[key] === 'boolean'),
+      (typeof data[key] === 'string' ||
+        typeof data[key] === 'number' ||
+        typeof data[key] === 'boolean'),
   );
 
   return (
@@ -188,7 +190,13 @@ function GenericNodeProperties({ nodeId }: { nodeId: string }) {
         // What kind of node this is picks the component that draws it, so it
         // can't be re-typed here — but seeing it tells you what you selected.
         if (READONLY_FIELDS.has(key)) {
-          return <ReadOnlyField key={key} label={fieldLabel(key)} value={optionLabel(String(value ?? ''))} />;
+          return (
+            <ReadOnlyField
+              key={key}
+              label={fieldLabel(key)}
+              value={optionLabel(String(value ?? ''))}
+            />
+          );
         }
 
         const options = ENUM_OPTIONS[key];
@@ -232,7 +240,12 @@ function GenericNodeProperties({ nodeId }: { nodeId: string }) {
             label={fieldLabel(key)}
             value={String(value ?? '')}
             onChange={(e) => {
-              const newValue = typeof value === 'number' ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value;
+              const newValue =
+                typeof value === 'number'
+                  ? e.target.value === ''
+                    ? ''
+                    : Number(e.target.value)
+                  : e.target.value;
               updateNodeData(nodeId, { [key]: newValue });
             }}
             type={typeof value === 'number' ? 'number' : 'text'}
@@ -275,8 +288,7 @@ function GenericEdgeProperties({ edgeId }: { edgeId: string }) {
   // as text).
   const editableKeys = Object.keys(data).filter(
     (key) =>
-      !HIDDEN_FIELDS.has(key) &&
-      (typeof data[key] === 'string' || typeof data[key] === 'number'),
+      !HIDDEN_FIELDS.has(key) && (typeof data[key] === 'string' || typeof data[key] === 'number'),
   );
 
   return (
@@ -307,7 +319,12 @@ function GenericEdgeProperties({ edgeId }: { edgeId: string }) {
             label={fieldLabel(key)}
             value={String(value ?? '')}
             onChange={(e) => {
-              const newValue = typeof value === 'number' ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value;
+              const newValue =
+                typeof value === 'number'
+                  ? e.target.value === ''
+                    ? ''
+                    : Number(e.target.value)
+                  : e.target.value;
               updateEdgeData(edgeId, { [key]: newValue });
             }}
             type={typeof value === 'number' ? 'number' : 'text'}

@@ -62,7 +62,16 @@ export const api = {
     logout: () =>
       request<{ data: { ok: boolean } }>('/api/auth/logout', { method: 'POST', body: '{}' }),
     me: () =>
-      request<{ data: { id: string; email: string; name?: string; image?: string; emailVerified?: string | null; createdAt: string } }>('/api/auth/me'),
+      request<{
+        data: {
+          id: string;
+          email: string;
+          name?: string;
+          image?: string;
+          emailVerified?: string | null;
+          createdAt: string;
+        };
+      }>('/api/auth/me'),
     forgotPassword: (email: string) =>
       request<{ data: { ok: boolean } }>('/api/auth/forgot-password', {
         method: 'POST',
@@ -83,8 +92,7 @@ export const api = {
         method: 'POST',
         body: '{}',
       }),
-    exportData: () =>
-      request<{ data: Record<string, unknown> }>('/api/auth/export'),
+    exportData: () => request<{ data: Record<string, unknown> }>('/api/auth/export'),
     deleteAccount: () =>
       // body '{}': the shared request() helper always sets a JSON content-type,
       // and Fastify rejects an empty body when that header is present.
@@ -114,51 +122,74 @@ export const api = {
 
   users: {
     search: (email: string) =>
-      request<{ data: { id: string; name?: string; email: string } }>(`/api/users/search?email=${encodeURIComponent(email)}`),
+      request<{ data: { id: string; name?: string; email: string } }>(
+        `/api/users/search?email=${encodeURIComponent(email)}`,
+      ),
   },
 
   projects: {
     list: () =>
-      request<{ data: Array<{ id: string; name: string; description?: string; ownerType: string; ownerId: string; createdAt: string; updatedAt: string }> }>(
-        '/api/projects',
-      ),
+      request<{
+        data: Array<{
+          id: string;
+          name: string;
+          description?: string;
+          ownerType: string;
+          ownerId: string;
+          createdAt: string;
+          updatedAt: string;
+        }>;
+      }>('/api/projects'),
 
     get: (id: string) =>
-      request<{ data: { id: string; name: string; description?: string; createdAt: string; updatedAt: string } }>(
-        `/api/projects/${id}`,
-      ),
+      request<{
+        data: {
+          id: string;
+          name: string;
+          description?: string;
+          createdAt: string;
+          updatedAt: string;
+        };
+      }>(`/api/projects/${id}`),
 
-    create: (data: { name: string; description?: string; ownerType?: 'user' | 'team'; ownerId?: string }) =>
-      request<{ data: { id: string; name: string; description?: string } }>(
-        '/api/projects',
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            ...data,
-            ownerType: data.ownerType ?? 'user',
-            ownerId: data.ownerId,
-          }),
-        },
-      ),
+    create: (data: {
+      name: string;
+      description?: string;
+      ownerType?: 'user' | 'team';
+      ownerId?: string;
+    }) =>
+      request<{ data: { id: string; name: string; description?: string } }>('/api/projects', {
+        method: 'POST',
+        body: JSON.stringify({
+          ...data,
+          ownerType: data.ownerType ?? 'user',
+          ownerId: data.ownerId,
+        }),
+      }),
 
-    delete: (id: string) =>
-      request<void>(`/api/projects/${id}`, { method: 'DELETE' }),
+    delete: (id: string) => request<void>(`/api/projects/${id}`, { method: 'DELETE' }),
   },
 
   teams: {
-    list: () =>
-      request<{ data: Array<{ id: string; name: string; slug: string }> }>(
-        '/api/teams',
-      ),
+    list: () => request<{ data: Array<{ id: string; name: string; slug: string }> }>('/api/teams'),
     create: (data: { name: string; slug: string }) =>
-      request<{ data: { id: string; name: string; slug: string } }>(
-        '/api/teams',
-        { method: 'POST', body: JSON.stringify(data) },
-      ),
+      request<{ data: { id: string; name: string; slug: string } }>('/api/teams', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
     get: (teamId: string) =>
-      request<{ data: { id: string; name: string; slug: string; members: Array<{ id: string; role: string; user: { id: string; name?: string; email: string } }> } }>(
-        `/api/teams/${teamId}`,
-      ),
+      request<{
+        data: {
+          id: string;
+          name: string;
+          slug: string;
+          members: Array<{
+            id: string;
+            role: string;
+            user: { id: string; name?: string; email: string };
+          }>;
+        };
+      }>(`/api/teams/${teamId}`),
     addMember: (teamId: string, data: { userId: string; role?: 'ADMIN' | 'MEMBER' }) =>
       request<{ data: { id: string; teamId: string; userId: string; role: string } }>(
         `/api/teams/${teamId}/members`,
@@ -166,8 +197,7 @@ export const api = {
       ),
     removeMember: (teamId: string, userId: string) =>
       request<void>(`/api/teams/${teamId}/members/${userId}`, { method: 'DELETE' }),
-    delete: (teamId: string) =>
-      request<void>(`/api/teams/${teamId}`, { method: 'DELETE' }),
+    delete: (teamId: string) => request<void>(`/api/teams/${teamId}`, { method: 'DELETE' }),
   },
 
   shares: {
@@ -183,14 +213,22 @@ export const api = {
     deleteProjectShare: (projectId: string, shareId: string) =>
       request<void>(`/api/projects/${projectId}/shares/${shareId}`, { method: 'DELETE' }),
     listShareLinks: (projectId: string) =>
-      request<{ data: Array<{ id: string; token: string; role: string; expiresAt?: string; isActive: boolean }> }>(
-        `/api/projects/${projectId}/share-links`,
-      ),
-    createShareLink: (projectId: string, data: { role?: 'EDITOR' | 'VIEWER'; expiresAt?: string }) =>
-      request<{ data: { id: string; token: string; role: string; expiresAt?: string; isActive: boolean } }>(
-        `/api/projects/${projectId}/share-links`,
-        { method: 'POST', body: JSON.stringify(data) },
-      ),
+      request<{
+        data: Array<{
+          id: string;
+          token: string;
+          role: string;
+          expiresAt?: string;
+          isActive: boolean;
+        }>;
+      }>(`/api/projects/${projectId}/share-links`),
+    createShareLink: (
+      projectId: string,
+      data: { role?: 'EDITOR' | 'VIEWER'; expiresAt?: string },
+    ) =>
+      request<{
+        data: { id: string; token: string; role: string; expiresAt?: string; isActive: boolean };
+      }>(`/api/projects/${projectId}/share-links`, { method: 'POST', body: JSON.stringify(data) }),
     revokeShareLink: (projectId: string, linkId: string) =>
       request<void>(`/api/projects/${projectId}/share-links/${linkId}`, { method: 'DELETE' }),
     redeemShareLink: (token: string) =>
@@ -202,14 +240,29 @@ export const api = {
 
   diagrams: {
     list: (projectId: string) =>
-      request<{ data: Array<{ id: string; name: string; type: string; content?: unknown; createdAt: string; updatedAt: string }> }>(
-        `/api/projects/${projectId}/diagrams`,
-      ),
+      request<{
+        data: Array<{
+          id: string;
+          name: string;
+          type: string;
+          content?: unknown;
+          createdAt: string;
+          updatedAt: string;
+        }>;
+      }>(`/api/projects/${projectId}/diagrams`),
 
     get: (projectId: string, diagramId: string) =>
-      request<{ data: { id: string; name: string; type: string; content?: unknown; project?: { id: string; name: string }; createdAt: string; updatedAt: string } }>(
-        `/api/projects/${projectId}/diagrams/${diagramId}`,
-      ),
+      request<{
+        data: {
+          id: string;
+          name: string;
+          type: string;
+          content?: unknown;
+          project?: { id: string; name: string };
+          createdAt: string;
+          updatedAt: string;
+        };
+      }>(`/api/projects/${projectId}/diagrams/${diagramId}`),
 
     create: (projectId: string, data: { name: string; type: string }) =>
       request<{ data: { id: string; name: string; type: string } }>(
@@ -230,14 +283,11 @@ export const api = {
       requestBinary(`/api/projects/${projectId}/diagrams/${diagramId}/state`),
 
     saveState: (projectId: string, diagramId: string, state: ArrayBuffer) =>
-      request<void>(
-        `/api/projects/${projectId}/diagrams/${diagramId}/state`,
-        {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/octet-stream' },
-          body: state,
-        },
-      ),
+      request<void>(`/api/projects/${projectId}/diagrams/${diagramId}/state`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/octet-stream' },
+        body: state,
+      }),
 
     listSnapshots: (projectId: string, diagramId: string) =>
       request<{ data: Array<{ id: string; label?: string; createdAt: string }> }>(
@@ -264,7 +314,13 @@ export const api = {
 
     get: (projectId: string, diagramId: string, jobId: string) =>
       request<{
-        data: { jobId: string; status: string; progress: number; errorMessage: string | null; result: unknown };
+        data: {
+          jobId: string;
+          status: string;
+          progress: number;
+          errorMessage: string | null;
+          result: unknown;
+        };
       }>(`/api/projects/${projectId}/diagrams/${diagramId}/analysis/${jobId}`),
   },
 };

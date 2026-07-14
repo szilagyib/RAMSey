@@ -65,7 +65,16 @@ interface ToolbarProps {
   collaborators?: Array<{ id?: string; name?: string; color?: string }>;
 }
 
-export function Toolbar({ onNavigateBack, onSave, onCreateSnapshot, onValidate, onAnalyze, diagramName, isSaving, collaborators = [] }: ToolbarProps) {
+export function Toolbar({
+  onNavigateBack,
+  onSave,
+  onCreateSnapshot,
+  onValidate,
+  onAnalyze,
+  diagramName,
+  isSaving,
+  collaborators = [],
+}: ToolbarProps) {
   const { user: authUser } = useAuth();
   const reactFlow = useReactFlow();
   const nodes = useDiagramStore((s) => s.nodes);
@@ -450,38 +459,108 @@ export function Toolbar({ onNavigateBack, onSave, onCreateSnapshot, onValidate, 
               Edit menu so they're one click away. */}
           <div className="ml-1 h-4 w-px bg-surface-200" />
           <div className="flex items-center gap-0.5">
-            <Button variant="ghost" size="sm" onClick={() => undo()} disabled={!canUndo} className="h-7 w-7 p-0" title="Undo (Ctrl+Z)">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => undo()}
+              disabled={!canUndo}
+              className="h-7 w-7 p-0"
+              title="Undo (Ctrl+Z)"
+            >
               <Undo2 className="h-3.5 w-3.5" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => redo()} disabled={!canRedo} className="h-7 w-7 p-0" title="Redo (Ctrl+Shift+Z)">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => redo()}
+              disabled={!canRedo}
+              className="h-7 w-7 p-0"
+              title="Redo (Ctrl+Shift+Z)"
+            >
               <Redo2 className="h-3.5 w-3.5" />
             </Button>
             <span className="mx-0.5 h-4 w-px bg-surface-200" />
-            <Button variant="ghost" size="sm" onClick={() => copySelection()} disabled={!hasNodeSelection} className="h-7 w-7 p-0" title="Copy (Ctrl+C)">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => copySelection()}
+              disabled={!hasNodeSelection}
+              className="h-7 w-7 p-0"
+              title="Copy (Ctrl+C)"
+            >
               <Copy className="h-3.5 w-3.5" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => paste()} disabled={!canPaste} className="h-7 w-7 p-0" title="Paste (Ctrl+V)">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => paste()}
+              disabled={!canPaste}
+              className="h-7 w-7 p-0"
+              title="Paste (Ctrl+V)"
+            >
               <ClipboardPaste className="h-3.5 w-3.5" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => duplicateSelection()} disabled={!hasNodeSelection} className="h-7 w-7 p-0" title="Duplicate (Ctrl+D)">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => duplicateSelection()}
+              disabled={!hasNodeSelection}
+              className="h-7 w-7 p-0"
+              title="Duplicate (Ctrl+D)"
+            >
               <CopyPlus className="h-3.5 w-3.5" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => deleteSelected()} disabled={!hasNodeSelection && !hasEdgeSelection} className="h-7 w-7 p-0" title="Delete (Del)">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => deleteSelected()}
+              disabled={!hasNodeSelection && !hasEdgeSelection}
+              className="h-7 w-7 p-0"
+              title="Delete (Del)"
+            >
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
 
             {/* Align / distribute — enabled once a multi-selection exists. */}
             <span className="mx-0.5 h-4 w-px bg-surface-200" />
-            <Button variant="ghost" size="sm" onClick={() => alignSelection('center-y')} disabled={selectedCount < 2} className="h-7 w-7 p-0" title="Align middle (horizontal row)">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => alignSelection('center-y')}
+              disabled={selectedCount < 2}
+              className="h-7 w-7 p-0"
+              title="Align middle (horizontal row)"
+            >
               <AlignHorizontalJustifyCenter className="h-3.5 w-3.5" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => alignSelection('center-x')} disabled={selectedCount < 2} className="h-7 w-7 p-0" title="Align center (vertical column)">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => alignSelection('center-x')}
+              disabled={selectedCount < 2}
+              className="h-7 w-7 p-0"
+              title="Align center (vertical column)"
+            >
               <AlignVerticalJustifyCenter className="h-3.5 w-3.5" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => distributeSelection('horizontal')} disabled={selectedCount < 3} className="h-7 w-7 p-0" title="Distribute horizontally">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => distributeSelection('horizontal')}
+              disabled={selectedCount < 3}
+              className="h-7 w-7 p-0"
+              title="Distribute horizontally"
+            >
               <AlignHorizontalDistributeCenter className="h-3.5 w-3.5" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => distributeSelection('vertical')} disabled={selectedCount < 3} className="h-7 w-7 p-0" title="Distribute vertically">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => distributeSelection('vertical')}
+              disabled={selectedCount < 3}
+              className="h-7 w-7 p-0"
+              title="Distribute vertically"
+            >
               <AlignVerticalDistributeCenter className="h-3.5 w-3.5" />
             </Button>
           </div>
@@ -515,9 +594,7 @@ export function Toolbar({ onNavigateBack, onSave, onCreateSnapshot, onValidate, 
                 );
               })}
               {collaborators.length > 4 && (
-                <span className="text-[10px] text-surface-400">
-                  +{collaborators.length - 4}
-                </span>
+                <span className="text-[10px] text-surface-400">+{collaborators.length - 4}</span>
               )}
             </div>
           )}
@@ -535,7 +612,13 @@ export function Toolbar({ onNavigateBack, onSave, onCreateSnapshot, onValidate, 
             </div>
           )}
 
-          <Button variant="ghost" size="sm" onClick={handleAutoLayout} className="h-7 w-7 p-0" title="Auto Layout">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleAutoLayout}
+            className="h-7 w-7 p-0"
+            title="Auto Layout"
+          >
             <LayoutGrid className="h-3.5 w-3.5" />
           </Button>
           <Button
@@ -557,13 +640,31 @@ export function Toolbar({ onNavigateBack, onSave, onCreateSnapshot, onValidate, 
             <Map className="h-3.5 w-3.5" />
           </Button>
           <span className="mx-0.5 h-4 w-px bg-surface-200" />
-          <Button variant="ghost" size="sm" onClick={() => reactFlow.zoomIn()} className="h-7 w-7 p-0" title="Zoom In">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => reactFlow.zoomIn()}
+            className="h-7 w-7 p-0"
+            title="Zoom In"
+          >
             <ZoomIn className="h-3.5 w-3.5" />
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => reactFlow.zoomOut()} className="h-7 w-7 p-0" title="Zoom Out">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => reactFlow.zoomOut()}
+            className="h-7 w-7 p-0"
+            title="Zoom Out"
+          >
             <ZoomOut className="h-3.5 w-3.5" />
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => reactFlow.fitView(FIT_VIEW_OPTIONS)} className="h-7 w-7 p-0" title="Fit to Screen">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => reactFlow.fitView(FIT_VIEW_OPTIONS)}
+            className="h-7 w-7 p-0"
+            title="Fit to Screen"
+          >
             <Maximize2 className="h-3.5 w-3.5" />
           </Button>
           {authUser && !authUser.id.startsWith('local:') && <NotificationBell />}

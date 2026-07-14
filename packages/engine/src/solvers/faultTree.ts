@@ -52,10 +52,16 @@ function expandGate(gate: Gate, warnings: Warning[]): string[][] {
     case 'K_OF_N':
       return combinations(gate.inputs, gate.k ?? gate.inputs.length);
     case 'XOR':
-      warnings.push({ code: 'noncoherent', message: 'XOR treated as OR (non-coherent; approximate).' });
+      warnings.push({
+        code: 'noncoherent',
+        message: 'XOR treated as OR (non-coherent; approximate).',
+      });
       return gate.inputs.map((i) => [i]);
     case 'NOT':
-      warnings.push({ code: 'noncoherent', message: 'NOT is unsupported in cut-set analysis; input passed through.' });
+      warnings.push({
+        code: 'noncoherent',
+        message: 'NOT is unsupported in cut-set analysis; input passed through.',
+      });
       return [[gate.inputs[0]]];
     default:
       return [gate.inputs];
@@ -97,7 +103,10 @@ export function minimalCutSets(ir: ModelIR, warnings: Warning[] = []): string[][
     cutSets = next;
     if (!progressed) break;
     if (++guard > MAX || cutSets.length > MAX) {
-      warnings.push({ code: 'too_large', message: 'Cut-set expansion exceeded limit; result truncated.' });
+      warnings.push({
+        code: 'too_large',
+        message: 'Cut-set expansion exceeded limit; result truncated.',
+      });
       break;
     }
   }
@@ -157,16 +166,27 @@ function applyCCF(ir: ModelIR, warnings: Warning[]): ModelIR {
   for (const dep of ccf) {
     if (dep.kind !== 'common_cause_failure') continue;
     if (dep.model !== 'beta_factor') {
-      warnings.push({ code: 'ccf_model', message: `CCF model '${dep.model}' not supported; only beta_factor.` });
+      warnings.push({
+        code: 'ccf_model',
+        message: `CCF model '${dep.model}' not supported; only beta_factor.`,
+      });
       continue;
     }
     const beta = resolveValue(dep.beta, ir.parameters, warnings, `beta of ${dep.id}`);
     const affected = dep.affectedComponents.filter((id) => eventById.has(id));
     if (affected.length < 2) {
-      warnings.push({ code: 'ccf_affected', message: `CCF ${dep.id} needs ≥2 affected basic events.` });
+      warnings.push({
+        code: 'ccf_affected',
+        message: `CCF ${dep.id} needs ≥2 affected basic events.`,
+      });
       continue;
     }
-    const repP = resolveValue(eventById.get(affected[0])!.probability, ir.parameters, warnings, `probability of ${affected[0]}`);
+    const repP = resolveValue(
+      eventById.get(affected[0])!.probability,
+      ir.parameters,
+      warnings,
+      `probability of ${affected[0]}`,
+    );
     const ccfId = `ccf_${dep.id}`;
     events.push({ id: ccfId, name: `CCF ${dep.name}`, type: 'basic', probability: beta * repP });
 
@@ -174,7 +194,12 @@ function applyCCF(ir: ModelIR, warnings: Warning[]): ModelIR {
       const ev = eventById.get(aId)!;
       const p = resolveValue(ev.probability, ir.parameters, warnings, `probability of ${aId}`);
       const indId = `${aId}_ind`;
-      events.push({ id: indId, name: `${ev.name} (indep)`, type: 'basic', probability: (1 - beta) * p });
+      events.push({
+        id: indId,
+        name: `${ev.name} (indep)`,
+        type: 'basic',
+        probability: (1 - beta) * p,
+      });
       // aId becomes a gate output: (independent OR shared-CCF).
       ev.type = 'intermediate';
       delete ev.probability;
@@ -214,7 +239,13 @@ export class FaultTreeSolver implements Solver {
 
     const cutSets = minimalCutSets(ir, warnings);
     if (cutSets.length === 0) {
-      return errorResponse(ir, req.method, 'Could not derive cut sets (no top event or empty tree)', NAME, start);
+      return errorResponse(
+        ir,
+        req.method,
+        'Could not derive cut sets (no top event or empty tree)',
+        NAME,
+        start,
+      );
     }
 
     const eventById = new Map(ir.events.map((e) => [e.id, e]));
@@ -222,7 +253,10 @@ export class FaultTreeSolver implements Solver {
     const baseProb = new Map<string, number>();
     for (const id of basics) {
       const ev = eventById.get(id);
-      baseProb.set(id, ev ? resolveValue(ev.probability, ir.parameters, warnings, `probability of ${id}`) : 0);
+      baseProb.set(
+        id,
+        ev ? resolveValue(ev.probability, ir.parameters, warnings, `probability of ${id}`) : 0,
+      );
     }
     const probOf: ProbOf = (id) => baseProb.get(id) ?? 0;
     const base = {
@@ -236,7 +270,8 @@ export class FaultTreeSolver implements Solver {
 
     if (req.method === 'minimal_cut_sets') {
       const order: Record<string, number> = {};
-      for (const cs of cutSets) order[`order_${cs.length}`] = (order[`order_${cs.length}`] ?? 0) + 1;
+      for (const cs of cutSets)
+        order[`order_${cs.length}`] = (order[`order_${cs.length}`] ?? 0) + 1;
       return buildResponse({
         ...base,
         metrics: { cut_set_count: cutSets.length },
@@ -258,18 +293,27 @@ export class FaultTreeSolver implements Solver {
         const rare = cutSets.reduce((s, cs) => s + cs.reduce((p, x) => p * probOf(x), 1), 0);
         const maxCut = Math.max(...cutSets.map((cs) => cs.reduce((p, x) => p * probOf(x), 1)));
         errorBounds.probability = { lower: maxCut, upper: Math.min(1, rare) };
-        warnings.push({ code: 'approximate', message: `>${EXACT_LIMIT} cut sets; using min-cut bound (see errorBounds).` });
+        warnings.push({
+          code: 'approximate',
+          message: `>${EXACT_LIMIT} cut sets; using min-cut bound (see errorBounds).`,
+        });
       }
       return buildResponse({
         ...base,
         metrics: { probability: pTop, reliability: 1 - pTop },
         numericMetadata: { method: exact ? 'inclusion-exclusion (exact)' : 'min-cut upper bound' },
         errorBounds,
-        trace: { assumptions: ['Independent basic events'], methodDetails: `${methodDetailsPrefix}Top-event probability from ${cutSets.length} cut sets.` },
+        trace: {
+          assumptions: ['Independent basic events'],
+          methodDetails: `${methodDetailsPrefix}Top-event probability from ${cutSets.length} cut sets.`,
+        },
       });
     }
 
-    const withProb = (id: string, value: number): ProbOf => (x) => (x === id ? value : probOf(x));
+    const withProb =
+      (id: string, value: number): ProbOf =>
+      (x) =>
+        x === id ? value : probOf(x);
 
     if (req.method === 'importance_measures' || req.method === 'sensitivity') {
       const birnbaum: Record<string, number> = {};
@@ -294,7 +338,10 @@ export class FaultTreeSolver implements Solver {
           metrics: { probability: pTop },
           contributions: { sensitivity },
           numericMetadata: { method: 'normalized Birnbaum (exact)' },
-          trace: { assumptions: ['Independent basic events'], methodDetails: 'Normalized sensitivity ∂P/∂pᵢ · pᵢ/P per basic event.' },
+          trace: {
+            assumptions: ['Independent basic events'],
+            methodDetails: 'Normalized sensitivity ∂P/∂pᵢ · pᵢ/P per basic event.',
+          },
         });
       }
       return buildResponse({
@@ -302,7 +349,10 @@ export class FaultTreeSolver implements Solver {
         metrics: { probability: pTop },
         contributions: { birnbaum, fussell_vesely: fussellVesely, raw, rrw },
         numericMetadata: { method: exact ? 'inclusion-exclusion (exact)' : 'min-cut bound' },
-        trace: { assumptions: ['Independent basic events'], methodDetails: 'Birnbaum, Fussell-Vesely, RAW, RRW per basic event.' },
+        trace: {
+          assumptions: ['Independent basic events'],
+          methodDetails: 'Birnbaum, Fussell-Vesely, RAW, RRW per basic event.',
+        },
       });
     }
 
@@ -320,12 +370,23 @@ export class FaultTreeSolver implements Solver {
       return buildResponse({
         ...base,
         metrics: { probability: p, reliability: 1 - p, samples: N },
-        errorBounds: { probability: { lower: Math.max(0, p - 1.96 * se), upper: Math.min(1, p + 1.96 * se) } },
+        errorBounds: {
+          probability: { lower: Math.max(0, p - 1.96 * se), upper: Math.min(1, p + 1.96 * se) },
+        },
         numericMetadata: { method: 'Monte Carlo (Bernoulli sampling)', iterations: N },
-        trace: { assumptions: ['Independent basic events'], methodDetails: `${N} samples, seed ${req.options.seed ?? 12345}; 95% CI in errorBounds.` },
+        trace: {
+          assumptions: ['Independent basic events'],
+          methodDetails: `${N} samples, seed ${req.options.seed ?? 12345}; 95% CI in errorBounds.`,
+        },
       });
     }
 
-    return errorResponse(ir, req.method, `Fault tree solver does not support method '${req.method}'`, NAME, start);
+    return errorResponse(
+      ir,
+      req.method,
+      `Fault tree solver does not support method '${req.method}'`,
+      NAME,
+      start,
+    );
   }
 }

@@ -25,10 +25,7 @@ declare module 'fastify' {
  * (password reset, "log out everywhere") invalidates every outstanding JWT
  * immediately instead of after the 7-day expiry.
  */
-export async function authenticate(
-  request: FastifyRequest,
-  _reply: FastifyReply,
-): Promise<void> {
+export async function authenticate(request: FastifyRequest, _reply: FastifyReply): Promise<void> {
   const token = request.cookies?.[COOKIE_NAME];
   if (!token) throw new UnauthorizedError('Authentication required');
 

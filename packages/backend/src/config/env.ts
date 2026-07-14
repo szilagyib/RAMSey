@@ -13,9 +13,7 @@ const envSchema = z.object({
 
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
 
-  NODE_ENV: z
-    .enum(['development', 'production', 'test'])
-    .default('development'),
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 
   JWT_SECRET: z.string().min(32),
 

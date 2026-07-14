@@ -131,8 +131,7 @@ export function routeEdgesAfterLayout(nodes: Node[], edges: Edge[]): Edge[] {
     center.set(n.id, { x: n.position.x + w / 2, y: n.position.y + h / 2 });
   }
 
-  const hasReverse = (e: Edge) =>
-    edges.some((o) => o.source === e.target && o.target === e.source);
+  const hasReverse = (e: Edge) => edges.some((o) => o.source === e.target && o.target === e.source);
 
   return edges.map((e) => {
     const data = { ...(e.data ?? {}) } as Record<string, unknown>;
@@ -165,11 +164,7 @@ export function routeEdgesAfterLayout(nodes: Node[], edges: Edge[]): Edge[] {
 
 export function useAutoLayout() {
   const runLayout = useCallback(
-    async (
-      nodes: Node[],
-      edges: Edge[],
-      options?: AutoLayoutOptions,
-    ): Promise<Node[]> => {
+    async (nodes: Node[], edges: Edge[], options?: AutoLayoutOptions): Promise<Node[]> => {
       return autoLayout(nodes, edges, options);
     },
     [],

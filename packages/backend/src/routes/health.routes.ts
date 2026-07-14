@@ -44,8 +44,7 @@ const healthRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
         },
       };
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Unknown database error';
+      const message = error instanceof Error ? error.message : 'Unknown database error';
 
       reply.status(503);
       return {

@@ -58,11 +58,7 @@ export function createNode(
   };
 }
 
-export function createEdge(
-  source: string,
-  target: string,
-  counter: number,
-): Edge<RBDEdgeData> {
+export function createEdge(source: string, target: string, counter: number): Edge<RBDEdgeData> {
   return {
     id: `rbd-edge-${counter}`,
     type: 'connectionEdge',

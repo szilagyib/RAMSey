@@ -98,11 +98,15 @@ export function ProjectPage() {
             </Link>
             <div>
               <div className="flex items-center gap-2 text-xs text-surface-400">
-                <Link to="/" className="hover:underline">Dashboard</Link>
+                <Link to="/" className="hover:underline">
+                  Dashboard
+                </Link>
                 <span>/</span>
                 <span>{project?.name ?? 'Project'}</span>
               </div>
-              <h1 className="text-lg font-bold text-surface-800">{project?.name ?? 'Loading...'}</h1>
+              <h1 className="text-lg font-bold text-surface-800">
+                {project?.name ?? 'Loading...'}
+              </h1>
             </div>
           </div>
           <ThemeToggle />
@@ -148,9 +152,7 @@ export function ProjectPage() {
           </div>
         )}
 
-        {loading && (
-          <p className="text-sm text-surface-400">Loading diagrams...</p>
-        )}
+        {loading && <p className="text-sm text-surface-400">Loading diagrams...</p>}
 
         {!loading && diagrams.length === 0 && (
           <div className="rounded-lg border border-dashed border-surface-300 bg-white dark:bg-surface-100 p-12 text-center">
@@ -165,10 +167,7 @@ export function ProjectPage() {
               className="rounded-lg border border-surface-200 bg-white dark:bg-surface-100 p-4 transition-shadow hover:shadow-md"
             >
               <div className="flex items-start justify-between">
-                <Link
-                  to={`/projects/${projectId}/diagrams/${diagram.id}`}
-                  className="flex-1"
-                >
+                <Link to={`/projects/${projectId}/diagrams/${diagram.id}`} className="flex-1">
                   <h3 className="font-semibold text-surface-800">{diagram.name}</h3>
                   <span className="mt-1 inline-block rounded-full bg-primary-100 dark:bg-surface-300 px-2 py-0.5 text-xs font-medium text-primary-700 dark:text-surface-700">
                     {typeLabel(diagram.type)}

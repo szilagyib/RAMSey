@@ -33,22 +33,22 @@ export function PrivacyPage() {
 
       <main className="mx-auto max-w-3xl px-6 py-8">
         <p className="mb-8 text-xs text-surface-400">
-          Last updated: [PLACEHOLDER — date]. This policy describes how RAMSey
-          (&quot;the service&quot;), operated by [PLACEHOLDER — legal entity name and
-          address], processes your data. Contact: [PLACEHOLDER — privacy contact email].
+          Last updated: [PLACEHOLDER — date]. This policy describes how RAMSey (&quot;the
+          service&quot;), operated by [PLACEHOLDER — legal entity name and address], processes your
+          data. Contact: [PLACEHOLDER — privacy contact email].
         </p>
 
         <Section title="What data we process">
           <p>
             <strong>Account data.</strong> Your email address, optional display name, optional
-            profile picture, and a hashed password (or your Google account identifier if you sign
-            in with Google). Used to authenticate you and operate your account.
+            profile picture, and a hashed password (or your Google account identifier if you sign in
+            with Google). Used to authenticate you and operate your account.
           </p>
           <p>
             <strong>Content you create.</strong> Projects, diagrams, snapshots, comments, and team
-            memberships. Diagrams may be shared with collaborators you or your team choose;
-            content you have shared remains visible to those collaborators even after you delete
-            your account (your identity is removed from it).
+            memberships. Diagrams may be shared with collaborators you or your team choose; content
+            you have shared remains visible to those collaborators even after you delete your
+            account (your identity is removed from it).
           </p>
           <p>
             <strong>AI assistant data.</strong> If you use the AI chat, your chat messages and the
@@ -57,25 +57,25 @@ export function PrivacyPage() {
             usage limits.
           </p>
           <p>
-            <strong>Technical data.</strong> Server logs (IP address, request metadata) for
-            security and rate limiting; audit log entries for account and project actions; error
-            reports (via Sentry) if error tracking is enabled, which may include request context.
+            <strong>Technical data.</strong> Server logs (IP address, request metadata) for security
+            and rate limiting; audit log entries for account and project actions; error reports (via
+            Sentry) if error tracking is enabled, which may include request context.
           </p>
         </Section>
 
         <Section title="What we do NOT do">
           <p>
-            We do not sell your data, run advertising, or use third-party analytics. AI chat is
-            only invoked when you actively use it — diagrams are not sent to Anthropic otherwise.
+            We do not sell your data, run advertising, or use third-party analytics. AI chat is only
+            invoked when you actively use it — diagrams are not sent to Anthropic otherwise.
           </p>
         </Section>
 
         <Section title="Cookies and local storage">
           <p>
             We use a single, strictly necessary cookie — <code>ramsey_token</code> — to keep you
-            signed in (HttpOnly, expires after 7 days). Because it is essential for the service
-            and we use no advertising or analytics cookies, no cookie consent banner is required;
-            this notice serves as disclosure.
+            signed in (HttpOnly, expires after 7 days). Because it is essential for the service and
+            we use no advertising or analytics cookies, no cookie consent banner is required; this
+            notice serves as disclosure.
           </p>
           <p>
             Your browser&apos;s local storage holds convenience data that never leaves your device
@@ -114,8 +114,8 @@ export function PrivacyPage() {
         <Section title="Legal basis">
           <p>
             We process account and content data to perform our contract with you (providing the
-            service); security logging and rate limiting under legitimate interest; AI processing
-            of your diagram occurs only on your initiative when you use the chat. [PLACEHOLDER —
+            service); security logging and rate limiting under legitimate interest; AI processing of
+            your diagram occurs only on your initiative when you use the chat. [PLACEHOLDER —
             confirm lawful-basis mapping with counsel.]
           </p>
         </Section>
@@ -123,10 +123,10 @@ export function PrivacyPage() {
         <Section title="Retention">
           <p>
             Account and content data are kept while your account exists. AI usage records:
-            [PLACEHOLDER — e.g. 12 months]. Server logs: [PLACEHOLDER — e.g. 30 days]. Audit
-            logs: [PLACEHOLDER]. Backups: [PLACEHOLDER — cycle length]. When you delete your
-            account, personal data is erased immediately (see below); residual copies leave
-            backups within the backup cycle.
+            [PLACEHOLDER — e.g. 12 months]. Server logs: [PLACEHOLDER — e.g. 30 days]. Audit logs:
+            [PLACEHOLDER]. Backups: [PLACEHOLDER — cycle length]. When you delete your account,
+            personal data is erased immediately (see below); residual copies leave backups within
+            the backup cycle.
           </p>
         </Section>
 
@@ -141,23 +141,23 @@ export function PrivacyPage() {
             personal records (notifications, AI usage, tokens); content you shared with
             collaborators remains, no longer attributed to you. You also have the right to
             rectification, restriction, objection, and to lodge a complaint with a supervisory
-            authority ([PLACEHOLDER — competent authority, e.g. NAIH for Hungary]). For anything
-            you cannot do in-app, contact [PLACEHOLDER — privacy contact email].
+            authority ([PLACEHOLDER — competent authority, e.g. NAIH for Hungary]). For anything you
+            cannot do in-app, contact [PLACEHOLDER — privacy contact email].
           </p>
         </Section>
 
         <Section title="Security">
           <p>
-            Passwords are stored as bcrypt hashes; sessions use HttpOnly cookies; password-reset
-            and verification links are single-use, expiring, and stored only as hashes; transport
-            is encrypted (HTTPS) in production; access to production systems is restricted.
+            Passwords are stored as bcrypt hashes; sessions use HttpOnly cookies; password-reset and
+            verification links are single-use, expiring, and stored only as hashes; transport is
+            encrypted (HTTPS) in production; access to production systems is restricted.
           </p>
         </Section>
 
         <Section title="Changes">
           <p>
-            We will update this policy as the service evolves and indicate the date above.
-            Material changes will be announced in the app.
+            We will update this policy as the service evolves and indicate the date above. Material
+            changes will be announced in the app.
           </p>
         </Section>
       </main>

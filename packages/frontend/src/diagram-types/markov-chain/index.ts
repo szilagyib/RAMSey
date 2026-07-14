@@ -10,5 +10,10 @@ export const edgeTypes: EdgeTypes = {
   transitionEdge: TransitionEdge,
 };
 
-export { createNewState, createNewTransition, DEFAULT_STATE_DATA, DEFAULT_EDGE_DATA } from './defaults';
+export {
+  createNewState,
+  createNewTransition,
+  DEFAULT_STATE_DATA,
+  DEFAULT_EDGE_DATA,
+} from './defaults';
 export { validateMarkovDiagram } from './validation';

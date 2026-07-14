@@ -26,7 +26,13 @@ export class BowTieSolver implements Solver {
       return errorResponse(ir, req.method, 'Bow-tie model has no structure', NAME, start);
     }
     if (req.method !== 'frequency') {
-      return errorResponse(ir, req.method, `Bow-tie solver does not support method '${req.method}'`, NAME, start);
+      return errorResponse(
+        ir,
+        req.method,
+        `Bow-tie solver does not support method '${req.method}'`,
+        NAME,
+        start,
+      );
     }
 
     const byId = new Map(bt.nodes.map((n) => [n.id, n]));
@@ -45,7 +51,13 @@ export class BowTieSolver implements Solver {
     const leakFactor = (id: string): number => {
       const n = byId.get(id);
       if (n && (n.kind === 'preventive_barrier' || n.kind === 'mitigative_barrier')) {
-        const eff = resolveValue(n.effectiveness, ir.parameters, warnings, `effectiveness of ${label(id)}`, 0);
+        const eff = resolveValue(
+          n.effectiveness,
+          ir.parameters,
+          warnings,
+          `effectiveness of ${label(id)}`,
+          0,
+        );
         return 1 - eff;
       }
       return 1;
@@ -66,7 +78,13 @@ export class BowTieSolver implements Solver {
           visit(next, acc * leakFactor(next), new Set(seen).add(next));
         }
       };
-      const pThreat = resolveValue(byId.get(threatId)?.probability, ir.parameters, warnings, `probability of ${label(threatId)}`, 1);
+      const pThreat = resolveValue(
+        byId.get(threatId)?.probability,
+        ir.parameters,
+        warnings,
+        `probability of ${label(threatId)}`,
+        1,
+      );
       visit(threatId, pThreat, new Set([threatId]));
       return best;
     };
@@ -79,10 +97,16 @@ export class BowTieSolver implements Solver {
     }
     const pTop = threats.length === 0 ? 0 : 1 - pTopComplement;
     if (threats.length === 0) {
-      warnings.push({ code: 'no_threats', message: 'No threats found; top-event probability is 0.' });
+      warnings.push({
+        code: 'no_threats',
+        message: 'No threats found; top-event probability is 0.',
+      });
     }
     if (threats.some((t) => (t.probability ?? undefined) === undefined)) {
-      warnings.push({ code: 'threat_prob_default', message: 'Threat probabilities default to 1 (no canvas field); results are barrier-driven.' });
+      warnings.push({
+        code: 'threat_prob_default',
+        message: 'Threat probabilities default to 1 (no canvas field); results are barrier-driven.',
+      });
     }
 
     // ── Right side: consequence probabilities through mitigative barriers ──
@@ -122,7 +146,8 @@ export class BowTieSolver implements Solver {
           'Each consequence is reached when the mitigative barriers on its path fail (escalation cascade)',
           'Threats treated as independent',
         ],
-        methodDetails: 'P(top) = 1 − ∏(1 − leak); consequence = P(top) × ∏(1 − effectiveness) along the path.',
+        methodDetails:
+          'P(top) = 1 − ∏(1 − leak); consequence = P(top) × ∏(1 − effectiveness) along the path.',
       },
     });
   }

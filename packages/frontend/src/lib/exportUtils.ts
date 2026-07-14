@@ -38,8 +38,7 @@ export async function exportSvg(options: ExportOptions = { format: 'svg' }): Pro
       const classList = (node as HTMLElement).classList;
       if (!classList) return true;
       return (
-        !classList.contains('react-flow__minimap') &&
-        !classList.contains('react-flow__controls')
+        !classList.contains('react-flow__minimap') && !classList.contains('react-flow__controls')
       );
     },
     backgroundColor: bgColor,
@@ -61,8 +60,7 @@ export async function exportPng(options: ExportOptions = { format: 'png' }): Pro
       const classList = (node as HTMLElement).classList;
       if (!classList) return true;
       return (
-        !classList.contains('react-flow__minimap') &&
-        !classList.contains('react-flow__controls')
+        !classList.contains('react-flow__minimap') && !classList.contains('react-flow__controls')
       );
     },
     backgroundColor: bgColor,
@@ -86,8 +84,7 @@ export async function exportJpeg(options: ExportOptions = { format: 'jpeg' }): P
       const classList = (node as HTMLElement).classList;
       if (!classList) return true;
       return (
-        !classList.contains('react-flow__minimap') &&
-        !classList.contains('react-flow__controls')
+        !classList.contains('react-flow__minimap') && !classList.contains('react-flow__controls')
       );
     },
   });

@@ -71,9 +71,7 @@ export function validate(nodes: Node[], edges: Edge[]): ValidationResult {
   }
 
   // --- Header nodes must have 2 outgoing edges (success + failure) ---
-  const headers = nodes.filter(
-    (n) => (n.data as EventTreeNodeData).nodeKind === 'header',
-  );
+  const headers = nodes.filter((n) => (n.data as EventTreeNodeData).nodeKind === 'header');
 
   for (const header of headers) {
     const outgoing = edges.filter((e) => e.source === header.id);
@@ -120,12 +118,9 @@ export function validate(nodes: Node[], edges: Edge[]): ValidationResult {
       const data = node.data as EventTreeNodeData;
       if (data.nodeKind === 'initiating_event') continue;
       if (!nodesWithOutgoing.has(node.id) && !nodesWithIncoming.has(node.id)) {
-        addWarning(
-          result,
-          'ORPHAN_NODE',
-          `Node "${data.label || node.id}" has no connections.`,
-          [node.id],
-        );
+        addWarning(result, 'ORPHAN_NODE', `Node "${data.label || node.id}" has no connections.`, [
+          node.id,
+        ]);
       }
     }
   }

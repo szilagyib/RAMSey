@@ -19,18 +19,28 @@ function indexOf(ir: ModelIR): Map<string, number> {
 }
 
 function transitionRates(ir: ModelIR, warnings: Warning[]): number[] {
-  return ir.transitions.map((t) => resolveValue(t.rate, ir.parameters, warnings, `rate of ${t.id}`));
+  return ir.transitions.map((t) =>
+    resolveValue(t.rate, ir.parameters, warnings, `rate of ${t.id}`),
+  );
 }
 
 /** Build the CTMC generator matrix Q from transitions using the given rates. */
-function buildQ(ir: ModelIR, rates: number[], index: Map<string, number>, warnings: Warning[]): Matrix {
+function buildQ(
+  ir: ModelIR,
+  rates: number[],
+  index: Map<string, number>,
+  warnings: Warning[],
+): Matrix {
   const n = ir.states.length;
   const Q: Matrix = Array.from({ length: n }, () => new Array(n).fill(0));
   ir.transitions.forEach((t, k) => {
     const i = index.get(t.from);
     const j = index.get(t.to);
     if (i === undefined || j === undefined) {
-      warnings.push({ code: 'dangling_transition', message: `Transition ${t.id} references unknown state` });
+      warnings.push({
+        code: 'dangling_transition',
+        message: `Transition ${t.id} references unknown state`,
+      });
       return;
     }
     Q[i][j] += rates[k];
@@ -58,7 +68,9 @@ function initialDist(ir: ModelIR, index: Map<string, number>): number[] {
 function steadyState(Q: Matrix): number[] {
   const n = Q.length;
   if (n === 1) return [1];
-  const A: Matrix = Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) => Q[j][i]));
+  const A: Matrix = Array.from({ length: n }, (_, i) =>
+    Array.from({ length: n }, (_, j) => Q[j][i]),
+  );
   for (let j = 0; j < n; j++) A[n - 1][j] = 1;
   const b = new Array(n).fill(0);
   b[n - 1] = 1;
@@ -70,7 +82,10 @@ function isUp(ir: ModelIR, i: number): boolean {
 }
 
 /** Steady-state availability and failure frequency (up→down transition flow). */
-function steadyMetrics(ir: ModelIR, Q: Matrix): { pi: number[]; availability: number; frequency: number } {
+function steadyMetrics(
+  ir: ModelIR,
+  Q: Matrix,
+): { pi: number[]; availability: number; frequency: number } {
   const pi = steadyState(Q);
   const n = Q.length;
   let availability = 0;
@@ -156,7 +171,8 @@ export class MarkovSolver implements Solver {
         if (hasAbsorbing) {
           warnings.push({
             code: 'absorbing_present',
-            message: 'Model has absorbing states; steady-state availability tends to 0. Consider reliability/MTTF.',
+            message:
+              'Model has absorbing states; steady-state availability tends to 0. Consider reliability/MTTF.',
           });
         }
         return buildResponse({
@@ -173,7 +189,10 @@ export class MarkovSolver implements Solver {
       case 'mttr':
       case 'expected_number_of_failures': {
         if (hasAbsorbing) {
-          warnings.push({ code: 'absorbing_present', message: 'Steady-state frequency metrics assume a repairable (no absorbing) model.' });
+          warnings.push({
+            code: 'absorbing_present',
+            message: 'Steady-state frequency metrics assume a repairable (no absorbing) model.',
+          });
         }
         const { availability, frequency } = steadyMetrics(ir, Q);
         const metrics: Record<string, number> = { frequency, availability };
@@ -182,7 +201,10 @@ export class MarkovSolver implements Solver {
           metrics.mttr = (1 - availability) / frequency; // mean down time
           metrics.expected_number_of_failures = frequency * missionTimeOf(req, warnings);
         } else {
-          warnings.push({ code: 'no_failures', message: 'Failure frequency is zero; MTBF/MTTR undefined.' });
+          warnings.push({
+            code: 'no_failures',
+            message: 'Failure frequency is zero; MTBF/MTTR undefined.',
+          });
         }
         return buildResponse({
           ...base,
@@ -216,8 +238,17 @@ export class MarkovSolver implements Solver {
       case 'mttf': {
         const transient = ir.states.filter((s) => s.type !== 'absorbing');
         if (transient.length === ir.states.length) {
-          warnings.push({ code: 'no_absorbing', message: 'No absorbing state; MTTF is undefined.' });
-          return errorResponse(ir, req.method, 'MTTF requires at least one absorbing state', NAME, start);
+          warnings.push({
+            code: 'no_absorbing',
+            message: 'No absorbing state; MTTF is undefined.',
+          });
+          return errorResponse(
+            ir,
+            req.method,
+            'MTTF requires at least one absorbing state',
+            NAME,
+            start,
+          );
         }
         const m = transient.length;
         const QT: Matrix = Array.from({ length: m }, () => new Array(m).fill(0));
@@ -240,7 +271,10 @@ export class MarkovSolver implements Solver {
       case 'reliability': {
         const mt = missionTimeOf(req, warnings);
         if (!hasAbsorbing) {
-          warnings.push({ code: 'no_absorbing', message: 'No absorbing (failure) state; reliability is 1.' });
+          warnings.push({
+            code: 'no_absorbing',
+            message: 'No absorbing (failure) state; reliability is 1.',
+          });
           return buildResponse({ ...base, metrics: { reliability: 1 }, trace: { assumptions } });
         }
         return buildResponse({
@@ -268,7 +302,7 @@ export class MarkovSolver implements Solver {
           perturbed[k] = rates[k] * (1 + eps);
           const mPerturbed = metricOf(buildQ(ir, perturbed, index, []));
           // Normalized sensitivity: (ΔM/M)/(Δrate/rate).
-          sensitivity[t.id] = baseM !== 0 ? ((mPerturbed - baseM) / baseM) / eps : 0;
+          sensitivity[t.id] = baseM !== 0 ? (mPerturbed - baseM) / baseM / eps : 0;
         });
         return buildResponse({
           ...base,
@@ -283,7 +317,13 @@ export class MarkovSolver implements Solver {
       }
 
       default:
-        return errorResponse(ir, req.method, `Markov solver does not support method '${req.method}'`, NAME, start);
+        return errorResponse(
+          ir,
+          req.method,
+          `Markov solver does not support method '${req.method}'`,
+          NAME,
+          start,
+        );
     }
   }
 }

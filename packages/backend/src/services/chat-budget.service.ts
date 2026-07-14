@@ -23,8 +23,7 @@ const MESSAGES: Record<BudgetTier, string> = {
     'The AI assistant has reached its usage limit for this month. Please try again next month.',
   'user-monthly':
     'You have reached your monthly AI usage limit. It resets at the start of next month.',
-  session:
-    'This chat session has reached its AI usage limit. Start a new session to keep going.',
+  session: 'This chat session has reached its AI usage limit. Start a new session to keep going.',
 };
 
 /** UTC "YYYY-MM" bucket for the monthly tiers. */

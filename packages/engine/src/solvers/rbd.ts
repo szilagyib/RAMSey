@@ -38,7 +38,11 @@ function combine(block: Block, rs: number[], warnings: Warning[]): number {
       return 1 - rs.reduce((p, r) => p * (1 - r), 1);
     case 'k_of_n': {
       const k = block.k ?? rs.length;
-      if (k < 1 || k > rs.length) warnings.push({ code: 'bad_k', message: `Block ${block.id}: k=${k} out of range; clamping.` });
+      if (k < 1 || k > rs.length)
+        warnings.push({
+          code: 'bad_k',
+          message: `Block ${block.id}: k=${k} out of range; clamping.`,
+        });
       return kOfN(rs, Math.min(Math.max(k, 1), rs.length));
     }
     default:
@@ -72,7 +76,13 @@ export class RbdSolver implements Solver {
       return errorResponse(ir, req.method, 'RBD model has no blocks', NAME, start);
     }
 
-    const mt = resolveValue(req.options.missionTime ?? ir.missionTime, ir.parameters, warnings, 'mission time', 0);
+    const mt = resolveValue(
+      req.options.missionTime ?? ir.missionTime,
+      ir.parameters,
+      warnings,
+      'mission time',
+      0,
+    );
     const components = new Map(ir.components.map((c) => [c.id, c]));
     const blocks = new Map(ir.blocks.map((b) => [b.id, b]));
     const distributions = new Map<string, Distribution>(ir.distributions.map((d) => [d.id, d]));
@@ -82,11 +92,20 @@ export class RbdSolver implements Solver {
     for (const b of ir.blocks) for (const c of b.children) childIds.add(c);
     const roots = ir.blocks.filter((b) => !childIds.has(b.id));
     if (roots.length !== 1) {
-      warnings.push({ code: 'ambiguous_root', message: `Expected one root block, found ${roots.length}; using the first.` });
+      warnings.push({
+        code: 'ambiguous_root',
+        message: `Expected one root block, found ${roots.length}; using the first.`,
+      });
     }
     const root = roots[0] ?? ir.blocks[0];
 
-    const lambdaOf = (id: string): number => resolveValue(components.get(id)?.failureRate, ir.parameters, warnings, `failure rate of ${id}`);
+    const lambdaOf = (id: string): number =>
+      resolveValue(
+        components.get(id)?.failureRate,
+        ir.parameters,
+        warnings,
+        `failure rate of ${id}`,
+      );
 
     /** Recursively evaluate the system value given a per-component value function. */
     const systemValue = (valueFn: (compId: string) => number): number => {
@@ -125,7 +144,14 @@ export class RbdSolver implements Solver {
       return ev(root.id);
     };
 
-    const baseInput = { solverName: NAME, solverVersion: VERSION, modelIR: ir, method: req.method, startTime: start, warnings };
+    const baseInput = {
+      solverName: NAME,
+      solverVersion: VERSION,
+      modelIR: ir,
+      method: req.method,
+      startTime: start,
+      warnings,
+    };
 
     // ── reliability / availability ──────────────────────────────────────
     if (req.method === 'reliability' || req.method === 'availability') {
@@ -137,7 +163,10 @@ export class RbdSolver implements Solver {
         let v: number;
         if (wantAvail) {
           if (c.repairRate === undefined) {
-            warnings.push({ code: 'no_repair', message: `Component ${id} has no repair rate; using reliability as proxy.` });
+            warnings.push({
+              code: 'no_repair',
+              message: `Component ${id} has no repair rate; using reliability as proxy.`,
+            });
             v = Math.exp(-lambda * mt);
           } else {
             const mu = resolveValue(c.repairRate, ir.parameters, warnings, `repair rate of ${id}`);
@@ -158,7 +187,9 @@ export class RbdSolver implements Solver {
         numericMetadata: { method: 'structure-function evaluation' },
         trace: {
           assumptions: [
-            wantAvail ? 'Steady-state availability A=μ/(λ+μ) per repairable component' : 'Exponential time-to-failure; R=e^{−λt}',
+            wantAvail
+              ? 'Steady-state availability A=μ/(λ+μ) per repairable component'
+              : 'Exponential time-to-failure; R=e^{−λt}',
             'series ∏R, parallel 1−∏(1−R), k-of-n combinatorial',
           ],
           methodDetails: `Recursive evaluation from root '${root.id}'.`,
@@ -179,15 +210,20 @@ export class RbdSolver implements Solver {
           continue;
         }
         const perturbed = lambda * (1 + eps);
-        const rPert = systemValue((id) => (id === c.id ? Math.exp(-perturbed * mt) : Math.exp(-lambdaOf(id) * mt)));
-        sensitivity[c.id] = baseR !== 0 ? ((rPert - baseR) / baseR) / eps : 0;
+        const rPert = systemValue((id) =>
+          id === c.id ? Math.exp(-perturbed * mt) : Math.exp(-lambdaOf(id) * mt),
+        );
+        sensitivity[c.id] = baseR !== 0 ? (rPert - baseR) / baseR / eps : 0;
       }
       return buildResponse({
         ...baseInput,
         metrics: { reliability: baseR },
         contributions: { sensitivity },
         numericMetadata: { method: 'finite difference (relative)' },
-        trace: { assumptions: ['Exponential components'], methodDetails: 'Normalized sensitivity of system reliability to each failure rate.' },
+        trace: {
+          assumptions: ['Exponential components'],
+          methodDetails: 'Normalized sensitivity of system reliability to each failure rate.',
+        },
       });
     }
 
@@ -207,9 +243,14 @@ export class RbdSolver implements Solver {
       return buildResponse({
         ...baseInput,
         metrics: { reliability: p, samples: N },
-        errorBounds: { reliability: { lower: Math.max(0, p - 1.96 * se), upper: Math.min(1, p + 1.96 * se) } },
+        errorBounds: {
+          reliability: { lower: Math.max(0, p - 1.96 * se), upper: Math.min(1, p + 1.96 * se) },
+        },
         numericMetadata: { method: 'Monte Carlo (Bernoulli sampling)', iterations: N },
-        trace: { assumptions: ['Independent components; exponential reliability'], methodDetails: `${N} samples, seed ${req.options.seed ?? 12345}; 95% CI in errorBounds.` },
+        trace: {
+          assumptions: ['Independent components; exponential reliability'],
+          methodDetails: `${N} samples, seed ${req.options.seed ?? 12345}; 95% CI in errorBounds.`,
+        },
       });
     }
 
@@ -217,16 +258,22 @@ export class RbdSolver implements Solver {
     if (req.method === 'uncertainty_propagation') {
       const N = req.options.monteCarloSamples ?? 2000;
       const rng = mulberry32(req.options.seed ?? 12345);
-      const linked = ir.components.filter((c) => c.distribution && distributions.has(c.distribution));
+      const linked = ir.components.filter(
+        (c) => c.distribution && distributions.has(c.distribution),
+      );
       if (linked.length === 0) {
-        warnings.push({ code: 'no_distributions', message: 'No components link a distribution; returning deterministic reliability.' });
+        warnings.push({
+          code: 'no_distributions',
+          message: 'No components link a distribution; returning deterministic reliability.',
+        });
       }
       const sampleLambda = (id: string): number => {
         const c = components.get(id)!;
         if (c.distribution && distributions.has(c.distribution)) {
           const d = distributions.get(c.distribution)!;
           const params: Record<string, number> = {};
-          for (const [k, v] of Object.entries(d.params)) params[k] = resolveValue(v, ir.parameters, warnings, `${d.id}.${k}`);
+          for (const [k, v] of Object.entries(d.params))
+            params[k] = resolveValue(v, ir.parameters, warnings, `${d.id}.${k}`);
           return sampleDistribution(d.type, params, rng);
         }
         return lambdaOf(id);
@@ -244,10 +291,19 @@ export class RbdSolver implements Solver {
         metrics: { reliability_mean: mean, samples: N },
         errorBounds: { reliability: { lower: pct(0.05), upper: pct(0.95) } },
         numericMetadata: { method: 'Monte Carlo uncertainty propagation', iterations: N },
-        trace: { assumptions: ['Failure-rate uncertainty from linked distributions'], methodDetails: `${N} samples; mean + 5/95 percentiles.` },
+        trace: {
+          assumptions: ['Failure-rate uncertainty from linked distributions'],
+          methodDetails: `${N} samples; mean + 5/95 percentiles.`,
+        },
       });
     }
 
-    return errorResponse(ir, req.method, `RBD solver does not support method '${req.method}'`, NAME, start);
+    return errorResponse(
+      ir,
+      req.method,
+      `RBD solver does not support method '${req.method}'`,
+      NAME,
+      start,
+    );
   }
 }

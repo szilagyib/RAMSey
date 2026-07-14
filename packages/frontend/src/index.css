@@ -147,7 +147,9 @@ body {
   color: rgb(var(--surface-900));
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  font-feature-settings: 'cv05' 1, 'cv08' 1;
+  font-feature-settings:
+    'cv05' 1,
+    'cv08' 1;
 }
 
 /* React Flow canvas background customization */

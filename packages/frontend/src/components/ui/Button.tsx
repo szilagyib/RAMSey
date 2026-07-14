@@ -6,8 +6,7 @@ import { cn } from '../../lib/utils';
 // ---------------------------------------------------------------------------
 
 const variantClasses = {
-  default:
-    'bg-primary-600 text-white hover:bg-primary-700 active:bg-primary-800 shadow-sm',
+  default: 'bg-primary-600 text-white hover:bg-primary-700 active:bg-primary-800 shadow-sm',
   // NOTE: the surface text scale self-inverts between themes — never add
   // dark:text-surface-* overrides (they pick a dark color in dark mode).
   outline:

@@ -43,9 +43,7 @@ export function validate(nodes: Node[], edges: Edge[]): ValidationResult {
   }
 
   // --- Exactly one top event ---
-  const topEvents = nodes.filter(
-    (n) => (n.data as FaultTreeNodeData).eventType === 'top',
-  );
+  const topEvents = nodes.filter((n) => (n.data as FaultTreeNodeData).eventType === 'top');
 
   if (topEvents.length === 0) {
     addError(
@@ -64,9 +62,7 @@ export function validate(nodes: Node[], edges: Edge[]): ValidationResult {
   }
 
   // --- Gates must have at least one input (incoming edge) ---
-  const gateNodes = nodes.filter(
-    (n) => (n.data as FaultTreeNodeData).nodeKind === 'gate',
-  );
+  const gateNodes = nodes.filter((n) => (n.data as FaultTreeNodeData).nodeKind === 'gate');
 
   const incomingByTarget = new Map<string, string[]>();
   for (const edge of edges) {
@@ -99,10 +95,7 @@ export function validate(nodes: Node[], edges: Edge[]): ValidationResult {
     }
 
     // AND / OR gates should have at least 2 inputs
-    if (
-      (gateData.gateType === 'AND' || gateData.gateType === 'OR') &&
-      inputs.length === 1
-    ) {
+    if ((gateData.gateType === 'AND' || gateData.gateType === 'OR') && inputs.length === 1) {
       addWarning(
         result,
         'GATE_SINGLE_INPUT',
@@ -195,12 +188,7 @@ export function validate(nodes: Node[], edges: Edge[]): ValidationResult {
   for (const node of nodes) {
     const nodeData = node.data as FaultTreeNodeData;
     if (!nodeData.label || nodeData.label.trim() === '') {
-      addError(
-        result,
-        'MISSING_LABEL',
-        `Node "${node.id}" has no label.`,
-        [node.id],
-      );
+      addError(result, 'MISSING_LABEL', `Node "${node.id}" has no label.`, [node.id]);
     }
   }
 

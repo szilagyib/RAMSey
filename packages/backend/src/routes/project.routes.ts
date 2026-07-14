@@ -19,15 +19,11 @@ const projectRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
    * GET /api/projects
    * List all projects accessible by the authenticated user.
    */
-  fastify.get(
-    '/api/projects',
-    { preHandler: [authenticate] },
-    async (request, _reply) => {
-      const userId = request.user!.id;
-      const projects = await projectService.findAll(userId);
-      return { data: projects };
-    },
-  );
+  fastify.get('/api/projects', { preHandler: [authenticate] }, async (request, _reply) => {
+    const userId = request.user!.id;
+    const projects = await projectService.findAll(userId);
+    return { data: projects };
+  });
 
   /**
    * GET /api/projects/:id
@@ -52,45 +48,33 @@ const projectRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
    * POST /api/projects
    * Create a new project.
    */
-  fastify.post(
-    '/api/projects',
-    { preHandler: [authenticate] },
-    async (request, reply) => {
-      const parseResult = CreateProjectInputSchema.safeParse(request.body);
+  fastify.post('/api/projects', { preHandler: [authenticate] }, async (request, reply) => {
+    const parseResult = CreateProjectInputSchema.safeParse(request.body);
 
-      if (!parseResult.success) {
-        throw new ValidationError(
-          'Invalid project data',
-          parseResult.error.flatten(),
-        );
+    if (!parseResult.success) {
+      throw new ValidationError('Invalid project data', parseResult.error.flatten());
+    }
+
+    const userId = request.user!.id;
+    if (parseResult.data.ownerType === 'team') {
+      const teamRole = await teamService.getUserRole(parseResult.data.ownerId, userId);
+      if (teamRole !== 'ADMIN') {
+        throw new ValidationError('Only team admins can create team-owned projects');
       }
+    }
+    const project = await projectService.create(parseResult.data, userId);
 
-      const userId = request.user!.id;
-      if (parseResult.data.ownerType === 'team') {
-        const teamRole = await teamService.getUserRole(
-          parseResult.data.ownerId,
-          userId,
-        );
-        if (teamRole !== 'ADMIN') {
-          throw new ValidationError(
-            'Only team admins can create team-owned projects',
-          );
-        }
-      }
-      const project = await projectService.create(parseResult.data, userId);
+    await auditLogService.log({
+      userId,
+      action: 'PROJECT_CREATED',
+      objectType: 'project',
+      objectId: project.id,
+      metadata: { ownerType: project.ownerType, ownerId: project.ownerId },
+    });
 
-      await auditLogService.log({
-        userId,
-        action: 'PROJECT_CREATED',
-        objectType: 'project',
-        objectId: project.id,
-        metadata: { ownerType: project.ownerType, ownerId: project.ownerId },
-      });
-
-      reply.status(201);
-      return { data: project };
-    },
-  );
+    reply.status(201);
+    return { data: project };
+  });
 
   /**
    * PATCH /api/projects/:id
@@ -105,10 +89,7 @@ const projectRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
       const parseResult = UpdateProjectInputSchema.safeParse(request.body);
 
       if (!parseResult.success) {
-        throw new ValidationError(
-          'Invalid update data',
-          parseResult.error.flatten(),
-        );
+        throw new ValidationError('Invalid update data', parseResult.error.flatten());
       }
 
       // Verify project exists
