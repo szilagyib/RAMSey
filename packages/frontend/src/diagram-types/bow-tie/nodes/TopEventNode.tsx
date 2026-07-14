@@ -38,7 +38,7 @@ function TopEventNodeComponent({ data, selected }: NodeProps) {
 
       {/* Label — not rotated, sits on top of the diamond */}
       <span
-        className="relative z-10 max-w-[44px] truncate text-center text-xs font-semibold leading-tight select-none"
+        className="relative z-10 line-clamp-3 max-w-[52px] text-center text-[10px] font-semibold leading-tight select-none"
         style={{ color: tokens.text }}
       >
         {nodeData.label}

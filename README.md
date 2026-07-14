@@ -2,6 +2,11 @@
 
 A modern, web-based, collaborative tool for creating, analyzing, and exporting RAMS (Reliability, Availability, Maintainability, Safety) diagrams.
 
+![RAMSey — a 2-out-of-3 pump station modelled as a Markov chain, solved for steady-state availability](docs/screenshot.png)
+
+> The [2-out-of-3 pump station example](examples/markov-2oo3-pump-station.json): three pumps, a common-cause
+> failure, a proof test and a spurious trip — solved in the browser for a steady-state availability of 0.9986.
+
 RAMSey replaces legacy desktop tools with a real-time collaborative environment featuring AI-assisted diagram editing, integrated analysis solvers, and publication-quality LaTeX/TikZ export.
 
 ## Features

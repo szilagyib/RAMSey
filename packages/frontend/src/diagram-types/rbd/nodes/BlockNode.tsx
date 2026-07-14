@@ -30,7 +30,7 @@ function BlockNodeComponent({ data, selected }: NodeProps) {
         style={nodeColorStyle(data)}
       >
         <span
-          className="w-full truncate text-center text-sm font-semibold text-primary-800 dark:text-primary-300 select-none"
+          className="line-clamp-2 w-full text-center text-sm leading-tight font-semibold text-primary-800 dark:text-primary-300 select-none"
           style={nodeColorStyle(data) && { color: 'inherit' }}
         >
           {nodeData.label}

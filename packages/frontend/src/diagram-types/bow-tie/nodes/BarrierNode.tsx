@@ -33,9 +33,7 @@ const barrierStyles: Record<
 function BarrierNodeComponent({ data, selected }: NodeProps) {
   const nodeData = data as BowTieNodeData;
   const kind =
-    nodeData.nodeKind === 'mitigative_barrier'
-      ? 'mitigative_barrier'
-      : 'preventive_barrier';
+    nodeData.nodeKind === 'mitigative_barrier' ? 'mitigative_barrier' : 'preventive_barrier';
   const style = barrierStyles[kind];
 
   return (
@@ -58,10 +56,7 @@ function BarrierNodeComponent({ data, selected }: NodeProps) {
         style={nodeColorStyle(data)}
       >
         <span
-          className={cn(
-            'text-[10px] font-semibold leading-tight select-none',
-            style.text,
-          )}
+          className={cn('text-[10px] font-semibold leading-tight select-none', style.text)}
           style={{
             writingMode: 'vertical-rl',
             textOrientation: 'mixed',

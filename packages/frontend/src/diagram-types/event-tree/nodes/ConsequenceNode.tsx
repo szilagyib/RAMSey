@@ -37,7 +37,7 @@ function ConsequenceNodeComponent({ data, selected }: NodeProps) {
       >
         <span
           className={cn(
-            'w-full truncate text-center text-sm font-semibold select-none',
+            'line-clamp-2 w-full text-center text-sm leading-tight font-semibold select-none',
             isSuccess ? 'text-green-100 dark:text-green-900' : 'text-gray-900',
           )}
           style={nodeColorStyle(data) && { color: 'inherit' }}

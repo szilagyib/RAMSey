@@ -36,7 +36,7 @@ function ConsequenceNodeComponent({ data, selected }: NodeProps) {
           }
         }
       >
-        <span className="w-full truncate text-center text-sm font-semibold select-none">
+        <span className="line-clamp-2 w-full text-center text-sm leading-tight font-semibold select-none">
           {nodeData.label}
         </span>
       </div>

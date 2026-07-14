@@ -25,12 +25,12 @@ interface DiagramEntry {
 // Color accent per diagram type (used for the top card stripe)
 function typeAccentColor(backendType: string): string {
   const t = backendType.toLowerCase();
-  if (t.includes('markov'))                               return '#6bca8a'; // green
-  if (t.includes('fault'))                                return '#4c7bd6'; // blue
-  if (t.includes('event_tree') || t.includes('event'))   return '#e2a84c'; // amber
-  if (t.includes('block') || t.includes('rbd'))          return '#f472b6'; // pink
-  if (t.includes('bow'))                                  return '#a78bfa'; // violet
-  if (t.includes('fmea'))                                 return '#94a3b8'; // slate
+  if (t.includes('markov')) return '#6bca8a'; // green
+  if (t.includes('fault')) return '#4c7bd6'; // blue
+  if (t.includes('event_tree') || t.includes('event')) return '#e2a84c'; // amber
+  if (t.includes('block') || t.includes('rbd')) return '#f472b6'; // pink
+  if (t.includes('bow')) return '#a78bfa'; // violet
+  if (t.includes('fmea')) return '#94a3b8'; // slate
   return '#94a3b8';
 }
 
@@ -129,11 +129,13 @@ export function DashboardPage() {
     return found?.name ?? backendType;
   };
 
-  const myEntries     = isGuest
+  const myEntries = isGuest
     ? entries
     : entries.filter((e) => e.ownerType === 'user' && e.ownerId === user?.id);
-  const teamEntries   = isGuest ? [] : entries.filter((e) => e.ownerType === 'team');
-  const sharedEntries = isGuest ? [] : entries.filter((e) => e.ownerType === 'user' && e.ownerId !== user?.id);
+  const teamEntries = isGuest ? [] : entries.filter((e) => e.ownerType === 'team');
+  const sharedEntries = isGuest
+    ? []
+    : entries.filter((e) => e.ownerType === 'user' && e.ownerId !== user?.id);
 
   const isEmpty = !loading && entries.length === 0;
 
@@ -142,7 +144,9 @@ export function DashboardPage() {
     return (
       <div className="mb-10">
         <div className="mb-4 flex items-center gap-2.5">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-surface-400">{title}</h2>
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-surface-400">
+            {title}
+          </h2>
           <span className="rounded-full bg-surface-100 dark:bg-surface-300 px-2 py-0.5 font-mono text-[11px] text-surface-500 dark:text-surface-600">
             {items.length}
           </span>
@@ -180,7 +184,9 @@ export function DashboardPage() {
                   </span>
                   <p className="mt-2.5 text-xs text-surface-400">
                     {new Date(entry.updatedAt).toLocaleDateString(undefined, {
-                      month: 'short', day: 'numeric', year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
                     })}
                   </p>
                 </button>
@@ -256,16 +262,14 @@ export function DashboardPage() {
       </header>
 
       <main className="mx-auto max-w-5xl px-6 py-8">
-        {loading && (
-          <p className="text-sm text-surface-400">Loading…</p>
-        )}
+        {loading && <p className="text-sm text-surface-400">Loading…</p>}
 
         {/* Empty state */}
         {isEmpty && !showForm && (
           <div className="flex flex-col items-center justify-center py-32">
-            <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-surface-100 dark:bg-surface-200">
-              <img src="/favicon.svg" alt="RAMSey" className="h-9 w-9 opacity-40" />
-            </div>
+            {/* The mark is a solid tile in its own right — sitting it inside a
+                second tile at 40% opacity just made a pale blob. */}
+            <img src="/favicon.svg" alt="" aria-hidden="true" className="mb-5 h-14 w-14" />
             <h2 className="mb-1.5 text-base font-medium text-surface-700">No diagrams yet</h2>
             <p className="mb-8 text-sm text-surface-400">
               Create your first reliability analysis diagram to get started.
