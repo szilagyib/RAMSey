@@ -27,6 +27,7 @@ import { EdgeMarkers } from '../../diagram-types/shared/EdgeMarkers';
 import { InlineLabelEditor } from './InlineLabelEditor';
 import { computeSnap, boxOf, type Guide } from '../../lib/alignmentGuides';
 import { NODE_SIZE_MIME, parseNodeSize } from '../../lib/dragPayload';
+import { getNodeOpacity } from '../../lib/nodeColor';
 import { useCollaboration } from '../../hooks/useCollaboration';
 
 interface DiagramEditorProps {
@@ -61,6 +62,19 @@ function DiagramEditorInner({ onNavigateBack, onSave, onCreateSnapshot, diagramN
   const background = useEditorPrefs((s) => s.background);
   const minimap = useEditorPrefs((s) => s.minimap);
   const setRightTab = useEditorPrefs((s) => s.setRightTab);
+
+  // Opacity is applied to the node wrapper, not inside each of the twelve node
+  // components — so it works identically for the div-based nodes and the SVG
+  // ones, and fades the border, label and handles along with the body. Nodes
+  // without it keep their identity, so they don't lose their memoization.
+  const styledNodes = useMemo(
+    () =>
+      nodes.map((node) => {
+        const opacity = getNodeOpacity(node.data);
+        return opacity === null ? node : { ...node, style: { ...node.style, opacity } };
+      }),
+    [nodes],
+  );
 
   const config = getDiagramTypeConfig(diagramType);
   const nodeTypes = useMemo(() => config?.nodeTypes ?? {}, [config]);
@@ -271,7 +285,7 @@ function DiagramEditorInner({ onNavigateBack, onSave, onCreateSnapshot, diagramN
         <Sidebar />
         <div className="relative flex-1" ref={reactFlowWrapper} onPointerMove={onPointerMove} onPointerLeave={onPointerLeave}>
           <ReactFlow
-            nodes={nodes}
+            nodes={styledNodes}
             edges={edges}
             onNodesChange={handleNodesChange}
             onEdgesChange={onEdgesChange}

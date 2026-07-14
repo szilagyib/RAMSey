@@ -38,6 +38,21 @@ export function tintFill(color: string): string {
   return `${color}26`;
 }
 
+/**
+ * Node opacity (node.data.opacity), 0–1. Null/absent means fully opaque.
+ *
+ * Applied to the whole node rather than to its fill, so it works the same for
+ * the div-based nodes and the SVG ones (gates, events, the bow-tie diamond) —
+ * and takes the border, the label and the handles with it, which is what you
+ * want when you're fading a node back.
+ */
+export function getNodeOpacity(data: unknown): number | null {
+  const value = (data as { opacity?: unknown } | null | undefined)?.opacity;
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+  if (value >= 1) return null; // opaque is the default; don't write a style for it
+  return Math.max(value, 0);
+}
+
 export interface ResolvedNodeColors {
   border: string | null;
   fill: string | null;

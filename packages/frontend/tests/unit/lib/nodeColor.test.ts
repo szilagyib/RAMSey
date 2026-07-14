@@ -7,6 +7,7 @@ import {
   tintFill,
   nodeColorStyle,
   resolveTokenColors,
+  getNodeOpacity,
 } from '../../../src/lib/nodeColor';
 
 describe('per-channel getters', () => {
@@ -88,5 +89,29 @@ describe('resolveTokenColors (SVG/token nodes)', () => {
 describe('tintFill', () => {
   it('appends 15% alpha', () => {
     expect(tintFill('#ff8800')).toBe('#ff880026');
+  });
+});
+
+describe('getNodeOpacity', () => {
+  it('reads a fraction from node data', () => {
+    expect(getNodeOpacity({ opacity: 0.4 })).toBe(0.4);
+    expect(getNodeOpacity({ opacity: 0.05 })).toBe(0.05);
+  });
+
+  it('returns null when opaque, so no style is written for the default', () => {
+    expect(getNodeOpacity({ opacity: 1 })).toBeNull();
+    expect(getNodeOpacity({ opacity: 1.5 })).toBeNull();
+    expect(getNodeOpacity({})).toBeNull();
+    expect(getNodeOpacity(undefined)).toBeNull();
+  });
+
+  it('ignores junk rather than rendering a node invisible', () => {
+    expect(getNodeOpacity({ opacity: 'half' })).toBeNull();
+    expect(getNodeOpacity({ opacity: NaN })).toBeNull();
+    expect(getNodeOpacity({ opacity: null })).toBeNull();
+  });
+
+  it('clamps a negative value to zero', () => {
+    expect(getNodeOpacity({ opacity: -0.3 })).toBe(0);
   });
 });

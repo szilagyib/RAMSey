@@ -38,6 +38,22 @@ import { useAuth } from '../../contexts/auth';
 // behaving identically.
 const FIT_VIEW_OPTIONS = { padding: 0.2, maxZoom: 1 };
 
+/** Inputs that hold typed text, and so own Ctrl+Z themselves. */
+const NON_TEXT_INPUT_TYPES = new Set([
+  'range',
+  'checkbox',
+  'radio',
+  'color',
+  'button',
+  'submit',
+  'reset',
+  'file',
+]);
+
+function isTextEntry(input: HTMLInputElement): boolean {
+  return !NON_TEXT_INPUT_TYPES.has(input.type);
+}
+
 interface ToolbarProps {
   onNavigateBack?: () => void;
   onSave?: () => void;
@@ -140,13 +156,16 @@ export function Toolbar({ onNavigateBack, onSave, onCreateSnapshot, onValidate, 
       }
       // Undo/redo — but never inside text fields, where Ctrl+Z must stay the
       // browser's native text undo.
+      //
+      // Only *text entry* counts. A range slider, a checkbox or a colour picker
+      // has no native undo to protect, so treating them as editable just ate the
+      // shortcut: fade a node with the opacity slider, press Ctrl+Z, nothing.
       const target = e.target as HTMLElement | null;
       const inEditable =
         !!target &&
-        (target.tagName === 'INPUT' ||
+        (target.isContentEditable ||
           target.tagName === 'TEXTAREA' ||
-          target.tagName === 'SELECT' ||
-          target.isContentEditable);
+          (target.tagName === 'INPUT' && isTextEntry(target as HTMLInputElement)));
       if (ctrl && !inEditable) {
         const key = e.key.toLowerCase();
         if (key === 'z' && !e.shiftKey) {

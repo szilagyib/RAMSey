@@ -6,6 +6,7 @@ import {
   getNodeFill,
   getNodeText,
   getEdgeColor,
+  getNodeOpacity,
   NODE_COLOR_PRESETS,
 } from '../../lib/nodeColor';
 import {
@@ -97,6 +98,63 @@ function NodeColorControls({ nodeId, data }: { nodeId: string; data: Record<stri
         current={getNodeText(data)}
         onSet={(c) => setDiscrete({ textColor: c })}
         onPick={(c) => updateNodeData(nodeId, { textColor: c })}
+      />
+
+      <OpacityControl
+        value={getNodeOpacity(data) ?? 1}
+        // Dragging fires a continuous stream, so it stays coalesced into one
+        // undo entry; letting go, and Reset, are discrete.
+        onDrag={(v) => updateNodeData(nodeId, { opacity: v })}
+        onCommit={(v) => setDiscrete({ opacity: v })}
+        onReset={() => setDiscrete({ opacity: 1 })}
+      />
+    </div>
+  );
+}
+
+/** Fade a node back without deleting it — for out-of-scope or as-yet-unmodelled parts. */
+function OpacityControl({
+  value,
+  onDrag,
+  onCommit,
+  onReset,
+}: {
+  value: number;
+  onDrag: (v: number) => void;
+  onCommit: (v: number) => void;
+  onReset: () => void;
+}) {
+  const percent = Math.round(value * 100);
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium text-surface-600">Opacity</span>
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-[11px] text-surface-400">{percent}%</span>
+          {value < 1 && (
+            <button
+              onClick={onReset}
+              className="text-[11px] text-surface-400 hover:text-surface-700"
+              title="Reset opacity"
+            >
+              Reset
+            </button>
+          )}
+        </div>
+      </div>
+      <input
+        type="range"
+        min={10}
+        max={100}
+        step={5}
+        value={percent}
+        aria-label="Opacity"
+        // 10% floor: a node at 0 is invisible and unclickable, which reads as a
+        // bug rather than a choice. Delete it if you want it gone.
+        onChange={(e) => onDrag(Number(e.target.value) / 100)}
+        onPointerUp={(e) => onCommit(Number((e.target as HTMLInputElement).value) / 100)}
+        onKeyUp={(e) => onCommit(Number((e.target as HTMLInputElement).value) / 100)}
+        className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-surface-200 accent-primary-600"
       />
     </div>
   );
