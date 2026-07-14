@@ -61,7 +61,11 @@
    (IEC 61025 fault trees, IEC 61078 RBD, Markov/ETA/bow-tie conventions);
    these tokens keep them legible in both themes. Change colors HERE only. */
 :root {
-  --dg-canvas-dots: #d8dee9;
+  /* Dots and grid lines cannot share a colour: a line covers far more of the
+     canvas than a dot, so at equal weight the dots disappear and the mesh
+     shouts. The dots are the darker of the two; the grid is the lighter. */
+  --dg-canvas-dots: #c5cedb;
+  --dg-canvas-grid: #e7ebf1;
   --dg-edge: #64748b;
   --dg-edge-selected: #6366f1;
   --dg-label-bg: #ffffff;
@@ -98,7 +102,8 @@
 }
 
 :root.dark {
-  --dg-canvas-dots: #273449;
+  --dg-canvas-dots: #38455c;
+  --dg-canvas-grid: #1e2939;
   --dg-edge: #7d8aa0;
   --dg-edge-selected: #818cf8;
   --dg-label-bg: #0f172a;

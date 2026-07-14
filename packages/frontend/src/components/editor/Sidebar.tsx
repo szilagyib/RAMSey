@@ -1,7 +1,8 @@
-import { type DragEvent, useMemo } from 'react';
+import { type DragEvent, useMemo, useRef } from 'react';
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useDiagramStore } from '../../stores/diagramStore';
 import { useEditorPrefs } from '../../stores/editorPrefs';
+import { NODE_SUBTYPE_MIME, NODE_SIZE_MIME, formatNodeSize } from '../../lib/dragPayload';
 import { getDiagramTypeConfig, type SidebarItem } from '../../diagram-types/registry';
 import { cn } from '../../lib/utils';
 
@@ -54,8 +55,29 @@ const BT: Record<string, NodeColors> = {
   consequence:        { fill: '#faf5ff', stroke: '#c084fc' }, // bg-purple-50(std), border-purple-400(std)
 };
 
-function SidebarItemIcon({ item, diagramType }: { item: SidebarItem; diagramType: string }) {
-  const svgProps = { width: ICON_SIZE, height: ICON_SIZE, viewBox: '0 0 60 60', className: 'h-5 w-5 flex-shrink-0' };
+/**
+ * The palette symbol for an item. `fill` stretches it to its container instead
+ * of drawing it at icon size — that's the drag preview, which has to be the
+ * node's real footprint (a 128×48 event really is that wide and that flat).
+ */
+function SidebarItemIcon({
+  item,
+  diagramType,
+  fill = false,
+}: {
+  item: SidebarItem;
+  diagramType: string;
+  fill?: boolean;
+}) {
+  const svgProps = fill
+    ? {
+        width: '100%',
+        height: '100%',
+        viewBox: '0 0 60 60',
+        preserveAspectRatio: 'none' as const,
+        className: 'h-full w-full',
+      }
+    : { width: ICON_SIZE, height: ICON_SIZE, viewBox: '0 0 60 60', className: 'h-5 w-5 flex-shrink-0' };
 
   // ---- Markov Chain ----
   if (diagramType === 'markov_chain') {
@@ -196,26 +218,50 @@ function SidebarItemIcon({ item, diagramType }: { item: SidebarItem; diagramType
 }
 
 function DraggableSidebarItem({ item, diagramType }: { item: SidebarItem; diagramType: string }) {
+  const ghostRef = useRef<HTMLDivElement>(null);
+  const size = item.size;
+
   const onDragStart = (event: DragEvent<HTMLDivElement>) => {
-    event.dataTransfer.setData('application/ramsey-node-subtype', item.type);
+    event.dataTransfer.setData(NODE_SUBTYPE_MIME, item.type);
     event.dataTransfer.effectAllowed = 'move';
+
+    // Drag the symbol at the size it will actually be, held in the middle —
+    // otherwise the cursor carries a snapshot of this whole sidebar row, which
+    // tells you nothing about how much canvas the node is about to take.
+    if (size && ghostRef.current) {
+      event.dataTransfer.setData(NODE_SIZE_MIME, formatNodeSize(size));
+      event.dataTransfer.setDragImage(ghostRef.current, size.width / 2, size.height / 2);
+    }
   };
 
   return (
-    <div
-      className={cn(
-        'flex cursor-grab items-center gap-2.5 rounded-md border px-3 py-2',
-        'bg-white dark:bg-surface-100 transition-colors hover:bg-surface-50 dark:hover:bg-surface-200 active:cursor-grabbing',
-        item.borderClass ?? 'border-surface-300',
+    <>
+      <div
+        className={cn(
+          'flex cursor-grab items-center gap-2.5 rounded-md border px-3 py-2',
+          'bg-white dark:bg-surface-100 transition-colors hover:bg-surface-50 dark:hover:bg-surface-200 active:cursor-grabbing',
+          item.borderClass ?? 'border-surface-300',
+        )}
+        draggable
+        onDragStart={onDragStart}
+      >
+        <SidebarItemIcon item={item} diagramType={diagramType} />
+        <span className="text-sm font-medium text-surface-700">{item.label}</span>
+      </div>
+
+      {/* The drag image. setDragImage needs a rendered element, so it is parked
+          off-screen rather than hidden — display:none would not paint. */}
+      {size && (
+        <div
+          ref={ghostRef}
+          aria-hidden="true"
+          className="pointer-events-none fixed top-0 -left-[9999px]"
+          style={{ width: size.width, height: size.height }}
+        >
+          <SidebarItemIcon item={item} diagramType={diagramType} fill />
+        </div>
       )}
-      draggable
-      onDragStart={onDragStart}
-    >
-      <SidebarItemIcon item={item} diagramType={diagramType} />
-      <span className="text-sm font-medium text-surface-700">
-        {item.label}
-      </span>
-    </div>
+    </>
   );
 }
 

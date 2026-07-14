@@ -22,9 +22,11 @@ import { ValidationPanel } from './ValidationPanel';
 import { CursorsOverlay } from './CursorsOverlay';
 import { SelectionOverlay } from './SelectionOverlay';
 import { GuideOverlay } from './GuideOverlay';
+import { CanvasScrollbars } from './CanvasScrollbars';
 import { EdgeMarkers } from '../../diagram-types/shared/EdgeMarkers';
 import { InlineLabelEditor } from './InlineLabelEditor';
 import { computeSnap, boxOf, type Guide } from '../../lib/alignmentGuides';
+import { NODE_SIZE_MIME, parseNodeSize } from '../../lib/dragPayload';
 import { useCollaboration } from '../../hooks/useCollaboration';
 
 interface DiagramEditorProps {
@@ -116,13 +118,19 @@ function DiagramEditorInner({ onNavigateBack, onSave, onCreateSnapshot, diagramN
       if (!subType) return;
 
       const rfInstance = reactFlowInstance.current;
-      if (!rfInstance || !reactFlowWrapper.current) return;
+      if (!rfInstance) return;
 
-      const bounds = reactFlowWrapper.current.getBoundingClientRect();
-      const position = rfInstance.screenToFlowPosition({
-        x: event.clientX - bounds.left,
-        y: event.clientY - bounds.top,
-      });
+      // screenToFlowPosition takes CLIENT coordinates — it subtracts the pane's
+      // bounding rect itself. Subtracting it here too offset every dropped node
+      // by the width of the palette and the height of the toolbar.
+      const point = rfInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY });
+
+      // A node's position is its top-left, but the cursor grabs the preview by
+      // its middle — so drop it centred, and it lands where the preview was.
+      const size = parseNodeSize(event.dataTransfer.getData(NODE_SIZE_MIME));
+      const position = size
+        ? { x: point.x - size.width / 2, y: point.y - size.height / 2 }
+        : point;
 
       addNode(position, subType);
     },
@@ -306,8 +314,12 @@ function DiagramEditorInner({ onNavigateBack, onSave, onCreateSnapshot, diagramN
               <Background
                 variant={background === 'grid' ? BackgroundVariant.Lines : BackgroundVariant.Dots}
                 gap={16}
-                size={1}
-                color="var(--dg-canvas-dots)"
+                // A dot has to be a touch heavier than a grid line to read at
+                // all; a grid line has to be lighter than a dot not to shout.
+                size={background === 'grid' ? 1 : 1.6}
+                color={
+                  background === 'grid' ? 'var(--dg-canvas-grid)' : 'var(--dg-canvas-dots)'
+                }
               />
             )}
             {minimap && (
@@ -325,6 +337,7 @@ function DiagramEditorInner({ onNavigateBack, onSave, onCreateSnapshot, diagramN
               />
             )}
             <EdgeMarkers />
+            <CanvasScrollbars />
             <GuideOverlay guides={guides} />
 
             {/* Node label editor, positioned over the node in flow space. */}

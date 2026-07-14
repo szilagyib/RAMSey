@@ -39,6 +39,15 @@ export interface SidebarItem {
   group?: string;
   colorClass?: string;
   borderClass?: string;
+  /**
+   * The size this node actually renders at, in flow units.
+   *
+   * Used for two things that must agree: the drag preview (so what you see is
+   * the size you'll get) and centring the node on the cursor when you drop it.
+   * Measured from the real components — e2e/drop.spec.ts re-measures every node
+   * type and fails if these drift.
+   */
+  size?: { width: number; height: number };
 }
 
 // ---------------------------------------------------------------------------
@@ -71,10 +80,10 @@ const registry: Record<string, DiagramTypeConfig> = {
     nodeTypes: markovNodeTypes,
     edgeTypes: markovEdgeTypes,
     sidebarItems: [
-      { type: 'operational', label: 'Operational', group: 'States', colorClass: 'bg-green-500', borderClass: 'border-green-500' },
-      { type: 'degraded', label: 'Degraded', group: 'States', colorClass: 'bg-yellow-500', borderClass: 'border-yellow-500' },
-      { type: 'failed', label: 'Failed', group: 'States', colorClass: 'bg-red-500', borderClass: 'border-red-500' },
-      { type: 'absorbing', label: 'Absorbing', group: 'States', colorClass: 'bg-gray-500', borderClass: 'border-gray-500' },
+      { type: 'operational', label: 'Operational', group: 'States', colorClass: 'bg-green-500', borderClass: 'border-green-500' , size: { width: 48, height: 48 } },
+      { type: 'degraded', label: 'Degraded', group: 'States', colorClass: 'bg-yellow-500', borderClass: 'border-yellow-500' , size: { width: 48, height: 48 } },
+      { type: 'failed', label: 'Failed', group: 'States', colorClass: 'bg-red-500', borderClass: 'border-red-500' , size: { width: 48, height: 48 } },
+      { type: 'absorbing', label: 'Absorbing', group: 'States', colorClass: 'bg-gray-500', borderClass: 'border-gray-500' , size: { width: 58, height: 58 } },
     ],
     createNode: markovCreateNode,
     createEdge: markovCreateEdge,
@@ -89,15 +98,15 @@ const registry: Record<string, DiagramTypeConfig> = {
     nodeTypes: ftNodeTypes,
     edgeTypes: ftEdgeTypes,
     sidebarItems: [
-      { type: 'and_gate', label: 'AND Gate', group: 'Gates', colorClass: 'bg-blue-500', borderClass: 'border-blue-500' },
-      { type: 'or_gate', label: 'OR Gate', group: 'Gates', colorClass: 'bg-blue-400', borderClass: 'border-blue-500' },
-      { type: 'not_gate', label: 'NOT Gate', group: 'Gates', colorClass: 'bg-blue-300', borderClass: 'border-blue-500' },
-      { type: 'k_of_n_gate', label: 'K/N Gate', group: 'Gates', colorClass: 'bg-blue-600', borderClass: 'border-blue-500' },
-      { type: 'xor_gate', label: 'XOR Gate', group: 'Gates', colorClass: 'bg-blue-700', borderClass: 'border-blue-500' },
-      { type: 'basic_event', label: 'Basic Event', group: 'Events', colorClass: 'bg-green-500', borderClass: 'border-green-500' },
-      { type: 'intermediate_event', label: 'Intermediate', group: 'Events', colorClass: 'bg-yellow-500', borderClass: 'border-yellow-500' },
-      { type: 'top_event', label: 'Top Event', group: 'Events', colorClass: 'bg-red-500', borderClass: 'border-red-500' },
-      { type: 'undeveloped_event', label: 'Undeveloped', group: 'Events', colorClass: 'bg-gray-400', borderClass: 'border-gray-500' },
+      { type: 'and_gate', label: 'AND Gate', group: 'Gates', colorClass: 'bg-blue-500', borderClass: 'border-blue-500' , size: { width: 48, height: 64 } },
+      { type: 'or_gate', label: 'OR Gate', group: 'Gates', colorClass: 'bg-blue-400', borderClass: 'border-blue-500' , size: { width: 48, height: 64 } },
+      { type: 'not_gate', label: 'NOT Gate', group: 'Gates', colorClass: 'bg-blue-300', borderClass: 'border-blue-500' , size: { width: 48, height: 64 } },
+      { type: 'k_of_n_gate', label: 'K/N Gate', group: 'Gates', colorClass: 'bg-blue-600', borderClass: 'border-blue-500' , size: { width: 48, height: 64 } },
+      { type: 'xor_gate', label: 'XOR Gate', group: 'Gates', colorClass: 'bg-blue-700', borderClass: 'border-blue-500' , size: { width: 48, height: 64 } },
+      { type: 'basic_event', label: 'Basic Event', group: 'Events', colorClass: 'bg-green-500', borderClass: 'border-green-500' , size: { width: 48, height: 65 } },
+      { type: 'intermediate_event', label: 'Intermediate', group: 'Events', colorClass: 'bg-yellow-500', borderClass: 'border-yellow-500' , size: { width: 128, height: 48 } },
+      { type: 'top_event', label: 'Top Event', group: 'Events', colorClass: 'bg-red-500', borderClass: 'border-red-500' , size: { width: 128, height: 48 } },
+      { type: 'undeveloped_event', label: 'Undeveloped', group: 'Events', colorClass: 'bg-gray-400', borderClass: 'border-gray-500' , size: { width: 48, height: 65 } },
     ],
     createNode: ftCreateNode,
     createEdge: ftCreateEdge,
@@ -112,9 +121,9 @@ const registry: Record<string, DiagramTypeConfig> = {
     nodeTypes: etNodeTypes,
     edgeTypes: etEdgeTypes,
     sidebarItems: [
-      { type: 'initiating_event', label: 'Initiating Event', group: 'Events', colorClass: 'bg-orange-500', borderClass: 'border-orange-500' },
-      { type: 'header', label: 'Header', group: 'Branch Points', colorClass: 'bg-blue-500', borderClass: 'border-blue-500' },
-      { type: 'consequence', label: 'Consequence', group: 'Outcomes', colorClass: 'bg-green-500', borderClass: 'border-green-500' },
+      { type: 'initiating_event', label: 'Initiating Event', group: 'Events', colorClass: 'bg-orange-500', borderClass: 'border-orange-500' , size: { width: 128, height: 48 } },
+      { type: 'header', label: 'Header', group: 'Branch Points', colorClass: 'bg-blue-500', borderClass: 'border-blue-500' , size: { width: 128, height: 48 } },
+      { type: 'consequence', label: 'Consequence', group: 'Outcomes', colorClass: 'bg-green-500', borderClass: 'border-green-500' , size: { width: 112, height: 48 } },
     ],
     createNode: etCreateNode,
     createEdge: etCreateEdge,
@@ -129,9 +138,9 @@ const registry: Record<string, DiagramTypeConfig> = {
     nodeTypes: rbdNodeTypes,
     edgeTypes: rbdEdgeTypes,
     sidebarItems: [
-      { type: 'block', label: 'Block', group: 'Components', colorClass: 'bg-blue-500', borderClass: 'border-blue-500' },
-      { type: 'input_terminal', label: 'Input Terminal', group: 'Terminals', colorClass: 'bg-green-500', borderClass: 'border-green-500' },
-      { type: 'output_terminal', label: 'Output Terminal', group: 'Terminals', colorClass: 'bg-red-500', borderClass: 'border-red-500' },
+      { type: 'block', label: 'Block', group: 'Components', colorClass: 'bg-blue-500', borderClass: 'border-blue-500' , size: { width: 112, height: 64 } },
+      { type: 'input_terminal', label: 'Input Terminal', group: 'Terminals', colorClass: 'bg-green-500', borderClass: 'border-green-500' , size: { width: 48, height: 48 } },
+      { type: 'output_terminal', label: 'Output Terminal', group: 'Terminals', colorClass: 'bg-red-500', borderClass: 'border-red-500' , size: { width: 48, height: 48 } },
     ],
     createNode: rbdCreateNode,
     createEdge: rbdCreateEdge,
@@ -146,11 +155,11 @@ const registry: Record<string, DiagramTypeConfig> = {
     nodeTypes: btNodeTypes,
     edgeTypes: btEdgeTypes,
     sidebarItems: [
-      { type: 'threat', label: 'Threat', group: 'Threats', colorClass: 'bg-red-500', borderClass: 'border-red-500' },
-      { type: 'preventive_barrier', label: 'Preventive Barrier', group: 'Barriers', colorClass: 'bg-blue-500', borderClass: 'border-blue-500' },
-      { type: 'top_event', label: 'Top Event', group: 'Central Event', colorClass: 'bg-amber-500', borderClass: 'border-amber-500' },
-      { type: 'mitigative_barrier', label: 'Mitigative Barrier', group: 'Barriers', colorClass: 'bg-green-500', borderClass: 'border-green-500' },
-      { type: 'consequence', label: 'Consequence', group: 'Consequences', colorClass: 'bg-purple-500', borderClass: 'border-purple-500' },
+      { type: 'threat', label: 'Threat', group: 'Threats', colorClass: 'bg-red-500', borderClass: 'border-red-500' , size: { width: 112, height: 48 } },
+      { type: 'preventive_barrier', label: 'Preventive Barrier', group: 'Barriers', colorClass: 'bg-blue-500', borderClass: 'border-blue-500' , size: { width: 32, height: 80 } },
+      { type: 'top_event', label: 'Top Event', group: 'Central Event', colorClass: 'bg-amber-500', borderClass: 'border-amber-500' , size: { width: 80, height: 80 } },
+      { type: 'mitigative_barrier', label: 'Mitigative Barrier', group: 'Barriers', colorClass: 'bg-green-500', borderClass: 'border-green-500' , size: { width: 32, height: 80 } },
+      { type: 'consequence', label: 'Consequence', group: 'Consequences', colorClass: 'bg-purple-500', borderClass: 'border-purple-500' , size: { width: 112, height: 48 } },
     ],
     createNode: btCreateNode,
     createEdge: btCreateEdge,
