@@ -14,6 +14,7 @@ export async function register(page: Page, email: string): Promise<void> {
   await page.getByLabel('Email').fill(email);
   await page.getByLabel('Password', { exact: true }).fill(TEST_PASSWORD);
   await page.getByLabel('Confirm password').fill(TEST_PASSWORD);
+  await page.getByRole('checkbox', { name: /Privacy Policy/i }).check();
   await page.getByRole('button', { name: /create account|sign up|register/i }).click();
   await page.waitForURL('/');
   await expect(page.getByRole('link', { name: 'Account' })).toBeVisible();
