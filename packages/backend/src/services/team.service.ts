@@ -15,18 +15,26 @@ export const AddTeamMemberInputSchema = z.object({
 
 export type AddTeamMemberInput = z.infer<typeof AddTeamMemberInputSchema>;
 
+/** A team, plus the role of the user who asked for it. */
+export type TeamWithRole = Team & { role: TeamRole };
+
 export class TeamService {
   constructor(private readonly prisma: PrismaClient) {}
 
-  async listForUser(userId: string): Promise<Team[]> {
-    return this.prisma.team.findMany({
-      where: {
-        members: {
-          some: { userId },
-        },
-      },
-      orderBy: { updatedAt: 'desc' },
+  /**
+   * The user's teams, each carrying *their own* role in it.
+   *
+   * The role travels with the team because the caller almost always needs it:
+   * only an admin may create a project under a team, so the dashboard cannot
+   * offer a team as an owner without knowing whether this user is one.
+   */
+  async listForUser(userId: string): Promise<TeamWithRole[]> {
+    const memberships = await this.prisma.teamMember.findMany({
+      where: { userId },
+      include: { team: true },
+      orderBy: { team: { updatedAt: 'desc' } },
     });
+    return memberships.map((m) => ({ ...m.team, role: m.role }));
   }
 
   async get(teamId: string): Promise<Team | null> {

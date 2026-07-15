@@ -34,6 +34,7 @@ describe('Team Routes', () => {
     prisma.team.create.mockReset();
     prisma.team.delete.mockReset().mockResolvedValue(undefined);
     prisma.teamMember.findFirst.mockReset();
+    prisma.teamMember.findMany.mockReset();
     prisma.teamMember.count.mockReset().mockResolvedValue(0);
     prisma.teamMember.create.mockReset();
     prisma.teamMember.delete.mockReset().mockResolvedValue(undefined);
@@ -51,6 +52,29 @@ describe('Team Routes', () => {
       },
     );
   }
+
+  describe('GET /api/teams', () => {
+    it("returns each team with *this user's* role in it", async () => {
+      // The dashboard can't offer a team as a project owner without knowing
+      // whether the caller is one of its admins — only admins may own there.
+      prisma.teamMember.findMany.mockResolvedValue([
+        { role: 'ADMIN', team: { id: 't1', name: 'Reliability', slug: 'reliability' } },
+        { role: 'MEMBER', team: { id: 't2', name: 'Safety', slug: 'safety' } },
+      ]);
+
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/teams',
+        headers: authHeaders(MEMBER),
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.json().data).toEqual([
+        { id: 't1', name: 'Reliability', slug: 'reliability', role: 'ADMIN' },
+        { id: 't2', name: 'Safety', slug: 'safety', role: 'MEMBER' },
+      ]);
+    });
+  });
 
   describe('GET /api/teams/:teamId', () => {
     it('returns 403 for a non-member', async () => {

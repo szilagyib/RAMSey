@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Plus, Trash2, LogOut, Users, Settings } from 'lucide-react';
+import { Plus, Trash2, LogOut, Users, Settings, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { NotificationBell } from '../components/NotificationBell';
@@ -9,6 +9,7 @@ import { ThemeToggle } from '../components/ui/ThemeToggle';
 import { getAllDiagramTypes } from '../diagram-types/registry';
 import { toBackendType } from '../lib/diagramTypeMapping';
 import { getDataService } from '../services/dataService';
+import { api } from '../services/api';
 import { useAuth } from '../contexts/auth';
 
 interface DiagramEntry {
@@ -34,6 +35,26 @@ function typeAccentColor(backendType: string): string {
   return '#94a3b8';
 }
 
+interface TeamOption {
+  id: string;
+  name: string;
+  slug: string;
+  role: 'ADMIN' | 'MEMBER';
+}
+
+// Which team sections are folded shut. A workspace layout choice, so it sticks —
+// the same reasoning as the editor's side panels.
+const COLLAPSED_TEAMS_KEY = 'ramsey-collapsed-teams';
+
+function loadCollapsedTeams(): Set<string> {
+  try {
+    const raw = localStorage.getItem(COLLAPSED_TEAMS_KEY);
+    return new Set(raw ? (JSON.parse(raw) as string[]) : []);
+  } catch {
+    return new Set();
+  }
+}
+
 export function DashboardPage() {
   const navigate = useNavigate();
   const { user, logout, isGuest } = useAuth();
@@ -42,6 +63,10 @@ export function DashboardPage() {
   const [showForm, setShowForm] = useState(false);
   const [newName, setNewName] = useState('');
   const [newType, setNewType] = useState('markov_chain');
+  const [teams, setTeams] = useState<TeamOption[]>([]);
+  // 'user' = my own; otherwise the id of the team that will own it.
+  const [newOwner, setNewOwner] = useState('user');
+  const [collapsedTeams, setCollapsedTeams] = useState<Set<string>>(loadCollapsedTeams);
 
   const diagramTypes = getAllDiagramTypes();
   const ds = getDataService(user?.id);
@@ -87,10 +112,25 @@ export function DashboardPage() {
     loadEntries();
   }, [loadEntries]);
 
+  // A guest has no teams, and no server to ask.
+  useEffect(() => {
+    if (isGuest) return;
+    api.teams
+      .list()
+      .then((res) => setTeams(res.data))
+      .catch(() => setTeams([])); // teams are a nicety here; a failure must not blank the dashboard
+  }, [isGuest]);
+
   async function handleCreate() {
     if (!newName.trim()) return;
     try {
-      const projectRes = await ds.projects.create({ name: newName.trim(), ownerId: user!.id });
+      // Only admins may own a project under a team — the server enforces it, so
+      // the picker only ever offers teams where this user is one.
+      const owner =
+        newOwner === 'user'
+          ? { ownerType: 'user' as const, ownerId: user!.id }
+          : { ownerType: 'team' as const, ownerId: newOwner };
+      const projectRes = await ds.projects.create({ name: newName.trim(), ...owner });
       const project = projectRes.data as { id: string };
       const diagramRes = await ds.diagrams.create(project.id, {
         name: newName.trim(),
@@ -99,6 +139,7 @@ export function DashboardPage() {
       const diagram = diagramRes.data as { id: string };
       setNewName('');
       setNewType('markov_chain');
+      setNewOwner('user');
       setShowForm(false);
       navigate(`/projects/${project.id}/diagrams/${diagram.id}`);
     } catch (err) {
@@ -139,68 +180,155 @@ export function DashboardPage() {
 
   const isEmpty = !loading && entries.length === 0;
 
+  // Only admins may own a project under a team (enforced server-side).
+  const adminTeams = teams.filter((t) => t.role === 'ADMIN');
+
+  const toggleTeam = (teamId: string) => {
+    setCollapsedTeams((prev) => {
+      const next = new Set(prev);
+      if (next.has(teamId)) next.delete(teamId);
+      else next.add(teamId);
+      localStorage.setItem(COLLAPSED_TEAMS_KEY, JSON.stringify([...next]));
+      return next;
+    });
+  };
+
+  /**
+   * Team diagrams, grouped by the team that owns them.
+   *
+   * A flat "Team" list said nothing about *which* team a diagram belonged to,
+   * which stops working the moment you're in two of them. Teams with nothing in
+   * them are still listed: a team you belong to that silently vanished from the
+   * page would read as a bug, not as an empty state.
+   */
+  function renderTeamSections() {
+    if (isGuest || teams.length === 0) return null;
+
+    return (
+      <div className="mb-10">
+        <div className="mb-4 flex items-center gap-2.5">
+          <h2 className="text-xs font-semibold tracking-wider text-surface-400 uppercase">
+            Team Diagrams
+          </h2>
+          <span className="rounded-full bg-surface-100 px-2 py-0.5 font-mono text-[11px] text-surface-500 dark:bg-surface-300 dark:text-surface-600">
+            {teamEntries.length}
+          </span>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          {teams.map((team) => {
+            const items = teamEntries.filter((e) => e.ownerId === team.id);
+            const collapsed = collapsedTeams.has(team.id);
+            return (
+              <div
+                key={team.id}
+                className="rounded-lg border border-surface-200 dark:border-surface-300"
+              >
+                <button
+                  onClick={() => toggleTeam(team.id)}
+                  aria-expanded={!collapsed}
+                  className="flex w-full items-center gap-2 px-4 py-2.5 text-left hover:bg-surface-50 dark:hover:bg-surface-200"
+                >
+                  {collapsed ? (
+                    <ChevronRight className="h-4 w-4 text-surface-400" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-surface-400" />
+                  )}
+                  <span className="text-sm font-medium text-surface-800">{team.name}</span>
+                  <span className="rounded-full bg-surface-100 px-2 py-0.5 font-mono text-[11px] text-surface-500 dark:bg-surface-300 dark:text-surface-600">
+                    {items.length}
+                  </span>
+                  {team.role === 'ADMIN' && (
+                    <span className="ml-auto font-mono text-[10px] tracking-wide text-surface-400 uppercase">
+                      admin
+                    </span>
+                  )}
+                </button>
+
+                {!collapsed && (
+                  <div className="border-t border-surface-200 p-4 dark:border-surface-300">
+                    {items.length === 0 ? (
+                      <p className="text-sm text-surface-400">
+                        No diagrams in this team yet.
+                        {team.role === 'ADMIN'
+                          ? ' Create one and pick this team as the owner.'
+                          : ' Only team admins can create them.'}
+                      </p>
+                    ) : (
+                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        {items.map(renderCard)}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  /** One diagram card. Shared by "My", each team's group, and "Shared with me". */
+  function renderCard(entry: DiagramEntry) {
+    return (
+      <div
+        key={entry.diagramId}
+        className="group relative overflow-hidden rounded-lg border border-surface-200 bg-white transition-all hover:border-surface-300 hover:shadow-md dark:border-surface-300 dark:bg-surface-100 dark:hover:border-surface-400"
+      >
+        {/* Type color accent bar */}
+        <div className="h-[3px]" style={{ backgroundColor: typeAccentColor(entry.diagramType) }} />
+        <div className="flex items-start justify-between p-4">
+          <button
+            type="button"
+            onClick={() => navigate(`/projects/${entry.projectId}/diagrams/${entry.diagramId}`)}
+            className="flex-1 text-left"
+          >
+            <h3 className="font-medium text-surface-800 transition-colors group-hover:text-primary-600">
+              {entry.diagramName}
+            </h3>
+            <span
+              className="mt-1.5 inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 font-mono text-[10px] font-medium"
+              style={{
+                backgroundColor: typeAccentColor(entry.diagramType) + '22',
+                color: typeAccentColor(entry.diagramType),
+              }}
+            >
+              {typeLabel(entry.diagramType)}
+            </span>
+            <p className="mt-2.5 text-xs text-surface-400">
+              {new Date(entry.updatedAt).toLocaleDateString(undefined, {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              })}
+            </p>
+          </button>
+          <button
+            onClick={() => handleDelete(entry)}
+            className="mt-0.5 ml-2 rounded p-1 text-surface-300 opacity-0 transition-colors group-hover:opacity-100 hover:bg-surface-100 hover:text-red-500"
+            title="Delete"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   function renderSection(title: string, items: DiagramEntry[]) {
     if (items.length === 0) return null;
     return (
       <div className="mb-10">
         <div className="mb-4 flex items-center gap-2.5">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-surface-400">
+          <h2 className="text-xs font-semibold tracking-wider text-surface-400 uppercase">
             {title}
           </h2>
-          <span className="rounded-full bg-surface-100 dark:bg-surface-300 px-2 py-0.5 font-mono text-[11px] text-surface-500 dark:text-surface-600">
+          <span className="rounded-full bg-surface-100 px-2 py-0.5 font-mono text-[11px] text-surface-500 dark:bg-surface-300 dark:text-surface-600">
             {items.length}
           </span>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {items.map((entry) => (
-            <div
-              key={entry.diagramId}
-              className="group relative rounded-lg border border-surface-200 dark:border-surface-300 bg-white dark:bg-surface-100 overflow-hidden transition-all hover:shadow-md hover:border-surface-300 dark:hover:border-surface-400"
-            >
-              {/* Type color accent bar */}
-              <div
-                className="h-[3px]"
-                style={{ backgroundColor: typeAccentColor(entry.diagramType) }}
-              />
-              <div className="flex items-start justify-between p-4">
-                <button
-                  type="button"
-                  onClick={() =>
-                    navigate(`/projects/${entry.projectId}/diagrams/${entry.diagramId}`)
-                  }
-                  className="flex-1 text-left"
-                >
-                  <h3 className="font-medium text-surface-800 group-hover:text-primary-600 transition-colors">
-                    {entry.diagramName}
-                  </h3>
-                  <span
-                    className="mt-1.5 inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 font-mono text-[10px] font-medium"
-                    style={{
-                      backgroundColor: typeAccentColor(entry.diagramType) + '22',
-                      color: typeAccentColor(entry.diagramType),
-                    }}
-                  >
-                    {typeLabel(entry.diagramType)}
-                  </span>
-                  <p className="mt-2.5 text-xs text-surface-400">
-                    {new Date(entry.updatedAt).toLocaleDateString(undefined, {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
-                  </p>
-                </button>
-                <button
-                  onClick={() => handleDelete(entry)}
-                  className="ml-2 mt-0.5 rounded p-1 text-surface-300 hover:bg-surface-100 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
-                  title="Delete"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{items.map(renderCard)}</div>
       </div>
     );
   }
@@ -319,6 +447,30 @@ export function DashboardPage() {
                   <p className="text-xs text-surface-400">{selected.description}</p>
                 ) : null;
               })()}
+
+              {/* Owner. Only teams this user administers are offered — the server
+                  refuses a team-owned project from anyone else, so offering one
+                  would be an invitation to a 400. Hidden entirely when there's
+                  nothing to choose between. */}
+              {adminTeams.length > 0 && (
+                <>
+                  <Select
+                    label="Owner"
+                    value={newOwner}
+                    onChange={(e) => setNewOwner(e.target.value)}
+                    options={[
+                      { value: 'user', label: 'Personal' },
+                      ...adminTeams.map((t) => ({ value: t.id, label: t.name })),
+                    ]}
+                  />
+                  <p className="text-xs text-surface-400">
+                    {newOwner === 'user'
+                      ? 'Only you can see this diagram, unless you share it.'
+                      : 'Everyone on this team can open and edit it.'}
+                  </p>
+                </>
+              )}
+
               <div className="flex gap-2 pt-1">
                 <Button onClick={handleCreate} disabled={!newName.trim()}>
                   Create
@@ -335,7 +487,7 @@ export function DashboardPage() {
         {!loading && entries.length > 0 && (
           <>
             {renderSection('My Diagrams', myEntries)}
-            {renderSection('Team Diagrams', teamEntries)}
+            {renderTeamSections()}
             {renderSection('Shared with Me', sharedEntries)}
           </>
         )}

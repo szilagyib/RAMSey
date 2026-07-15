@@ -227,7 +227,13 @@ export function TeamsPage() {
                   placeholder="Team name"
                   onKeyDown={(e) => e.key === 'Enter' && handleCreateTeam()}
                 />
-                <Button onClick={handleCreateTeam} disabled={!newTeamName.trim()} size="md">
+                <Button
+                  onClick={handleCreateTeam}
+                  disabled={!newTeamName.trim()}
+                  size="md"
+                  aria-label="Create team"
+                  title="Create team"
+                >
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>

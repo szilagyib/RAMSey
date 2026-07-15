@@ -171,7 +171,12 @@ export const api = {
   },
 
   teams: {
-    list: () => request<{ data: Array<{ id: string; name: string; slug: string }> }>('/api/teams'),
+    // `role` is *this user's* role in the team. Only admins may own projects
+    // under a team, so the dashboard needs it to know what to offer.
+    list: () =>
+      request<{
+        data: Array<{ id: string; name: string; slug: string; role: 'ADMIN' | 'MEMBER' }>;
+      }>('/api/teams'),
     create: (data: { name: string; slug: string }) =>
       request<{ data: { id: string; name: string; slug: string } }>('/api/teams', {
         method: 'POST',
