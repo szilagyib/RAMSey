@@ -8,7 +8,7 @@ import {
 function mockPrisma() {
   return {
     verificationToken: {
-      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       create: vi.fn().mockResolvedValue({}),
       findUnique: vi.fn(),
       update: vi.fn().mockResolvedValue({}),
@@ -71,15 +71,38 @@ describe('VerificationTokenService.consume', () => {
 
   it('returns the userId and marks the token used for a valid token', async () => {
     prisma.verificationToken.findUnique.mockResolvedValue({
-      id: 't1', userId: 'user-1', type: 'PASSWORD_RESET', usedAt: null, expiresAt: future(),
+      id: 't1',
+      userId: 'user-1',
+      type: 'PASSWORD_RESET',
+      usedAt: null,
+      expiresAt: future(),
     });
     const svc = new VerificationTokenService(prisma);
     const userId = await svc.consume('raw', 'PASSWORD_RESET');
     expect(userId).toBe('user-1');
-    expect(prisma.verificationToken.update).toHaveBeenCalledWith({
-      where: { id: 't1' },
+    expect(prisma.verificationToken.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 't1',
+        type: 'PASSWORD_RESET',
+        usedAt: null,
+        expiresAt: { gte: expect.any(Date) },
+      },
       data: { usedAt: expect.any(Date) },
     });
+  });
+
+  it('returns null when another request consumes the token first', async () => {
+    prisma.verificationToken.findUnique.mockResolvedValue({
+      id: 't1',
+      userId: 'user-1',
+      type: 'PASSWORD_RESET',
+      usedAt: null,
+      expiresAt: future(),
+    });
+    prisma.verificationToken.updateMany.mockResolvedValue({ count: 0 });
+
+    const svc = new VerificationTokenService(prisma);
+    expect(await svc.consume('raw', 'PASSWORD_RESET')).toBeNull();
   });
 
   it('rejects an unknown token', async () => {
@@ -90,16 +113,24 @@ describe('VerificationTokenService.consume', () => {
 
   it('rejects a token of the wrong type', async () => {
     prisma.verificationToken.findUnique.mockResolvedValue({
-      id: 't1', userId: 'u', type: 'EMAIL_VERIFY', usedAt: null, expiresAt: future(),
+      id: 't1',
+      userId: 'u',
+      type: 'EMAIL_VERIFY',
+      usedAt: null,
+      expiresAt: future(),
     });
     const svc = new VerificationTokenService(prisma);
     expect(await svc.consume('raw', 'PASSWORD_RESET')).toBeNull();
-    expect(prisma.verificationToken.update).not.toHaveBeenCalled();
+    expect(prisma.verificationToken.updateMany).not.toHaveBeenCalled();
   });
 
   it('rejects an already-used token', async () => {
     prisma.verificationToken.findUnique.mockResolvedValue({
-      id: 't1', userId: 'u', type: 'PASSWORD_RESET', usedAt: new Date(), expiresAt: future(),
+      id: 't1',
+      userId: 'u',
+      type: 'PASSWORD_RESET',
+      usedAt: new Date(),
+      expiresAt: future(),
     });
     const svc = new VerificationTokenService(prisma);
     expect(await svc.consume('raw', 'PASSWORD_RESET')).toBeNull();
@@ -107,7 +138,11 @@ describe('VerificationTokenService.consume', () => {
 
   it('rejects an expired token', async () => {
     prisma.verificationToken.findUnique.mockResolvedValue({
-      id: 't1', userId: 'u', type: 'PASSWORD_RESET', usedAt: null, expiresAt: past(),
+      id: 't1',
+      userId: 'u',
+      type: 'PASSWORD_RESET',
+      usedAt: null,
+      expiresAt: past(),
     });
     const svc = new VerificationTokenService(prisma);
     expect(await svc.consume('raw', 'PASSWORD_RESET')).toBeNull();
@@ -115,14 +150,14 @@ describe('VerificationTokenService.consume', () => {
 });
 
 describe('email.service log fallback', () => {
-  it('logs the link when no SMTP is configured (test env)', async () => {
+  it('logs the password-reset link when no SMTP is configured (test env)', async () => {
     const { logger } = await import('../../../src/config/logger.js');
     const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined as never);
-    const { sendVerificationEmail } = await import('../../../src/services/email.service.js');
-    await sendVerificationEmail('user@example.com', 'https://app/verify-email?token=xyz');
+    const { sendPasswordResetEmail } = await import('../../../src/services/email.service.js');
+    await sendPasswordResetEmail('user@example.com', 'https://app/reset-password?token=xyz');
     expect(warn).toHaveBeenCalled();
     const msg = warn.mock.calls[0][1] as string;
-    expect(msg).toContain('https://app/verify-email?token=xyz');
+    expect(msg).toContain('https://app/reset-password?token=xyz');
     warn.mockRestore();
   });
 });

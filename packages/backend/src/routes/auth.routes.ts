@@ -1,4 +1,4 @@
-import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
+import type { FastifyInstance, FastifyPluginAsync, FastifyRequest } from 'fastify';
 import type { OAuth2Namespace, ProviderConfiguration } from '@fastify/oauth2';
 import fp from 'fastify-plugin';
 import bcrypt from 'bcrypt';
@@ -7,7 +7,11 @@ import { authenticate } from '../middleware/authenticate.js';
 import { COOKIE_NAME, COOKIE_OPTIONS, signToken } from '../utils/jwt.js';
 import { env } from '../config/env.js';
 import { VerificationTokenService } from '../services/verification-token.service.js';
-import { sendVerificationEmail, sendPasswordResetEmail } from '../services/email.service.js';
+import {
+  readLastConfirmCode,
+  sendConfirmationCodeEmail,
+  sendPasswordResetEmail,
+} from '../services/email.service.js';
 import { limits } from '../config/limits.js';
 
 // bcrypt only uses the first 72 bytes of a password, so cap there to avoid
@@ -31,7 +35,25 @@ const resetPasswordSchema = z.object({
   token: z.string().min(1),
   password: z.string().min(8).max(72),
 });
-const verifyEmailSchema = z.object({ token: z.string().min(1) });
+const confirmCodeSchema = z.object({
+  email: z.string().email(),
+  code: z.string().regex(/^\d{6}$/),
+});
+const resendCodeSchema = z.object({ email: z.string().email() });
+
+function confirmationEmailKey(request: FastifyRequest): string {
+  const email = (request.body as { email?: string } | undefined)?.email;
+  return email?.trim().toLowerCase() || request.ip;
+}
+
+async function issueAndSendConfirmationCode(
+  fastify: FastifyInstance,
+  user: { id: string; email: string },
+): Promise<void> {
+  const tokens = new VerificationTokenService(fastify.prisma);
+  const code = await tokens.issueCode(user.id);
+  await sendConfirmationCodeEmail(user.email, code);
+}
 
 const authRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
   // Conditionally register Google OAuth
@@ -51,7 +73,7 @@ const authRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
           .GOOGLE_CONFIGURATION,
       },
       startRedirectPath: '/api/auth/google',
-      callbackUri: `${env.FRONTEND_URL}/api/auth/google/callback`,
+      callbackUri: `${env.PUBLIC_API_URL}/api/auth/google/callback`,
     });
 
     fastify.get('/api/auth/google/callback', async (request, reply) => {
@@ -112,23 +134,62 @@ const authRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
     { config: { rateLimit: limits.rateLimits.authRegister } },
     async (request, reply) => {
       const body = registerSchema.parse(request.body);
-      const existing = await fastify.prisma.user.findUnique({ where: { email: body.email } });
-      if (existing) {
+      let user = await fastify.prisma.user.findUnique({ where: { email: body.email } });
+      if (user?.emailVerified) {
         return reply.status(409).send({ message: 'Email already registered' });
       }
+      if (user) {
+        // Do not turn registration retries into a resend-rate-limit bypass.
+        // The dedicated resend endpoint owns all follow-up delivery attempts.
+        return reply.status(201).send({
+          data: { pendingVerification: true, email: user.email },
+        });
+      }
+
       const passwordHash = await bcrypt.hash(body.password, 12);
-      const user = await fastify.prisma.user.create({
+      user = await fastify.prisma.user.create({
         data: { email: body.email, name: body.name, passwordHash },
       });
-      // Send an email-verification link (best-effort — registration succeeds
-      // regardless; verification is soft and does not block login).
-      try {
-        const tokens = new VerificationTokenService(fastify.prisma);
-        const raw = await tokens.issue(user.id, 'EMAIL_VERIFY');
-        await sendVerificationEmail(user.email, `${env.FRONTEND_URL}/verify-email?token=${raw}`);
-      } catch (err) {
-        fastify.log.error(err, 'failed to send verification email');
+      // Email delivery is the registration boundary — a failed send leaves a
+      // pending account that can request a fresh code through /resend-code.
+      await issueAndSendConfirmationCode(fastify, user);
+
+      return reply.status(201).send({
+        data: { pendingVerification: true, email: user.email },
+      });
+    },
+  );
+
+  fastify.post(
+    '/api/auth/confirm',
+    {
+      config: {
+        rateLimit: {
+          ...limits.rateLimits.authConfirm,
+          keyGenerator: confirmationEmailKey,
+        },
+      },
+    },
+    async (request, reply) => {
+      const body = confirmCodeSchema.parse(request.body);
+      const user = await fastify.prisma.user.findUnique({ where: { email: body.email } });
+      if (!user || user.emailVerified) {
+        return reply.status(400).send({ message: 'Invalid or expired confirmation code' });
       }
+
+      const tokens = new VerificationTokenService(fastify.prisma);
+      const result = await tokens.verifyCode(user.id, body.code);
+      if (result === 'locked') {
+        return reply.status(429).send({ message: 'Too many attempts; request a new code' });
+      }
+      if (result !== 'ok') {
+        return reply.status(400).send({ message: 'Invalid or expired confirmation code' });
+      }
+
+      await fastify.prisma.user.update({
+        where: { id: user.id },
+        data: { emailVerified: new Date() },
+      });
       const token = signToken({
         userId: user.id,
         email: user.email,
@@ -136,7 +197,32 @@ const authRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
         tokenVersion: user.tokenVersion,
       });
       reply.setCookie(COOKIE_NAME, token, COOKIE_OPTIONS);
-      return reply.status(201).send({ data: { id: user.id, email: user.email, name: user.name } });
+      return reply.send({ data: { id: user.id, email: user.email, name: user.name } });
+    },
+  );
+
+  fastify.post(
+    '/api/auth/resend-code',
+    {
+      config: {
+        rateLimit: {
+          ...limits.rateLimits.resendCode,
+          keyGenerator: confirmationEmailKey,
+        },
+      },
+    },
+    async (request, reply) => {
+      const body = resendCodeSchema.parse(request.body);
+      const user = await fastify.prisma.user.findUnique({ where: { email: body.email } });
+
+      if (user && !user.emailVerified) {
+        try {
+          await issueAndSendConfirmationCode(fastify, user);
+        } catch (err) {
+          fastify.log.error(err, 'failed to resend confirmation code');
+        }
+      }
+      return reply.send({ data: { ok: true } });
     },
   );
 
@@ -152,6 +238,15 @@ const authRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
       const valid = await bcrypt.compare(body.password, user.passwordHash);
       if (!valid) {
         return reply.status(401).send({ message: 'Invalid email or password' });
+      }
+      if (!user.emailVerified) {
+        // Login only routes the user back to confirmation. Sending here would
+        // bypass the dedicated per-email resend limiter on every login attempt.
+        return reply.status(403).send({
+          message: 'Email confirmation required',
+          pendingVerification: true,
+          email: user.email,
+        });
       }
       const token = signToken({
         userId: user.id,
@@ -226,39 +321,16 @@ const authRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
     },
   );
 
-  // Consume an email-verification token and mark the address verified.
-  fastify.post(
-    '/api/auth/verify-email',
-    { config: { rateLimit: limits.rateLimits.emailVerify } },
-    async (request, reply) => {
-      const body = verifyEmailSchema.parse(request.body);
-      const tokens = new VerificationTokenService(fastify.prisma);
-      const userId = await tokens.consume(body.token, 'EMAIL_VERIFY');
-      if (!userId) {
-        return reply.status(400).send({ message: 'Invalid or expired verification link' });
-      }
-      await fastify.prisma.user.update({
-        where: { id: userId },
-        data: { emailVerified: new Date() },
-      });
-      return reply.send({ data: { ok: true } });
-    },
-  );
-
-  // Re-send a verification link to the signed-in user (if still unverified).
-  fastify.post(
-    '/api/auth/resend-verification',
-    { preHandler: [authenticate], config: { rateLimit: limits.rateLimits.resendVerification } },
-    async (request, reply) => {
-      const user = await fastify.prisma.user.findUnique({ where: { id: request.user!.id } });
-      if (user && !user.emailVerified) {
-        const tokens = new VerificationTokenService(fastify.prisma);
-        const raw = await tokens.issue(user.id, 'EMAIL_VERIFY');
-        await sendVerificationEmail(user.email, `${env.FRONTEND_URL}/verify-email?token=${raw}`);
-      }
-      return reply.send({ data: { ok: true } });
-    },
-  );
+  // E2E cannot inspect an inbox — expose the in-memory code outside production
+  // only. Normal auth responses never include it.
+  if (env.NODE_ENV !== 'production') {
+    fastify.get('/api/testing/last-code', async (request, reply) => {
+      const { email } = resendCodeSchema.parse(request.query);
+      const code = readLastConfirmCode(email);
+      if (!code) return reply.status(404).send({ message: 'No confirmation code found' });
+      return reply.send({ data: { code } });
+    });
+  }
 
   // Export the signed-in user's own data (GDPR portability) as JSON.
   fastify.get('/api/auth/export', { preHandler: [authenticate] }, async (request, reply) => {

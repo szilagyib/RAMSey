@@ -69,6 +69,8 @@ enum ExecutionTarget {
 enum VerificationTokenType {
   EMAIL_VERIFY
   PASSWORD_RESET
+  // Six-digit sign-up code — short-lived, HMAC-protected, and attempt-limited.
+  CONFIRM_CODE
 }
 
 // ──────────────────────────────────────────────────
@@ -116,9 +118,8 @@ model User {
   @@map("users")
 }
 
-// Single-use, hashed tokens for email verification and password reset. We
-// store only the SHA-256 hash of the token — the raw value lives only in the
-// emailed link, so a DB leak yields no usable tokens.
+// Single-use credentials for email verification and password reset. Link
+// tokens use SHA-256; short confirmation codes use a server-keyed HMAC.
 model VerificationToken {
   id        String                @id @default(uuid()) @db.Uuid
   userId    String                @db.Uuid
@@ -127,6 +128,8 @@ model VerificationToken {
   tokenHash String                @unique
   expiresAt DateTime              @db.Timestamptz
   usedAt    DateTime?             @db.Timestamptz
+  // Per-code online guess counter; unused by high-entropy link tokens.
+  attempts  Int                   @default(0)
   createdAt DateTime              @default(now()) @db.Timestamptz
 
   @@index([userId, type])

@@ -8,7 +8,30 @@ export function uniqueEmail(prefix: string): string {
   return `${prefix}+${Date.now()}-${Math.floor(Math.random() * 1e6)}@e2e.invalid`;
 }
 
-/** Register a fresh account; lands on the dashboard. */
+/** Read the last confirmation code from the non-production E2E seam. */
+export async function lastConfirmationCode(page: Page, email: string): Promise<string> {
+  const response = await page.request.get(
+    `/api/testing/last-code?email=${encodeURIComponent(email)}`,
+  );
+  expect(response.ok()).toBe(true);
+  const payload = (await response.json()) as { data: { code: string } };
+  expect(payload.data.code).toMatch(/^\d{6}$/);
+  return payload.data.code;
+}
+
+/** Confirm the pending account shown in the current page; lands on the dashboard. */
+export async function confirmPendingRegistration(page: Page, email: string): Promise<void> {
+  await page.waitForURL(/\/verify-email/);
+  const code = await lastConfirmationCode(page, email);
+  for (let index = 0; index < code.length; index += 1) {
+    await page.getByLabel(`Digit ${index + 1}`).fill(code[index]);
+  }
+  await page.getByRole('button', { name: 'Confirm email' }).click();
+  await page.waitForURL('/');
+  await expect(page.getByRole('link', { name: 'Account' })).toBeVisible();
+}
+
+/** Register and confirm a fresh account; lands on the dashboard. */
 export async function register(page: Page, email: string): Promise<void> {
   await page.goto('/register');
   await page.getByLabel('Email').fill(email);
@@ -16,8 +39,7 @@ export async function register(page: Page, email: string): Promise<void> {
   await page.getByLabel('Confirm password').fill(TEST_PASSWORD);
   await page.getByRole('checkbox', { name: /Privacy Policy/i }).check();
   await page.getByRole('button', { name: /create account|sign up|register/i }).click();
-  await page.waitForURL('/');
-  await expect(page.getByRole('link', { name: 'Account' })).toBeVisible();
+  await confirmPendingRegistration(page, email);
 }
 
 /**
@@ -44,11 +66,7 @@ export async function deleteAccount(page: Page): Promise<void> {
  * Importing a file of a different type than the diagram is refused by design, so
  * a test that imports one must create the matching type here.
  */
-export async function createDiagram(
-  page: Page,
-  name: string,
-  typeLabel?: string,
-): Promise<void> {
+export async function createDiagram(page: Page, name: string, typeLabel?: string): Promise<void> {
   await page.getByRole('button', { name: 'New Diagram' }).first().click();
   await page.getByPlaceholder('e.g. Pump System Reliability').fill(name);
   if (typeLabel) {

@@ -16,8 +16,10 @@ export const limits = {
     authRegister: { max: 5, timeWindow: '1 minute' },
     authLogin: { max: 10, timeWindow: '1 minute' },
     passwordReset: { max: 5, timeWindow: '15 minutes' },
-    emailVerify: { max: 10, timeWindow: '15 minutes' },
-    resendVerification: { max: 3, timeWindow: '15 minutes' },
+    // Confirm/resend key by normalized email; the global limiter remains the
+    // per-IP belt, while each code carries its own hard attempt lock.
+    authConfirm: { max: 10, timeWindow: '15 minutes' },
+    resendCode: { max: 3, timeWindow: '15 minutes' },
     chat: { max: 20, timeWindow: '1 minute' },
   },
 
@@ -55,7 +57,11 @@ export const limits = {
   verificationTokenTtlMs: {
     EMAIL_VERIFY: 24 * 60 * 60 * 1000, // 24 hours
     PASSWORD_RESET: 60 * 60 * 1000, // 1 hour
+    CONFIRM_CODE: 10 * 60 * 1000, // 10 minutes — short, since it's re-sendable
   },
+
+  /** Wrong guesses allowed on a sign-up confirmation code before it locks. */
+  confirmCodeMaxAttempts: 5,
 
   /** pg-boss analysis-job resilience (see pgBossQueue). */
   worker: {

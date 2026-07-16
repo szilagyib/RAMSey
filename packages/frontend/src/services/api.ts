@@ -1,5 +1,14 @@
+import { apiUrl } from '../config/runtime';
+
+export class PendingVerificationError extends Error {
+  constructor(public readonly email: string) {
+    super('Email confirmation required');
+    this.name = 'PendingVerificationError';
+  }
+}
+
 async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(url, {
+  const res = await fetch(apiUrl(url), {
     ...options,
     credentials: 'include',
     headers: {
@@ -24,6 +33,9 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
+    if (res.status === 403 && body.pendingVerification && typeof body.email === 'string') {
+      throw new PendingVerificationError(body.email);
+    }
     throw new Error(body.message || `Request failed: ${res.status}`);
   }
 
@@ -31,7 +43,7 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
 }
 
 async function requestBinary(url: string, options: RequestInit = {}): Promise<ArrayBuffer> {
-  const res = await fetch(url, {
+  const res = await fetch(apiUrl(url), {
     ...options,
     credentials: 'include',
     headers: {
@@ -50,7 +62,7 @@ async function requestBinary(url: string, options: RequestInit = {}): Promise<Ar
 export const api = {
   auth: {
     register: (data: { email: string; password: string; name?: string }) =>
-      request<{ data: { id: string; email: string; name?: string } }>('/api/auth/register', {
+      request<{ data: { pendingVerification: true; email: string } }>('/api/auth/register', {
         method: 'POST',
         body: JSON.stringify(data),
       }),
@@ -82,15 +94,15 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ token, password }),
       }),
-    verifyEmail: (token: string) =>
-      request<{ data: { ok: boolean } }>('/api/auth/verify-email', {
+    confirm: (email: string, code: string) =>
+      request<{ data: { id: string; email: string; name?: string } }>('/api/auth/confirm', {
         method: 'POST',
-        body: JSON.stringify({ token }),
+        body: JSON.stringify({ email, code }),
       }),
-    resendVerification: () =>
-      request<{ data: { ok: boolean } }>('/api/auth/resend-verification', {
+    resendCode: (email: string) =>
+      request<{ data: { ok: boolean } }>('/api/auth/resend-code', {
         method: 'POST',
-        body: '{}',
+        body: JSON.stringify({ email }),
       }),
     exportData: () => request<{ data: Record<string, unknown> }>('/api/auth/export'),
     deleteAccount: () =>

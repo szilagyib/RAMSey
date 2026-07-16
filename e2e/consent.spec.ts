@@ -1,11 +1,12 @@
 import { test, expect } from '@playwright/test';
-import { uniqueEmail, TEST_PASSWORD } from './helpers';
+import { confirmPendingRegistration, uniqueEmail, TEST_PASSWORD } from './helpers';
 
 // Signing up requires agreeing to the Privacy Policy.
 test('registration is blocked until the consent box is ticked', async ({ page }) => {
+  const email = uniqueEmail('consent');
   await page.goto('/register');
 
-  await page.getByLabel('Email').fill(uniqueEmail('consent'));
+  await page.getByLabel('Email').fill(email);
   await page.getByLabel('Password', { exact: true }).fill(TEST_PASSWORD);
   await page.getByLabel('Confirm password').fill(TEST_PASSWORD);
 
@@ -23,8 +24,7 @@ test('registration is blocked until the consent box is ticked', async ({ page })
   // Tick it, and registration goes through.
   await consent.check();
   await page.getByRole('button', { name: /create account/i }).click();
-  await page.waitForURL('/');
-  await expect(page.getByRole('link', { name: 'Account' })).toBeVisible();
+  await confirmPendingRegistration(page, email);
 
   // Clean up the account this test created.
   await page.goto('/account');

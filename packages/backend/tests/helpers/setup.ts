@@ -77,6 +77,14 @@ export interface MockPrismaClient {
   analysisResult: {
     upsert: ReturnType<typeof vi.fn>;
   };
+  verificationToken: {
+    findFirst: ReturnType<typeof vi.fn>;
+    findUnique: ReturnType<typeof vi.fn>;
+    updateMany: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+    deleteMany: ReturnType<typeof vi.fn>;
+  };
 }
 
 /**
@@ -156,6 +164,14 @@ export function mockPrismaClient(): MockPrismaClient {
     analysisResult: {
       upsert: vi.fn().mockResolvedValue({}),
     },
+    verificationToken: {
+      findFirst: vi.fn().mockResolvedValue(null),
+      findUnique: vi.fn().mockResolvedValue(null),
+      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+      create: vi.fn().mockResolvedValue({}),
+      update: vi.fn().mockResolvedValue({}),
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+    },
   };
 }
 
@@ -224,9 +240,7 @@ export interface MockProject {
   updatedAt: Date;
 }
 
-export function createMockProject(
-  overrides: Partial<MockProject> = {},
-): MockProject {
+export function createMockProject(overrides: Partial<MockProject> = {}): MockProject {
   const id = overrides.id ?? nextId();
   const userId = overrides.createdById ?? TEST_USER_ID;
   return {
@@ -254,9 +268,7 @@ export interface MockDiagram {
   updatedAt: Date;
 }
 
-export function createMockDiagram(
-  overrides: Partial<MockDiagram> = {},
-): MockDiagram {
+export function createMockDiagram(overrides: Partial<MockDiagram> = {}): MockDiagram {
   const id = overrides.id ?? nextId();
   return {
     id,

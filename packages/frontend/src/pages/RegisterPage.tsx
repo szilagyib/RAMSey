@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { api } from '../services/api';
@@ -8,6 +8,7 @@ import { AuthLayout, AuthHeadline } from '../components/auth/AuthLayout';
 // ─── Register page ────────────────────────────────────────────────────────────
 
 export function RegisterPage() {
+  const navigate = useNavigate();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -31,8 +32,12 @@ export function RegisterPage() {
     }
     setLoading(true);
     try {
-      await api.auth.register({ email, password, name: name.trim() || undefined });
-      window.location.href = '/';
+      const response = await api.auth.register({
+        email,
+        password,
+        name: name.trim() || undefined,
+      });
+      navigate(`/verify-email?email=${encodeURIComponent(response.data.email)}`, { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
     } finally {

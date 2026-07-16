@@ -7,7 +7,7 @@ services:
       # Host 8080 on purpose: 5173 belongs to the Vite dev server. Sharing the
       # port let a stale containerized build shadow the dev server (Playwright
       # reuses whatever answers on 5173) — keep them separate.
-      - "8080:80"
+      - '8080:80'
     volumes:
       - ../packages/frontend/src:/app/packages/frontend/src
       - ../packages/engine/src:/app/packages/engine/src
@@ -24,20 +24,25 @@ services:
       # Host 3001: 3000 belongs to the dev backend (same reasoning as 8080).
       # The dockerized frontend reaches the backend via the compose network,
       # not this host mapping.
-      - "3001:3000"
+      - '3001:3000'
     depends_on:
       postgres:
         condition: service_started
       redis:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     environment:
       DATABASE_URL: postgresql://ramsey:ramsey@postgres:5432/ramsey?schema=public
       REDIS_URL: redis://redis:6379
       CORS_ORIGIN: http://localhost:8080
       NODE_ENV: development
       JWT_SECRET: dev-jwt-secret-change-in-production
-      BETTER_AUTH_SECRET: dev-better-auth-secret-change-in-prod
-      BETTER_AUTH_URL: http://localhost:3000
+      # Dev email → Mailpit (see the mailpit service). Real sending in prod uses
+      # Resend: set SMTP_HOST=smtp.resend.com / SMTP_USER=resend / SMTP_PASS=<key>.
+      SMTP_HOST: mailpit
+      SMTP_PORT: '1025'
+      SMTP_FROM: RAMSey <no-reply@ramsey.local>
     networks:
       - ramsey-network
 
@@ -58,14 +63,26 @@ services:
       REDIS_URL: redis://redis:6379
       NODE_ENV: development
       JWT_SECRET: dev-jwt-secret-change-in-production
-    command: ["node", "packages/backend/dist/worker/solver-worker.js"]
+    command: ['node', 'packages/backend/dist/worker/solver-worker.js']
+    networks:
+      - ramsey-network
+
+  # Local email inbox for development — a fake SMTP server that captures every
+  # message the backend sends (verification, password reset, confirm codes).
+  # Web UI at http://localhost:8025; SMTP on 1025. Nothing leaves the machine.
+  # A host-run backend (`npm run dev`) can use it too via SMTP_HOST=localhost.
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - '8025:8025'
+      - '1025:1025'
     networks:
       - ramsey-network
 
   postgres:
     image: postgres:16-alpine
     ports:
-      - "5432:5432"
+      - '5432:5432'
     environment:
       POSTGRES_USER: ramsey
       POSTGRES_PASSWORD: ramsey
@@ -78,9 +95,9 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - '6379:6379'
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 10s
       timeout: 5s
       retries: 5

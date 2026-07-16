@@ -7,6 +7,7 @@
  * body of `deliver` — every caller goes through it.
  */
 import { env } from '../config/env.js';
+import { limits } from '../config/limits.js';
 import { logger } from '../config/logger.js';
 
 export interface EmailMessage {
@@ -40,12 +41,29 @@ async function deliver(msg: EmailMessage): Promise<void> {
   logger.warn({ to: msg.to, subject: msg.subject }, `[email:dev] no SMTP configured — ${msg.text}`);
 }
 
-export async function sendVerificationEmail(to: string, link: string): Promise<void> {
+/**
+ * Last code per address for non-production E2E/API tests. The paired route is
+ * absent in production; normal auth responses never expose this value.
+ */
+const lastConfirmCode = new Map<string, string>();
+
+export function readLastConfirmCode(email: string): string | null {
+  return lastConfirmCode.get(email.toLowerCase()) ?? null;
+}
+
+export async function sendConfirmationCodeEmail(to: string, code: string): Promise<void> {
+  const expiresInMinutes = Math.round(limits.verificationTokenTtlMs.CONFIRM_CODE / 60_000);
+  if (env.NODE_ENV !== 'production') {
+    lastConfirmCode.set(to.toLowerCase(), code);
+  }
   await deliver({
     to,
-    subject: 'Verify your RAMSey email address',
-    text: `Confirm your RAMSey email address: ${link}`,
-    html: `<p>Confirm your RAMSey email address:</p><p><a href="${link}">Verify email</a></p>`,
+    subject: 'Your RAMSey confirmation code',
+    text: `Your RAMSey confirmation code is ${code}. It expires in ${expiresInMinutes} minutes.`,
+    html:
+      `<p>Your RAMSey confirmation code is:</p>` +
+      `<p style="font-size:28px;font-weight:700;letter-spacing:6px;margin:16px 0">${code}</p>` +
+      `<p>It expires in ${expiresInMinutes} minutes. If you didn’t request this, you can ignore this email.</p>`,
   });
 }
 
