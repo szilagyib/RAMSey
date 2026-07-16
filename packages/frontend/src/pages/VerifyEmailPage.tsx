@@ -185,7 +185,7 @@ export function VerifyEmailPage() {
                 maxLength={index === 0 ? CODE_LENGTH : 1}
                 autoFocus={index === 0}
                 aria-invalid={Boolean(error)}
-                className="h-12 min-w-0 rounded-md border border-surface-300 bg-white text-center text-xl font-semibold tabular-nums text-surface-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:bg-surface-100"
+                className="h-12 min-w-0 rounded-md border border-surface-300 bg-white text-center text-xl font-semibold tabular-nums text-surface-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-surface-400 dark:bg-surface-50"
               />
             ))}
           </div>

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { ThemeToggle } from '../ui/ThemeToggle';
 
 /**
  * The shared frame for the sign-in and sign-up pages: a brand panel on the left,
@@ -124,7 +125,12 @@ interface AuthLayoutProps {
 
 export function AuthLayout({ headline, blurb, children }: AuthLayoutProps) {
   return (
-    <div className="flex min-h-screen bg-[#f6f7fc] dark:bg-surface-100">
+    <div className="relative flex min-h-screen bg-[#f6f7fc] dark:bg-surface-100">
+      {/* Theme toggle, floated over the form column (top-right) on every auth page. */}
+      <div className="absolute right-4 top-4 z-20">
+        <ThemeToggle />
+      </div>
+
       {/* ── Brand panel ── */}
       <div className="relative hidden w-[46%] shrink-0 flex-col justify-between overflow-hidden px-14 py-12 lg:flex">
         {/* Ground: deep navy lifted toward indigo, so it belongs to the brand. */}
@@ -152,7 +158,7 @@ export function AuthLayout({ headline, blurb, children }: AuthLayoutProps) {
 
         {/* The dissolve: the panel becomes the page's background, so there is no
             seam — the two colours fade into each other instead of meeting. */}
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-[44%] bg-gradient-to-r from-transparent to-[#f6f7fc] dark:to-surface-100" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-[58%] bg-gradient-to-r from-transparent via-[#f6f7fc]/60 to-[#f6f7fc] dark:via-surface-100/60 dark:to-surface-100" />
 
         <div className="relative flex items-center gap-3">
           <img src="/favicon.svg" alt="" aria-hidden="true" className="h-8 w-8" />

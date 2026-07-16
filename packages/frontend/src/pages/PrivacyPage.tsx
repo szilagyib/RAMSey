@@ -24,7 +24,7 @@ export function PrivacyPage() {
     <div className="min-h-screen bg-surface-50">
       <header className="border-b border-surface-200 bg-white dark:bg-surface-100">
         <div className="mx-auto flex max-w-3xl items-center gap-3 px-6 py-4">
-          <Link to="/" className="text-surface-400 hover:text-surface-600" title="Back">
+          <Link to="/" className="text-surface-500 hover:text-surface-700" title="Back">
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <h1 className="text-lg font-semibold text-surface-900">Privacy Policy</h1>
@@ -32,7 +32,7 @@ export function PrivacyPage() {
       </header>
 
       <main className="mx-auto max-w-3xl px-6 py-8">
-        <p className="mb-8 text-xs text-surface-400">
+        <p className="mb-8 text-xs text-surface-500">
           Last updated: [PLACEHOLDER — date]. This policy describes how RAMSey (&quot;the
           service&quot;), operated by [PLACEHOLDER — legal entity name and address], processes your
           data. Contact: [PLACEHOLDER — privacy contact email].
