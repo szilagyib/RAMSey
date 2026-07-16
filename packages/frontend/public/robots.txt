@@ -1,0 +1,10 @@
+# https://ramseytools.com
+User-agent: *
+Allow: /
+
+# Token-bearing and private routes carry no indexable content.
+Disallow: /reset-password
+Disallow: /verify-email
+Disallow: /share/
+
+Sitemap: https://ramseytools.com/sitemap.xml
