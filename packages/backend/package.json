@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "tsx watch --env-file ../../.env src/index.ts",
+    "postinstall": "prisma generate",
     "build": "tsc",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
