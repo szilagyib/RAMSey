@@ -1,0 +1,94 @@
+# Self-contained single-host stack — a small VM (e.g. a free-tier EC2) behind a
+# Cloudflare Tunnel, with the frontend served separately by Cloudflare Pages.
+#
+# Unlike docker-compose.prod.yml (an override on the dev stack), this file is
+# standalone: only Postgres, Redis, the API, and the tunnel connector. No ports
+# are published — cloudflared dials out to Cloudflare, so the box needs no inbound
+# firewall openings and no TLS certs of its own. The analysis worker is omitted
+# (server-side analysis falls back to the browser).
+#
+# Secrets come from a .env file next to this compose (NEVER committed). Required:
+#   POSTGRES_PASSWORD   strong random string
+#   JWT_SECRET          >= 32 chars, random
+#   SMTP_PASS           Resend API key
+#   TUNNEL_TOKEN        Cloudflare Tunnel connector token
+# Optional (leave blank to keep the feature off):
+#   GOOGLE_CLIENT_ID  GOOGLE_CLIENT_SECRET  ANTHROPIC_API_KEY  SENTRY_DSN
+#
+# Bring up:  docker compose -f docker/docker-compose.host.yml up -d --build
+# The API applies DB migrations on start.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ramsey
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ramsey
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ramsey']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [ramsey]
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks: [ramsey]
+
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/backend/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      NODE_ENV: production
+      PORT: '3000'
+      DATABASE_URL: postgresql://ramsey:${POSTGRES_PASSWORD:?}@postgres:5432/ramsey?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      CORS_ORIGIN: https://ramseytools.com
+      FRONTEND_URL: https://ramseytools.com
+      PUBLIC_API_URL: https://api.ramseytools.com
+      # Ingress arrives from the cloudflared container on the docker bridge; trust
+      # it so per-client rate limits key on Cloudflare's forwarded visitor IP.
+      TRUST_PROXY: 172.16.0.0/12
+      SMTP_HOST: smtp.resend.com
+      SMTP_PORT: '465'
+      SMTP_USER: resend
+      SMTP_PASS: ${SMTP_PASS:?set SMTP_PASS in .env}
+      SMTP_FROM: RAMSey <no-reply@mail.ramseytools.com>
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+    networks: [ramsey]
+
+  # Outbound-only connector. In the Cloudflare Zero Trust tunnel config, add a
+  # public hostname api.ramseytools.com -> http://backend:3000; Cloudflare then
+  # creates the DNS record automatically.
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?set TUNNEL_TOKEN in .env}
+    depends_on:
+      - backend
+    networks: [ramsey]
+
+networks:
+  ramsey:
+    driver: bridge
+
+volumes:
+  pgdata:
