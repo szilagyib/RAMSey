@@ -135,7 +135,7 @@ export function AnalysisPanel({ projectId, diagramId }: AnalysisPanelProps) {
       if (!ir) {
         setGuard(
           diagramType === 'reliability_block_diagram'
-            ? 'This RBD needs both an input and an output terminal to analyze.'
+            ? 'This reliability block diagram needs both an input and an output terminal to analyze.'
             : diagramType === 'event_tree'
               ? 'This event tree needs an initiating event to analyze.'
               : diagramType === 'bow_tie'
@@ -174,8 +174,8 @@ export function AnalysisPanel({ projectId, diagramId }: AnalysisPanelProps) {
     <div className="h-full overflow-y-auto">
       {!methods ? (
         <div className="px-3 py-4 text-xs text-surface-500">
-          Analysis is available for Markov chains, fault trees, RBDs, event trees, and bow-ties.
-          This diagram type has no solver yet.
+          Analysis is available for Markov chains, fault trees, reliability block diagrams, event
+          trees, and bow-ties. This diagram type has no solver yet.
         </div>
       ) : (
         <div className="flex flex-col gap-3 px-3 py-3">

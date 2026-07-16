@@ -14,6 +14,18 @@ function ConsequenceNodeComponent({ data, selected }: NodeProps) {
   // Use green for success outcomes, gray for generic/unlabeled consequences
   const hasLabel = nodeData.label && nodeData.label.trim() !== '';
   const isSuccess = hasLabel && /success|ok|safe/i.test(nodeData.label);
+  const custom = nodeColorStyle(data);
+  const tok = isSuccess
+    ? {
+        fill: 'var(--dg-basic-fill)',
+        stroke: 'var(--dg-basic-stroke)',
+        text: 'var(--dg-basic-text)',
+      }
+    : {
+        fill: 'var(--dg-undeveloped-fill)',
+        stroke: 'var(--dg-undeveloped-stroke)',
+        text: 'var(--dg-undeveloped-text)',
+      };
 
   return (
     <>
@@ -28,19 +40,13 @@ function ConsequenceNodeComponent({ data, selected }: NodeProps) {
       <div
         className={cn(
           'flex h-12 w-28 items-center justify-center overflow-hidden rounded-lg border-2 px-2 transition-shadow',
-          isSuccess
-            ? 'bg-green-900 dark:bg-green-50 border-green-400'
-            : 'bg-gray-50 border-gray-400',
-          selected && (isSuccess ? 'ring-2 ring-green-300' : 'ring-2 ring-gray-300'),
+          selected && 'ring-2 ring-primary-500',
         )}
-        style={nodeColorStyle(data)}
+        style={custom ?? { backgroundColor: tok.fill, borderColor: tok.stroke }}
       >
         <span
-          className={cn(
-            'line-clamp-2 w-full text-center text-sm leading-tight font-semibold select-none',
-            isSuccess ? 'text-green-100 dark:text-green-900' : 'text-gray-900',
-          )}
-          style={nodeColorStyle(data) && { color: 'inherit' }}
+          className="line-clamp-2 w-full text-center text-sm leading-tight font-semibold select-none"
+          style={{ color: custom?.color ?? tok.text }}
         >
           {nodeData.label}
         </span>

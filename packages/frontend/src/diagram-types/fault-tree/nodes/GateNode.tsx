@@ -159,7 +159,12 @@ function GateNodeComponent({ data, selected }: NodeProps) {
     text: 'var(--dg-gate-stroke)',
   });
   const wrapperStyle: React.CSSProperties = {
-    ...(selected ? { filter: 'drop-shadow(0 0 6px var(--dg-select-glow))' } : {}),
+    ...(selected
+      ? {
+          filter:
+            'drop-shadow(0 0 1px var(--dg-edge-selected)) drop-shadow(0 0 2px var(--dg-edge-selected)) drop-shadow(0 0 5px var(--dg-select-glow))',
+        }
+      : {}),
     ...(custom
       ? ({
           '--dg-gate-fill': tokens.fill,

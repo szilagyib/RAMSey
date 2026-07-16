@@ -36,30 +36,49 @@ const FT_EVENTS: Record<string, NodeColors> = {
 };
 // Markov: StateNode.tsx — light-mode values (high-number = light in dark-first palette)
 const MARKOV: Record<string, NodeColors> = {
-  operational: { fill: '#e5fbec', stroke: '#2e613c', text: '#0f2418' }, // state-operational-900/400/100
-  degraded: { fill: '#fdf2dc', stroke: '#6b3f13', text: '#2a1a08' }, // state-degraded-900/400/100
-  failed: { fill: '#fce9ea', stroke: '#6a2a2c', text: '#2a0f10' }, // state-failed-900/400/100
-  absorbing: { fill: '#f1f5f9', stroke: '#334155', text: '#0f172a' }, // state-absorbing-900/500/100
+  operational: {
+    fill: 'var(--dg-basic-fill)',
+    stroke: 'var(--dg-basic-stroke)',
+    text: 'var(--dg-basic-text)',
+  },
+  degraded: {
+    fill: 'var(--dg-intermediate-fill)',
+    stroke: 'var(--dg-intermediate-stroke)',
+    text: 'var(--dg-intermediate-text)',
+  },
+  failed: {
+    fill: 'var(--dg-top-fill)',
+    stroke: 'var(--dg-top-stroke)',
+    text: 'var(--dg-top-text)',
+  },
+  absorbing: {
+    fill: 'var(--dg-undeveloped-fill)',
+    stroke: 'var(--dg-undeveloped-stroke)',
+    text: 'var(--dg-undeveloped-text)',
+  },
 };
 // Event Tree: node components — light-mode values
 const ET: Record<string, NodeColors> = {
-  initiating_event: { fill: '#fce9ea', stroke: '#fb923c' }, // bg-red-900, border-orange-400(std)
-  header: { fill: '#bcd2ff', stroke: '#2b4a7a' }, // bg-blue-900, border-blue-400
-  consequence: { fill: '#f8fafc', stroke: '#94a3b8' }, // bg-gray-50(CSS var light), border-gray-400
+  initiating_event: {
+    fill: 'var(--dg-intermediate-fill)',
+    stroke: 'var(--dg-intermediate-stroke)',
+  },
+  header: { fill: 'var(--dg-blue-fill)', stroke: 'var(--dg-blue-stroke)' },
+  consequence: { fill: 'var(--dg-undeveloped-fill)', stroke: 'var(--dg-undeveloped-stroke)' },
 };
 // RBD: node components — light-mode values
 const RBD: Record<string, NodeColors> = {
-  block: { fill: '#ffffff', stroke: '#2b4a7a' }, // bg-white, border-blue-400
-  input_terminal: { fill: '#e5fbec', stroke: '#3b7a4a' }, // bg-green-900, border-green-500
-  output_terminal: { fill: '#fce9ea', stroke: '#8a3a3e' }, // bg-red-900, border-red-500
+  block: { fill: 'var(--dg-blue-fill)', stroke: 'var(--dg-blue-stroke)' },
+  input_terminal: { fill: 'var(--dg-basic-fill)', stroke: 'var(--dg-basic-stroke)' },
+  output_terminal: { fill: 'var(--dg-top-fill)', stroke: 'var(--dg-top-stroke)' },
 };
 // Bow-Tie: node components — light-mode values
 const BT: Record<string, NodeColors> = {
-  threat: { fill: '#fce9ea', stroke: '#6a2a2c' }, // bg-red-900, border-red-400
-  preventive_barrier: { fill: '#bcd2ff', stroke: '#2b4a7a' }, // bg-blue-900, border-blue-400
-  top_event: { fill: '#fffbeb', stroke: '#f59e0b' }, // bg-amber-50(std), border-amber-500(std)
-  mitigative_barrier: { fill: '#e5fbec', stroke: '#2e613c' }, // bg-green-900, border-green-400
-  consequence: { fill: '#faf5ff', stroke: '#c084fc' }, // bg-purple-50(std), border-purple-400(std)
+  threat: { fill: 'var(--dg-top-fill)', stroke: 'var(--dg-top-stroke)' },
+  preventive_barrier: { fill: 'var(--dg-blue-fill)', stroke: 'var(--dg-blue-stroke)' },
+  top_event: { fill: 'var(--dg-intermediate-fill)', stroke: 'var(--dg-intermediate-stroke)' },
+  mitigative_barrier: { fill: 'var(--dg-basic-fill)', stroke: 'var(--dg-basic-stroke)' },
+  consequence: { fill: 'var(--dg-consequence-fill)', stroke: 'var(--dg-consequence-stroke)' },
 };
 
 /**
@@ -416,8 +435,8 @@ function DraggableSidebarItem({ item, diagramType }: { item: SidebarItem; diagra
       <div
         className={cn(
           'flex cursor-grab items-center gap-2.5 rounded-md border px-3 py-2',
-          'bg-white dark:bg-surface-100 transition-colors hover:bg-surface-50 dark:hover:bg-surface-200 active:cursor-grabbing',
-          item.borderClass ?? 'border-surface-300',
+          'border-surface-200 bg-white transition-colors hover:bg-surface-50 active:cursor-grabbing',
+          'dark:border-surface-300 dark:bg-surface-100 dark:hover:bg-surface-200',
         )}
         draggable
         onDragStart={onDragStart}

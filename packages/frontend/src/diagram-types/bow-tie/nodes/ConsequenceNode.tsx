@@ -26,7 +26,7 @@ function ConsequenceNodeComponent({ data, selected }: NodeProps) {
       <div
         className={cn(
           'flex h-12 w-28 items-center justify-center overflow-hidden rounded-lg border-2 px-2 transition-shadow',
-          selected && 'ring-2 ring-purple-300',
+          selected && 'ring-2 ring-primary-500',
         )}
         style={
           nodeColorStyle(data) ?? {

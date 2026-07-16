@@ -99,6 +99,14 @@
   --dg-consequence-fill: #faf5ff;
   --dg-consequence-stroke: #a855f7;
   --dg-consequence-text: #6b21a8;
+
+  /* Blue — event-tree headers, RBD blocks, bow-tie preventive barriers. */
+  --dg-blue-fill: #eff6ff;
+  --dg-blue-stroke: #3b82f6;
+  --dg-blue-text: #1e40af;
+
+  /* Auth brand-panel scrim behind the headline: indigo in light, navy in dark. */
+  --auth-scrim: 30 27 75;
 }
 
 :root.dark {
@@ -123,7 +131,7 @@
   --dg-top-stroke: #f87171;
   --dg-top-text: #fecaca;
   --dg-undeveloped-fill: #141c2b;
-  --dg-undeveloped-stroke: #64748b;
+  --dg-undeveloped-stroke: #94a3b8;
   --dg-undeveloped-text: #cbd5e1;
 
   --dg-success: #4ade80;
@@ -132,6 +140,12 @@
   --dg-consequence-fill: #241233;
   --dg-consequence-stroke: #c084fc;
   --dg-consequence-text: #e9d5ff;
+
+  --dg-blue-fill: #0d1a33;
+  --dg-blue-stroke: #60a5fa;
+  --dg-blue-text: #bfdbfe;
+
+  --auth-scrim: 7 12 23;
 }
 
 body {
@@ -207,13 +221,12 @@ body {
   opacity: 1;
 }
 
-/* Selection styles */
-.react-flow__node.selected {
-  box-shadow: none;
-}
-
+/* Selection — each node component draws its own shape-correct ring (boxes and
+   circles) or glow (SVG gates) with ring-primary-500 / --dg-select-glow; here we
+   only recolour and thicken the selected edge path. */
 .react-flow__edge.selected .react-flow__edge-path {
-  stroke-width: 2.5;
+  stroke: var(--dg-edge-selected);
+  stroke-width: 3;
 }
 
 /* Native browser elements (inputs, selects, scrollbars) respect color-scheme */

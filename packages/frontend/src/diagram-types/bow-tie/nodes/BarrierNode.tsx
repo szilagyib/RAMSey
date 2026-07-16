@@ -8,21 +8,19 @@ import type { BowTieNodeData } from '../../../types/diagram';
 // Color mapping for barrier types
 // ---------------------------------------------------------------------------
 
-const barrierStyles: Record<
+const barrierTokens: Record<
   'preventive_barrier' | 'mitigative_barrier',
-  { bg: string; border: string; ring: string; text: string }
+  { fill: string; stroke: string; text: string }
 > = {
   preventive_barrier: {
-    bg: 'bg-blue-900 dark:bg-blue-50',
-    border: 'border-blue-400',
-    ring: 'ring-blue-300',
-    text: 'text-blue-100 dark:text-blue-900',
+    fill: 'var(--dg-blue-fill)',
+    stroke: 'var(--dg-blue-stroke)',
+    text: 'var(--dg-blue-text)',
   },
   mitigative_barrier: {
-    bg: 'bg-green-900 dark:bg-green-50',
-    border: 'border-green-400',
-    ring: 'ring-green-300',
-    text: 'text-green-100 dark:text-green-900',
+    fill: 'var(--dg-basic-fill)',
+    stroke: 'var(--dg-basic-stroke)',
+    text: 'var(--dg-basic-text)',
   },
 };
 
@@ -34,7 +32,8 @@ function BarrierNodeComponent({ data, selected }: NodeProps) {
   const nodeData = data as BowTieNodeData;
   const kind =
     nodeData.nodeKind === 'mitigative_barrier' ? 'mitigative_barrier' : 'preventive_barrier';
-  const style = barrierStyles[kind];
+  const tokens = barrierTokens[kind];
+  const custom = nodeColorStyle(data);
 
   return (
     <>
@@ -49,18 +48,16 @@ function BarrierNodeComponent({ data, selected }: NodeProps) {
       <div
         className={cn(
           'flex h-20 w-8 items-center justify-center overflow-hidden border-2 transition-shadow',
-          style.bg,
-          style.border,
-          selected && `ring-2 ${style.ring}`,
+          selected && 'ring-2 ring-primary-500',
         )}
-        style={nodeColorStyle(data)}
+        style={custom ?? { backgroundColor: tokens.fill, borderColor: tokens.stroke }}
       >
         <span
-          className={cn('text-[10px] font-semibold leading-tight select-none', style.text)}
+          className="text-[10px] font-semibold leading-tight select-none"
           style={{
             writingMode: 'vertical-rl',
             textOrientation: 'mixed',
-            ...(nodeColorStyle(data) ? { color: 'inherit' } : {}),
+            color: custom?.color ?? tokens.text,
           }}
         >
           {nodeData.label}

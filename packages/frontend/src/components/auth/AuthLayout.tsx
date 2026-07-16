@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { ThemeToggle } from '../ui/ThemeToggle';
 
 /**
@@ -74,7 +76,7 @@ const DIAGRAM_TYPES = [
   { label: 'Fault Trees', color: '#94a3b8' }, // graphite gates
   { label: 'Markov Chains', color: '#22c55e' }, // operational
   { label: 'Event Trees', color: '#f59e0b' }, // degraded
-  { label: 'RBD', color: '#818cf8' }, // primary-400
+  { label: 'Reliability Block Diagram', color: '#818cf8' }, // primary-400
   { label: 'Bow-Tie', color: '#ef4444' }, // failed
   { label: 'FMEA', color: '#a5b4fc' }, // primary-300
 ];
@@ -133,8 +135,9 @@ export function AuthLayout({ headline, blurb, children }: AuthLayoutProps) {
 
       {/* ── Brand panel ── */}
       <div className="relative hidden w-[46%] shrink-0 flex-col justify-between overflow-hidden px-14 py-12 lg:flex">
-        {/* Ground: deep navy lifted toward indigo, so it belongs to the brand. */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#070c17] via-[#0c1326] to-[#191a45]" />
+        {/* Ground: a rich brand indigo in light mode (not near-black next to the
+            light form), deepening to navy in dark mode. */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#312e81] via-[#3730a3] to-[#4338ca] dark:from-[#070c17] dark:via-[#0c1326] dark:to-[#191a45]" />
 
         {/* A single indigo bloom, top-right, to carry the eye toward the form. */}
         <div
@@ -152,7 +155,7 @@ export function AuthLayout({ headline, blurb, children }: AuthLayoutProps) {
           className="pointer-events-none absolute inset-0"
           style={{
             background:
-              'radial-gradient(75% 52% at 24% 60%, rgba(7,12,23,0.95) 0%, rgba(7,12,23,0.78) 42%, rgba(7,12,23,0) 76%)',
+              'radial-gradient(75% 52% at 24% 60%, rgb(var(--auth-scrim) / 0.95) 0%, rgb(var(--auth-scrim) / 0.78) 42%, rgb(var(--auth-scrim) / 0) 76%)',
           }}
         />
 
@@ -184,7 +187,16 @@ export function AuthLayout({ headline, blurb, children }: AuthLayoutProps) {
       </div>
 
       {/* ── Form ── */}
-      <div className="flex flex-1 flex-col items-center justify-center px-8 py-12">
+      <div className="relative flex flex-1 flex-col items-center justify-center px-8 py-12">
+        {/* Back to home — mirrors the back control on the canvas. */}
+        <Link
+          to="/"
+          aria-label="Back to home"
+          title="Back to home"
+          className="absolute left-6 top-6 flex h-8 w-8 items-center justify-center rounded-md text-surface-500 transition-colors hover:bg-surface-100 hover:text-surface-700 dark:hover:bg-surface-200"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Link>
         <div className="mb-10 flex flex-col items-center gap-1.5 lg:hidden">
           <img src="/favicon.svg" alt="" aria-hidden="true" className="h-10 w-10" />
           <span className="text-lg font-semibold text-primary-600">RAMSey</span>

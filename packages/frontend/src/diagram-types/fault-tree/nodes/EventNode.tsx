@@ -81,7 +81,10 @@ function EventNodeComponent({ data, selected }: NodeProps) {
   const isBox = eventType === 'top' || eventType === 'intermediate';
 
   const selectedGlow = selected
-    ? { filter: 'drop-shadow(0 0 6px var(--dg-select-glow))' }
+    ? {
+        filter:
+          'drop-shadow(0 0 1px var(--dg-edge-selected)) drop-shadow(0 0 2px var(--dg-edge-selected)) drop-shadow(0 0 5px var(--dg-select-glow))',
+      }
     : undefined;
 
   return (

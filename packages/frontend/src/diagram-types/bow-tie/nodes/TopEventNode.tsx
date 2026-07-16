@@ -31,7 +31,7 @@ function TopEventNodeComponent({ data, selected }: NodeProps) {
       <div
         className={cn(
           'absolute h-12 w-12 rotate-45 border-2 transition-shadow',
-          selected && 'ring-2 ring-amber-300',
+          selected && 'ring-2 ring-primary-500',
         )}
         style={{ background: tokens.fill, borderColor: tokens.stroke }}
       />

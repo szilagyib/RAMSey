@@ -10,6 +10,7 @@ import type { EventTreeNodeData } from '../../../types/diagram';
 
 function HeaderNodeComponent({ data, selected }: NodeProps) {
   const nodeData = data as EventTreeNodeData;
+  const custom = nodeColorStyle(data);
 
   return (
     <>
@@ -24,14 +25,15 @@ function HeaderNodeComponent({ data, selected }: NodeProps) {
       <div
         className={cn(
           'flex h-12 w-32 items-center justify-center overflow-hidden border-2 px-2 transition-shadow',
-          'bg-blue-900 dark:bg-blue-50 border-blue-400',
-          selected && 'ring-2 ring-blue-300',
+          selected && 'ring-2 ring-primary-500',
         )}
-        style={nodeColorStyle(data)}
+        style={
+          custom ?? { backgroundColor: 'var(--dg-blue-fill)', borderColor: 'var(--dg-blue-stroke)' }
+        }
       >
         <span
-          className="line-clamp-2 w-full text-center text-sm leading-tight font-semibold text-blue-100 dark:text-blue-900 select-none"
-          style={nodeColorStyle(data) && { color: 'inherit' }}
+          className="line-clamp-2 w-full text-center text-sm leading-tight font-semibold select-none"
+          style={{ color: custom?.color ?? 'var(--dg-blue-text)' }}
         >
           {nodeData.label}
         </span>

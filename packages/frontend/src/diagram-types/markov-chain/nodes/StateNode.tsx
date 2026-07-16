@@ -8,33 +8,31 @@ import type { MarkovNodeData } from '../../../types/diagram';
 // Color mapping for state types
 // ---------------------------------------------------------------------------
 
-const stateStyles: Record<
+// Theme-aware canvas colors, shared with the sidebar palette (see Sidebar.tsx)
+// so a placed node matches its palette symbol in both themes.
+const stateTokens: Record<
   MarkovNodeData['stateType'],
-  { bg: string; border: string; ring: string; text: string }
+  { fill: string; stroke: string; text: string }
 > = {
   operational: {
-    bg: 'bg-state-operational-900 dark:bg-state-operational-50',
-    border: 'border-state-operational-400',
-    ring: 'ring-state-operational-300',
-    text: 'text-state-operational-100 dark:text-state-operational-900',
+    fill: 'var(--dg-basic-fill)',
+    stroke: 'var(--dg-basic-stroke)',
+    text: 'var(--dg-basic-text)',
   },
   degraded: {
-    bg: 'bg-state-degraded-900 dark:bg-state-degraded-50',
-    border: 'border-state-degraded-400',
-    ring: 'ring-state-degraded-300',
-    text: 'text-state-degraded-100 dark:text-state-degraded-900',
+    fill: 'var(--dg-intermediate-fill)',
+    stroke: 'var(--dg-intermediate-stroke)',
+    text: 'var(--dg-intermediate-text)',
   },
   failed: {
-    bg: 'bg-state-failed-900 dark:bg-state-failed-50',
-    border: 'border-state-failed-400',
-    ring: 'ring-state-failed-300',
-    text: 'text-state-failed-100 dark:text-state-failed-900',
+    fill: 'var(--dg-top-fill)',
+    stroke: 'var(--dg-top-stroke)',
+    text: 'var(--dg-top-text)',
   },
   absorbing: {
-    bg: 'bg-state-absorbing-900 dark:bg-state-absorbing-50',
-    border: 'border-state-absorbing-500',
-    ring: 'ring-state-absorbing-300',
-    text: 'text-state-absorbing-100 dark:text-state-absorbing-900',
+    fill: 'var(--dg-undeveloped-fill)',
+    stroke: 'var(--dg-undeveloped-stroke)',
+    text: 'var(--dg-undeveloped-text)',
   },
 };
 
@@ -44,9 +42,10 @@ const stateStyles: Record<
 
 function StateNodeComponent({ data, selected }: NodeProps) {
   const nodeData = data as MarkovNodeData;
-  const style = stateStyles[nodeData.stateType] ?? stateStyles.operational;
+  const tokens = stateTokens[nodeData.stateType] ?? stateTokens.operational;
   const isAbsorbing = nodeData.stateType === 'absorbing';
   const custom = nodeColorStyle(data);
+  const strokeColor = custom?.borderColor ?? tokens.stroke;
 
   return (
     <>
@@ -62,23 +61,18 @@ function StateNodeComponent({ data, selected }: NodeProps) {
       <div
         className={cn(
           'rounded-full transition-shadow',
-          isAbsorbing && cn('border-2 p-[3px]', style.border),
-          selected && `ring-2 ${style.ring}`,
-          nodeData.isInitial && 'ring-2 ring-offset-2 ring-primary-400',
+          isAbsorbing && 'border-2 p-[3px]',
+          selected && 'ring-2 ring-primary-500',
         )}
-        style={custom && isAbsorbing ? { borderColor: custom.borderColor } : undefined}
+        style={isAbsorbing ? { borderColor: strokeColor } : undefined}
       >
         <div
-          className={cn(
-            'flex h-12 w-12 items-center justify-center rounded-full border-2',
-            style.bg,
-            style.border,
-          )}
-          style={custom}
+          className="flex h-12 w-12 items-center justify-center rounded-full border-2"
+          style={custom ?? { backgroundColor: tokens.fill, borderColor: tokens.stroke }}
         >
           <span
-            className={cn('text-sm font-semibold select-none', style.text)}
-            style={custom ? { color: custom.color } : undefined}
+            className="text-sm font-semibold select-none"
+            style={{ color: custom?.color ?? tokens.text }}
           >
             {nodeData.label}
           </span>
