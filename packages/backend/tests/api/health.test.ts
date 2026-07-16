@@ -62,6 +62,7 @@ describe('Health Routes', () => {
       expect(response.statusCode).toBe(503);
       const body = response.json();
       expect(body.status).toBe('not ready');
+      expect(body).not.toHaveProperty('error');
     });
   });
 
@@ -71,7 +72,11 @@ describe('Health Routes', () => {
 
       expect(response.statusCode).toBe(200);
       // Test env has no ANTHROPIC_API_KEY and no analysis queue.
-      expect(response.json()).toEqual({ aiChat: false, serverAnalysis: false });
+      expect(response.json()).toEqual({
+        aiChat: false,
+        serverAnalysis: false,
+        googleOAuth: false,
+      });
     });
   });
 });

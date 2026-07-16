@@ -24,6 +24,7 @@ const healthRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
     return {
       aiChat: Boolean(env.ANTHROPIC_API_KEY),
       serverAnalysis: getAnalysisQueue() !== null,
+      googleOAuth: Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET),
     };
   });
 
@@ -44,8 +45,9 @@ const healthRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
         },
       };
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown database error';
-
+      // The ALB calls this route publicly through Cloudflare. Keep connection
+      // details in structured logs instead of reflecting them to the internet.
+      fastify.log.error({ error }, 'database readiness check failed');
       reply.status(503);
       return {
         status: 'not ready',
@@ -53,7 +55,6 @@ const healthRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
         checks: {
           database: 'disconnected',
         },
-        error: message,
       };
     }
   });

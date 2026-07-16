@@ -1,0 +1,6 @@
+{
+  "app": "npx tsx bin/ramsey.ts",
+  "context": {
+    "@aws-cdk/aws-ecs:removeDefaultDeploymentAlarm": true
+  }
+}

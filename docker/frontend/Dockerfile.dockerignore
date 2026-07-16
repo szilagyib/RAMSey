@@ -1,0 +1,14 @@
+# The nginx image needs only the built SPA and its server configuration.
+*
+!docker/
+docker/*
+!docker/frontend/
+!docker/frontend/Dockerfile
+!docker/frontend/nginx.conf
+
+!packages/
+packages/*
+!packages/frontend/
+packages/frontend/*
+!packages/frontend/dist/
+!packages/frontend/dist/**

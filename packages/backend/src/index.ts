@@ -20,9 +20,14 @@ async function start(): Promise<void> {
     });
     rateLimitRedis.on('error', (err: Error) => logger.warn({ err }, 'rate-limit Redis error'));
 
+    const trustedProxies = env.TRUST_PROXY?.split(',')
+      .map((proxy) => proxy.trim())
+      .filter(Boolean);
+
     const app = await buildApp({
       loggerInstance: logger,
       rateLimitRedis,
+      ...(trustedProxies?.length ? { trustProxy: trustedProxies } : {}),
     });
 
     // Start the analysis queue (non-fatal: server-side analysis returns 503 if it fails).

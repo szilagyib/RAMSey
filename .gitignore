@@ -9,6 +9,7 @@ dist-node/
 build/
 .next/
 out/
+cdk.out/
 *.tsbuildinfo
 
 # ─── Environment variables ───

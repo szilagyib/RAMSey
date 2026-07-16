@@ -6,7 +6,8 @@
   "workspaces": [
     "packages/engine",
     "packages/backend",
-    "packages/frontend"
+    "packages/frontend",
+    "infra"
   ],
   "scripts": {
     "dev": "concurrently -n backend,frontend -c blue,green \"npm:dev:backend\" \"npm:dev:frontend\"",
@@ -15,18 +16,21 @@
     "build": "npm run build --workspaces --if-present",
     "build:engine": "npm run build -w packages/engine",
     "build:backend": "npm run build -w packages/backend",
-    "build:frontend": "npm run build -w packages/frontend",
+    "build:frontend": "npm run build:engine && npm run build -w packages/frontend",
+    "pretest": "npm run build:engine",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:unit": "vitest run --project engine --project backend-unit --project frontend-unit",
     "test:api": "vitest run --project backend-api",
     "test:integration": "vitest run --project backend-integration",
     "test:coverage": "vitest run --coverage",
+    "pretest:e2e": "npm run build:engine",
     "test:e2e": "playwright test",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"packages/*/src/**/*.{ts,tsx,json,css}\"",
     "format:check": "prettier --check \"packages/*/src/**/*.{ts,tsx,json,css}\"",
+    "pretypecheck": "npm run build:engine",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "db:migrate": "npm run db:migrate -w packages/backend",
     "db:generate": "npm run db:generate -w packages/backend",
@@ -34,13 +38,16 @@
     "docker:up": "docker compose -f docker/docker-compose.yml up -d",
     "docker:down": "docker compose -f docker/docker-compose.yml down",
     "docker:logs": "docker compose -f docker/docker-compose.yml logs -f",
+    "infra:synth": "npm run synth -w infra --",
+    "infra:diff": "npm run diff -w infra",
+    "infra:deploy": "npm run deploy -w infra --",
     "prepare": "husky"
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0",
     "@typescript-eslint/eslint-plugin": "^8.60.1",
     "@typescript-eslint/parser": "^8.60.1",
-    "@vitest/coverage-v8": "^4.1.8",
+    "@vitest/coverage-v8": "^4.1.10",
     "concurrently": "^10.0.3",
     "eslint": "^9.39.4",
     "eslint-config-prettier": "^10.1.8",
@@ -50,7 +57,7 @@
     "lint-staged": "^17.0.7",
     "prettier": "^3.8.3",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.10"
   },
   "lint-staged": {
     "*.{ts,tsx}": [

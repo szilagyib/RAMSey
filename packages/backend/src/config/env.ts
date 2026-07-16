@@ -23,6 +23,12 @@ const envSchema = z.object({
 
   FRONTEND_URL: z.string().default('http://localhost:5173'),
 
+  PUBLIC_API_URL: z.string().default('http://localhost:3000'),
+
+  // Comma-separated CIDRs/IPs trusted to set X-Forwarded-For. Production uses
+  // the VPC plus Cloudflare edges; unset locally so spoofed headers are ignored.
+  TRUST_PROXY: z.string().optional(),
+
   // Optional: when unset, the AI chat endpoint degrades gracefully with an
   // "AI chat not configured" error event instead of failing to boot.
   ANTHROPIC_API_KEY: z.string().optional(),
@@ -73,6 +79,8 @@ function loadEnv(): Env {
         GOOGLE_CLIENT_ID: undefined,
         GOOGLE_CLIENT_SECRET: undefined,
         FRONTEND_URL: 'http://localhost:5173',
+        PUBLIC_API_URL: 'http://localhost:3000',
+        TRUST_PROXY: undefined,
         ANTHROPIC_API_KEY: undefined,
         SENTRY_DSN: undefined,
         AI_BUDGET_PER_SESSION_TOKENS: 200_000,

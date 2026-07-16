@@ -5,6 +5,7 @@ import { useDiagramStore } from '../../stores/diagramStore';
 import { serializeDiagramContext } from '../../lib/diagramSerializer';
 import { executeToolCall } from '../../lib/chatToolExecutor';
 import { cn } from '../../lib/utils';
+import { apiUrl } from '../../config/runtime';
 
 // Mirror the backend chat.validation bounds so the UI fails fast instead of
 // round-tripping to a 400. Keep these in sync with chat.validation.ts.
@@ -24,7 +25,7 @@ async function sendChatRequest(
   onError: (msg: string) => void,
   onDone: () => void,
 ) {
-  const res = await fetch('/api/ai/chat', {
+  const res = await fetch(apiUrl('/api/ai/chat'), {
     method: 'POST',
     credentials: 'include',
     headers: {

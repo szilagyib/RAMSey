@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { apiUrl } from '../config/runtime';
 
 /**
  * Deployment capabilities: which optional features the backend has enabled.
@@ -8,18 +9,24 @@ import { useEffect, useState } from 'react';
 export interface Capabilities {
   aiChat: boolean;
   serverAnalysis: boolean;
+  googleOAuth: boolean;
 }
 
-export const NO_CAPABILITIES: Capabilities = { aiChat: false, serverAnalysis: false };
+export const NO_CAPABILITIES: Capabilities = {
+  aiChat: false,
+  serverAnalysis: false,
+  googleOAuth: false,
+};
 
 export async function fetchCapabilities(): Promise<Capabilities> {
   try {
-    const res = await fetch('/api/capabilities', { credentials: 'include' });
+    const res = await fetch(apiUrl('/api/capabilities'), { credentials: 'include' });
     if (!res.ok) return NO_CAPABILITIES;
     const body = (await res.json()) as Partial<Capabilities>;
     return {
       aiChat: body.aiChat === true,
       serverAnalysis: body.serverAnalysis === true,
+      googleOAuth: body.googleOAuth === true,
     };
   } catch {
     return NO_CAPABILITIES;

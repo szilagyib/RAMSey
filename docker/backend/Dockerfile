@@ -1,47 +1,66 @@
-# ============================================
-# Runtime image for pre-built backend
-# Prerequisites: npm run build (locally) to produce dist/
-# npm install is run inside the container so native addons
-# (e.g. bcrypt) are compiled for Linux, not copied from Windows.
-# ============================================
-FROM node:22-slim
+# Build inside Linux so deploys never depend on local dist/ artifacts.
+FROM node:22-slim AS build
 
 WORKDIR /app
 
-# Install OpenSSL for Prisma engine detection
-RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update -y \
+    && apt-get install -y --no-install-recommends openssl \
+    && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user
-RUN groupadd --system --gid 1001 ramsey && \
-    useradd --system --uid 1001 --gid ramsey --create-home ramsey
-
-# Copy package manifests (needed for npm workspaces install)
 COPY package.json package-lock.json ./
 COPY packages/engine/package.json ./packages/engine/package.json
 COPY packages/backend/package.json ./packages/backend/package.json
-# Frontend package.json needed so workspaces resolve without error
+COPY packages/backend/prisma.config.ts ./packages/backend/prisma.config.ts
 COPY packages/frontend/package.json ./packages/frontend/package.json
-
-# Install production dependencies for Linux (recompiles native addons).
-# - drop the root "prepare" script first: it runs husky (a devDependency that
-#   --omit=dev doesn't install), which fails the install; git hooks have no
-#   place in a runtime image anyway.
-# - no output-piping or fallback: piping masked npm ci's exit code (the
-#   pipeline returns tail's status), letting a broken install reach later steps.
-RUN npm pkg delete scripts.prepare && npm ci --omit=dev --ignore-scripts=false
-
-# Copy pre-built engine + backend dist
-COPY packages/engine/dist ./packages/engine/dist
-COPY packages/backend/dist ./packages/backend/dist
+COPY infra/package.json ./infra/package.json
 COPY packages/backend/prisma ./packages/backend/prisma
 
-# Generate the Prisma client for this platform. npm exec -w resolves the
-# prisma bin wherever npm placed it (it nests under packages/backend/
-# node_modules rather than hoisting to the root).
-RUN npm exec -w packages/backend -- prisma generate --schema=/app/packages/backend/prisma/schema.prisma
+# Git hooks belong on developer machines, not in deterministic image builds.
+RUN npm pkg delete scripts.prepare \
+    && npm ci --workspace=@ramsey/engine --workspace=@ramsey/backend --include-workspace-root
+
+COPY tsconfig.base.json ./
+COPY packages/engine/tsconfig.json ./packages/engine/tsconfig.json
+COPY packages/engine/src ./packages/engine/src
+COPY packages/backend/tsconfig.json ./packages/backend/tsconfig.json
+COPY packages/backend/src ./packages/backend/src
+
+RUN npm exec -w packages/backend -- prisma generate \
+    --schema=/app/packages/backend/prisma/schema.prisma \
+    && npm run build:engine \
+    && npm run build:backend
+
+# Keep the runtime small and rebuild native modules for the target platform.
+FROM node:22-slim AS runtime
+
+WORKDIR /app
+
+RUN apt-get update -y \
+    && apt-get install -y --no-install-recommends openssl \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --system --gid 1001 ramsey \
+    && useradd --system --uid 1001 --gid ramsey --create-home ramsey
+
+COPY package.json package-lock.json ./
+COPY packages/engine/package.json ./packages/engine/package.json
+COPY packages/backend/package.json ./packages/backend/package.json
+COPY packages/backend/prisma.config.ts ./packages/backend/prisma.config.ts
+COPY packages/frontend/package.json ./packages/frontend/package.json
+COPY infra/package.json ./infra/package.json
+COPY packages/backend/prisma ./packages/backend/prisma
+
+RUN npm pkg delete scripts.prepare \
+    && npm ci --omit=dev --workspace=@ramsey/engine --workspace=@ramsey/backend --include-workspace-root \
+    && npm exec -w packages/backend -- prisma generate \
+      --schema=/app/packages/backend/prisma/schema.prisma \
+    && npm cache clean --force
+
+COPY --from=build /app/packages/engine/dist ./packages/engine/dist
+COPY --from=build /app/packages/backend/dist ./packages/backend/dist
 
 USER ramsey
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "npm exec -w packages/backend -- prisma migrate deploy --schema=/app/packages/backend/prisma/schema.prisma && node packages/backend/dist/index.js"]
+# The API owns migrations; the worker overrides this command and never races it.
+CMD ["sh", "-c", "node packages/backend/node_modules/prisma/build/index.js migrate deploy --schema=packages/backend/prisma/schema.prisma && exec node packages/backend/dist/index.js"]

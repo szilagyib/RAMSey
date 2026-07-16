@@ -12,6 +12,7 @@ import {
 } from '../lib/yjsBinding';
 import type { RemoteCursor } from '../components/editor/CursorsOverlay';
 import type { RemoteSelection } from '../components/editor/SelectionOverlay';
+import { websocketUrl } from '../config/runtime';
 
 interface Peer {
   id?: string;
@@ -63,15 +64,9 @@ export function useCollaboration(params: {
 
     const store = useDiagramStore as unknown as BindableStore;
     const doc = new Y.Doc();
-    const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const provider = new WebsocketProvider(
-      `${proto}://${window.location.host}/yjs`,
-      diagramId,
-      doc,
-      {
-        connect: true,
-      },
-    );
+    const provider = new WebsocketProvider(websocketUrl('/yjs'), diagramId, doc, {
+      connect: true,
+    });
 
     // Presence/awareness.
     awarenessRef.current = provider.awareness;
