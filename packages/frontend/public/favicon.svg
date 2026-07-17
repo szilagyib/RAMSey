@@ -1,28 +1,30 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 84 84" width="84" height="84">
   <!--
-    RAMSey mark: an absorbing state.
+    RAMSey mark: a minimal diagram — one node branching to two.
 
-    The double circle is the notation for an absorbing state — the terminal
-    state every Markov reliability model is built to reach, and the one symbol a
-    reliability engineer reads instantly.
+    It reads as what the app makes: a graph / fault tree. Kept to three fat nodes
+    and two thick edges so it survives at 16px in a browser tab (an earlier,
+    busier graph turned to mud that small).
 
-    It is deliberately just the two circles. An earlier version drew a transition
-    arrow entering the state, which was handsome at 64px and mud at 16px: three
-    elements with 1px strokes in a browser tab. A favicon gets one shape, drawn
-    thick and large enough to survive. The wordmark carries the rest.
-
-    The gradient runs primary-500 to primary-700, so the mark averages out at
-    primary-600 — the colour of the buttons and the RAMSey wordmark it sits next
-    to. It used to end in a violet that was in no palette at all.
+    The rounded-square gradient runs primary-500 → primary-700 (the brand blue),
+    so the mark averages out at primary-600 — the colour of the buttons and the
+    RAMSey wordmark it sits beside.
   -->
   <defs>
     <linearGradient id="ramsey-brand" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#6366f1" />
-      <stop offset="100%" stop-color="#4338ca" />
+      <stop offset="0%" stop-color="#4c66ee" />
+      <stop offset="100%" stop-color="#2f41bd" />
     </linearGradient>
   </defs>
 
   <rect width="84" height="84" rx="20" fill="url(#ramsey-brand)" />
-  <circle cx="42" cy="42" r="24" fill="none" stroke="#ffffff" stroke-width="10" />
-  <circle cx="42" cy="42" r="9.5" fill="#ffffff" />
+  <g stroke="#ffffff" stroke-width="7" stroke-linecap="round">
+    <line x1="42" y1="28" x2="27" y2="56" />
+    <line x1="42" y1="28" x2="57" y2="56" />
+  </g>
+  <g fill="#ffffff">
+    <circle cx="42" cy="28" r="10" />
+    <circle cx="27" cy="57" r="9" />
+    <circle cx="57" cy="57" r="9" />
+  </g>
 </svg>
