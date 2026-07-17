@@ -10,6 +10,7 @@ build/
 .next/
 out/
 cdk.out/
+cdk.context.json
 *.tsbuildinfo
 
 # ─── Environment variables ───

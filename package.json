@@ -6,8 +6,7 @@
   "workspaces": [
     "packages/engine",
     "packages/backend",
-    "packages/frontend",
-    "infra"
+    "packages/frontend"
   ],
   "scripts": {
     "dev": "concurrently -n backend,frontend -c blue,green \"npm:dev:backend\" \"npm:dev:frontend\"",
@@ -38,9 +37,6 @@
     "docker:up": "docker compose -f docker/docker-compose.yml up -d",
     "docker:down": "docker compose -f docker/docker-compose.yml down",
     "docker:logs": "docker compose -f docker/docker-compose.yml logs -f",
-    "infra:synth": "npm run synth -w infra --",
-    "infra:diff": "npm run diff -w infra",
-    "infra:deploy": "npm run deploy -w infra --",
     "prepare": "husky"
   },
   "devDependencies": {

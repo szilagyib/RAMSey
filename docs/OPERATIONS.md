@@ -41,28 +41,31 @@ minimal cheap deployment is therefore: no API key, no solver-worker container.
 
 ## Deploy
 
-Production uses Cloudflare Pages plus AWS ECS Fargate. Follow
-[`AWS_DEPLOYMENT.md`](./AWS_DEPLOYMENT.md) for the exact first-deploy order.
+Production uses two deliberately small pieces:
 
-The Compose stack remains the local/self-hosted path:
+- **Frontend:** Cloudflare Pages builds `npm run build:frontend` from `master`
+  and serves `ramseytools.com`.
+- **Backend:** a free-tier EC2 instance in `eu-central-1` runs
+  `docker/docker-compose.host.yml` (Postgres, Redis, API, backups, and a
+  Cloudflare Tunnel connector). No application ports are exposed publicly;
+  TLS and ingress terminate at Cloudflare.
+
+Cloudflare Pages deploys frontend changes automatically after a push to
+`master`. Backend changes are deployed on the host:
 
 ```bash
-# Build images and start the prod stack (frontend, backend, solver-worker,
-# postgres, redis):
-cp docker/.env.prod.example docker/.env.prod   # fill in real values
-docker compose --env-file docker/.env.prod \
-  -f docker/docker-compose.yml -f docker/docker-compose.prod.yml up -d
+cd ~/RAMSey
+git pull
+docker compose --env-file docker/.env \
+  -f docker/docker-compose.host.yml up -d --build
 ```
 
 - **Migrations run automatically**: the backend container executes
-  `prisma migrate deploy` on start (the worker overrides its command, so only
-  the backend applies them — no race). Manual equivalent:
+  `prisma migrate deploy` on start. Manual equivalent:
   `npm run db:migrate:deploy -w packages/backend`.
-- **The solver-worker must be running** for server-side analysis: jobs are
-  queued in Postgres (pg-boss) and a dead worker means jobs sit in `QUEUED`.
-  It is a normal compose service — supervise/restart it like the API.
-  The worker also runs daily housekeeping (`chat_usage` retention pruning,
-  03:00 UTC).
+- Compose-only changes can omit `--build`.
+- The single-host production stack intentionally omits the solver worker;
+  analysis falls back to the browser.
 
 ## Secret rotation
 
@@ -72,13 +75,13 @@ docker compose --env-file docker/.env.prod \
 - **Single user/session revocation** doesn't need rotation: password reset and
   account deletion bump the user's `tokenVersion`, which kills all of that
   user's outstanding sessions.
-- **`ANTHROPIC_API_KEY` / SMTP / Sentry DSN**: on AWS, edit the matching key in
-  `ramsey/production/application` and force a new API deployment. For Compose,
-  replace the env value and restart.
-- **Postgres password**: on AWS, change the RDS master password and the
-  `password` field in `ramsey/production/database`, then force new API and
-  worker deployments. For Compose, update `DATABASE_URL` and
-  `POSTGRES_PASSWORD`, then restart both services.
+- **API keys / SMTP / backend Sentry DSN**: update `docker/.env` on the host,
+  then recreate the backend container. Frontend build-time variables such as
+  `VITE_SENTRY_DSN` live in Cloudflare Pages.
+- **Postgres password**: change the `ramsey` database role password first,
+  update `POSTGRES_PASSWORD` in `docker/.env`, then recreate the backend and
+  backup services. Editing only the env file does not change an existing
+  database role.
 
 ## Backups
 
@@ -86,8 +89,10 @@ All durable state is in Postgres (users, projects, diagrams + Yjs state,
 snapshots, analysis jobs/results, audit log, chat-usage ledger, pg-boss
 queue). Redis holds only transient rate-limit counters — safe to lose.
 
-- AWS RDS keeps seven days of automated backups and takes a final snapshot on
-  removal. For Compose, run a nightly `pg_dump` retained per your policy.
+- The `db-backup` service runs a daily `pg_dump` into the `dbbackups` volume,
+  retaining seven daily, four weekly, and three monthly generations.
+- The optional `backup-offsite` service mirrors that volume to Cloudflare R2
+  once all four `R2_*` variables are configured; otherwise it stays idle.
 - Verify restores periodically into a scratch database, then run
   `npm run test:integration` against it.
 - The privacy policy's retention statements must match whatever backup
@@ -96,8 +101,8 @@ queue). Redis holds only transient rate-limit counters — safe to lose.
 ## Health & monitoring
 
 - Liveness: `GET /api/health` (exempt from rate limiting).
-- Readiness: `GET /api/health/ready` checks Postgres and backs the AWS load
-  balancer health check.
+- Readiness: `GET /api/health/ready` checks Postgres and is suitable for host
+  and tunnel monitoring.
 - Errors: set `SENTRY_DSN` (backend) and `VITE_SENTRY_DSN` (frontend build);
   both are no-ops without a DSN.
 - Logs: pino JSON on stdout in production; secrets/cookies are redacted by
