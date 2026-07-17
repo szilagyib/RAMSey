@@ -40,6 +40,28 @@ services:
     restart: unless-stopped
     networks: [ramsey]
 
+  # Automated database backups: a scheduled pg_dump with rotation, written to a
+  # volume on the box. Restore with: gunzip -c <dump>.sql.gz | docker compose
+  # -f docker/docker-compose.host.yml exec -T postgres psql -U ramsey ramsey
+  db-backup:
+    image: prodrigestivill/postgres-backup-local:16
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: ramsey
+      POSTGRES_USER: ramsey
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      SCHEDULE: '@daily'
+      BACKUP_KEEP_DAYS: '7'
+      BACKUP_KEEP_WEEKS: '4'
+      BACKUP_KEEP_MONTHS: '3'
+    volumes:
+      - dbbackups:/backups
+    networks: [ramsey]
+
   backend:
     build:
       context: ..
@@ -92,3 +114,4 @@ networks:
 
 volumes:
   pgdata:
+  dbbackups:

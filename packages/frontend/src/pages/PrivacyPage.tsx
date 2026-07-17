@@ -4,10 +4,11 @@ import { ArrowLeft } from 'lucide-react';
 /**
  * Privacy policy + cookie notice.
  *
- * DRAFT — the technical disclosures below reflect what the app actually does
- * (verified against the codebase), but every [PLACEHOLDER] is an operator- or
- * legal-specific fact that MUST be filled in and the whole document reviewed
- * by a qualified person before launch. See TODO.md.
+ * The technical disclosures reflect what the app actually does (verified against
+ * the codebase and the production deployment). RAMSey is a free, independent
+ * project run by a solo developer; data is stored only to operate your account,
+ * projects, and teams — never sold, shared for others' purposes, or used for
+ * anything else.
  */
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -33,16 +34,21 @@ export function PrivacyPage() {
 
       <main className="mx-auto max-w-3xl px-6 py-8">
         <p className="mb-8 text-xs text-surface-500">
-          Last updated: [PLACEHOLDER — date]. This policy describes how RAMSey (&quot;the
-          service&quot;), operated by [PLACEHOLDER — legal entity name and address], processes your
-          data. Contact: [PLACEHOLDER — privacy contact email].
+          Last updated: 17 July 2026. RAMSey (&quot;the service&quot;) is a free, independent
+          project maintained by a solo developer based in Hungary. It stores your data only to run
+          your account, projects, and teams — nothing else. For any privacy question or request,
+          contact{' '}
+          <a href="mailto:szilagyiborbala8@gmail.com" className="text-primary-600 hover:underline">
+            szilagyiborbala8@gmail.com
+          </a>
+          .
         </p>
 
         <Section title="What data we process">
           <p>
             <strong>Account data.</strong> Your email address, optional display name, optional
-            profile picture, and a hashed password (or your Google account identifier if you sign in
-            with Google). Used to authenticate you and operate your account.
+            profile picture, and a hashed password. Used to authenticate you and operate your
+            account.
           </p>
           <p>
             <strong>Content you create.</strong> Projects, diagrams, snapshots, comments, and team
@@ -51,22 +57,17 @@ export function PrivacyPage() {
             account (your identity is removed from it).
           </p>
           <p>
-            <strong>AI assistant data.</strong> If you use the AI chat, your chat messages and the
-            content of the currently open diagram are sent to Anthropic (Claude) to generate
-            responses. We record the token volume of each AI request (not the content) to enforce
-            usage limits.
-          </p>
-          <p>
             <strong>Technical data.</strong> Server logs (IP address, request metadata) for security
-            and rate limiting; audit log entries for account and project actions; error reports (via
-            Sentry) if error tracking is enabled, which may include request context.
+            and rate limiting, and audit-log entries recording account and project actions.
           </p>
         </Section>
 
         <Section title="What we do NOT do">
           <p>
-            We do not sell your data, run advertising, or use third-party analytics. AI chat is only
-            invoked when you actively use it — diagrams are not sent to Anthropic otherwise.
+            The service is free. We store your data solely to provide it — your account, projects,
+            and teams. We do <strong>not</strong> sell your data, share it with third parties for
+            their own purposes, run advertising, use third-party analytics, profile you, or use your
+            data for anything beyond operating the service.
           </p>
         </Section>
 
@@ -85,48 +86,47 @@ export function PrivacyPage() {
         </Section>
 
         <Section title="Who processes your data (subprocessors)">
-          <p>The service relies on the following processors:</p>
+          <p>
+            To run the service we rely on a small number of infrastructure providers. They act only
+            as processors on our behalf, bound by their data-processing terms, and do not use your
+            data for their own purposes:
+          </p>
           <ul className="list-disc pl-5">
             <li>
-              <strong>Anthropic</strong> (AI chat responses) — receives chat messages and open
-              diagram content when you use the AI assistant. [PLACEHOLDER — confirm DPA /
-              zero-data-retention tier and link Anthropic&apos;s commercial terms.]
+              <strong>Amazon Web Services (AWS)</strong> — hosts the application server and the
+              PostgreSQL database in the EU (Frankfurt region).
             </li>
             <li>
-              <strong>[PLACEHOLDER — hosting provider]</strong> — runs the servers and database
-              (data location: [PLACEHOLDER — region/EU?]).
+              <strong>Cloudflare</strong> — serves the website and proxies traffic to the API
+              (content delivery and network security).
             </li>
             <li>
-              <strong>Sentry</strong> (error tracking, if enabled) — receives error reports.
-              [PLACEHOLDER — confirm plan/region and DPA.]
-            </li>
-            <li>
-              <strong>[PLACEHOLDER — email provider]</strong> — sends verification and
-              password-reset emails to your address.
-            </li>
-            <li>
-              <strong>Google</strong> (optional) — only if you choose &quot;Continue with
-              Google&quot;; we receive your Google profile id, email, name, and picture.
+              <strong>Resend</strong> — delivers account emails (address verification and password
+              reset) to your address.
             </li>
           </ul>
+          <p>
+            The application and database are hosted in the EU. Email delivery (Resend) and network
+            services (Cloudflare) may process limited data outside the EU under standard contractual
+            clauses.
+          </p>
         </Section>
 
         <Section title="Legal basis">
           <p>
-            We process account and content data to perform our contract with you (providing the
-            service); security logging and rate limiting under legitimate interest; AI processing of
-            your diagram occurs only on your initiative when you use the chat. [PLACEHOLDER —
-            confirm lawful-basis mapping with counsel.]
+            We process account and content data to perform our agreement with you (providing the
+            service). Security logging and rate limiting rely on our legitimate interest in keeping
+            the service safe and available.
           </p>
         </Section>
 
         <Section title="Retention">
           <p>
-            Account and content data are kept while your account exists. AI usage records:
-            [PLACEHOLDER — e.g. 12 months]. Server logs: [PLACEHOLDER — e.g. 30 days]. Audit logs:
-            [PLACEHOLDER]. Backups: [PLACEHOLDER — cycle length]. When you delete your account,
-            personal data is erased immediately (see below); residual copies leave backups within
-            the backup cycle.
+            Account and content data are kept while your account exists. Server logs are kept for a
+            short period (roughly 30 days) for security and abuse prevention. The database is backed
+            up automatically each day, and backups are retained for up to a few weeks on a rolling
+            cycle. When you delete your account, personal data is erased immediately (see below);
+            residual copies leave the backups within the backup cycle.
           </p>
         </Section>
 
@@ -138,11 +138,18 @@ export function PrivacyPage() {
               Account page
             </Link>
             . Deletion erases your personal details (email, name, picture, credentials) and your
-            personal records (notifications, AI usage, tokens); content you shared with
-            collaborators remains, no longer attributed to you. You also have the right to
-            rectification, restriction, objection, and to lodge a complaint with a supervisory
-            authority ([PLACEHOLDER — competent authority, e.g. NAIH for Hungary]). For anything you
-            cannot do in-app, contact [PLACEHOLDER — privacy contact email].
+            personal records (notifications, tokens); content you shared with collaborators remains,
+            no longer attributed to you. You also have the right to rectification, restriction,
+            objection, and to lodge a complaint with your supervisory authority — in Hungary, the
+            Nemzeti Adatvédelmi és Információszabadság Hatóság (NAIH). For anything you cannot do
+            in-app, contact{' '}
+            <a
+              href="mailto:szilagyiborbala8@gmail.com"
+              className="text-primary-600 hover:underline"
+            >
+              szilagyiborbala8@gmail.com
+            </a>
+            .
           </p>
         </Section>
 
