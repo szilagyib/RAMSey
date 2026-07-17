@@ -14,6 +14,8 @@
 #   TUNNEL_TOKEN        Cloudflare Tunnel connector token
 # Optional (leave blank to keep the feature off):
 #   GOOGLE_CLIENT_ID  GOOGLE_CLIENT_SECRET  ANTHROPIC_API_KEY  SENTRY_DSN
+#   Off-box backups to Cloudflare R2 — set ALL four to enable the backup-offsite
+#   service: R2_BUCKET, R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY
 #
 # Bring up:  docker compose -f docker/docker-compose.host.yml up -d --build
 # The API applies DB migrations on start.
@@ -60,6 +62,35 @@ services:
       BACKUP_KEEP_MONTHS: '3'
     volumes:
       - dbbackups:/backups
+    networks: [ramsey]
+
+  # Off-box copies of the backups to Cloudflare R2 (S3-compatible). Mirrors the
+  # local dbbackups volume once a day. Idle (no-op) until the four R2_* vars are
+  # set, so it never breaks a stack that doesn't use it.
+  backup-offsite:
+    image: rclone/rclone:latest
+    restart: unless-stopped
+    depends_on:
+      - db-backup
+    environment:
+      RCLONE_CONFIG_R2_TYPE: s3
+      RCLONE_CONFIG_R2_PROVIDER: Cloudflare
+      RCLONE_CONFIG_R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:-}
+      RCLONE_CONFIG_R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:-}
+      RCLONE_CONFIG_R2_ENDPOINT: ${R2_ENDPOINT:-}
+      R2_BUCKET: ${R2_BUCKET:-}
+    entrypoint: ['/bin/sh', '-c']
+    command:
+      - |
+        if [ -z "$$R2_BUCKET" ]; then
+          echo "R2 not configured; offsite backup idle"; sleep infinity
+        fi
+        while true; do
+          rclone sync /data "r2:$$R2_BUCKET/db" --transfers 4 --s3-no-check-bucket || echo "rclone sync failed"
+          sleep 86400
+        done
+    volumes:
+      - dbbackups:/data:ro
     networks: [ramsey]
 
   backend:
