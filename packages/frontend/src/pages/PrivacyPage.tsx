@@ -47,8 +47,8 @@ export function PrivacyPage() {
         <Section title="What data we process">
           <p>
             <strong>Account data.</strong> Your email address, optional display name, optional
-            profile picture, and a hashed password. Used to authenticate you and operate your
-            account.
+            profile picture, and either a hashed password or, if you sign in with Google, your
+            Google account identifier. Used to authenticate you and operate your account.
           </p>
           <p>
             <strong>Content you create.</strong> Projects, diagrams, snapshots, comments, and team
@@ -103,6 +103,11 @@ export function PrivacyPage() {
             <li>
               <strong>Resend</strong> — delivers account emails (address verification and password
               reset) to your address.
+            </li>
+            <li>
+              <strong>Google</strong> (only if you choose &quot;Continue with Google&quot;) — we
+              receive your Google profile id, email, name, and picture to create or sign you into
+              your account.
             </li>
           </ul>
           <p>
