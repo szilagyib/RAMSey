@@ -76,9 +76,9 @@ const DIAGRAM_TYPES = [
   { label: 'Fault Trees', color: '#94a3b8' }, // graphite gates
   { label: 'Markov Chains', color: '#22c55e' }, // operational
   { label: 'Event Trees', color: '#f59e0b' }, // degraded
-  { label: 'Reliability Block Diagram', color: '#818cf8' }, // primary-400
+  { label: 'Reliability Block Diagram', color: '#728cf6' }, // primary-400
   { label: 'Bow-Tie', color: '#ef4444' }, // failed
-  { label: 'FMEA', color: '#a5b4fc' }, // primary-300
+  { label: 'FMEA', color: '#9fb2fb' }, // primary-300
 ];
 
 function NetworkGraph() {
@@ -89,7 +89,13 @@ function NetworkGraph() {
       aria-hidden="true"
       preserveAspectRatio="xMidYMid slice"
     >
-      <circle cx={250} cy={60} r={52} fill="#6366f1" opacity="0.22" />
+      <circle
+        cx={250}
+        cy={60}
+        r={52}
+        className="fill-primary-500 dark:fill-primary-500"
+        opacity="0.22"
+      />
       {NET_EDGES.map(([a, b], i) => (
         <line
           key={i}
@@ -97,7 +103,7 @@ function NetworkGraph() {
           y1={NET_NODES[a].y}
           x2={NET_NODES[b].x}
           y2={NET_NODES[b].y}
-          stroke="#c7d2fe"
+          className="stroke-primary-700 dark:stroke-primary-200"
           strokeWidth="1"
           opacity="0.16"
         />
@@ -108,7 +114,11 @@ function NetworkGraph() {
           cx={n.x}
           cy={n.y}
           r={i === 0 ? 7 : i < 3 ? 4.5 : 3.5}
-          fill={i === 0 ? '#818cf8' : '#e0e7ff'}
+          className={
+            i === 0
+              ? 'fill-primary-600 dark:fill-primary-400'
+              : 'fill-primary-800 dark:fill-primary-100'
+          }
           opacity={i === 0 ? 0.95 : i < 3 ? 0.35 : 0.2}
         />
       ))}
@@ -123,9 +133,40 @@ interface AuthLayoutProps {
   blurb: string;
   /** The form column. */
   children: ReactNode;
+  /** Reduce vertical chrome for taller forms such as registration. */
+  compact?: boolean;
+  /** Keep the regular layout until the viewport becomes short. */
+  fitShortViewport?: boolean;
 }
 
-export function AuthLayout({ headline, blurb, children }: AuthLayoutProps) {
+export function AuthLayout({
+  headline,
+  blurb,
+  children,
+  compact = false,
+  fitShortViewport = false,
+}: AuthLayoutProps) {
+  const formPadding = compact
+    ? 'py-6 sm:py-8 [@media(max-height:700px)]:py-4'
+    : fitShortViewport
+      ? 'py-12 [@media(max-height:700px)]:py-4'
+      : 'py-12';
+  const mobileBrandLayout = compact
+    ? 'mb-5 flex flex-row gap-2 [@media(max-height:700px)]:mb-3'
+    : fitShortViewport
+      ? 'mb-10 flex flex-col gap-1.5 [@media(max-height:700px)]:mb-3 [@media(max-height:700px)]:flex-row [@media(max-height:700px)]:gap-2'
+      : 'mb-10 flex flex-col gap-1.5';
+  const mobileBrandIcon = compact
+    ? 'h-8 w-8'
+    : fitShortViewport
+      ? 'h-10 w-10 [@media(max-height:700px)]:h-8 [@media(max-height:700px)]:w-8'
+      : 'h-10 w-10';
+  const mobileBrandText = compact
+    ? 'text-base font-semibold text-primary-600'
+    : fitShortViewport
+      ? 'text-lg font-semibold text-primary-600 [@media(max-height:700px)]:text-base'
+      : 'text-lg font-semibold text-primary-600';
+
   return (
     <div className="relative flex min-h-screen bg-[#f6f7fc] dark:bg-surface-100">
       {/* Theme toggle, floated over the form column (top-right) on every auth page. */}
@@ -135,16 +176,22 @@ export function AuthLayout({ headline, blurb, children }: AuthLayoutProps) {
 
       {/* ── Brand panel ── */}
       <div className="relative hidden w-[46%] shrink-0 flex-col justify-between overflow-hidden px-14 py-12 lg:flex">
-        {/* Ground: a rich brand indigo in light mode (not near-black next to the
-            light form), deepening to navy in dark mode. */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#312e81] via-[#3730a3] to-[#4338ca] dark:from-[#070c17] dark:via-[#0c1326] dark:to-[#191a45]" />
+        {/* Ground: luminous indigo in light mode, deep navy in dark mode. */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary-50 via-primary-100 to-primary-200 dark:from-[#0b1030] dark:via-[#141a44] dark:to-primary-900" />
 
         {/* A single indigo bloom, top-right, to carry the eye toward the form. */}
         <div
-          className="absolute inset-0"
+          className="absolute inset-0 dark:hidden"
           style={{
             background:
-              'radial-gradient(60% 45% at 78% 8%, rgba(99,102,241,0.28) 0%, transparent 70%)',
+              'radial-gradient(60% 45% at 78% 8%, rgba(76,102,238,0.16) 0%, transparent 70%)',
+          }}
+        />
+        <div
+          className="absolute inset-0 hidden dark:block"
+          style={{
+            background:
+              'radial-gradient(60% 45% at 78% 8%, rgba(76,102,238,0.28) 0%, transparent 70%)',
           }}
         />
 
@@ -152,7 +199,14 @@ export function AuthLayout({ headline, blurb, children }: AuthLayoutProps) {
 
         {/* The scrim: fades the graph out beneath the copy, keeps it at the edges. */}
         <div
-          className="pointer-events-none absolute inset-0"
+          className="pointer-events-none absolute inset-0 dark:hidden"
+          style={{
+            background:
+              'radial-gradient(75% 52% at 24% 60%, rgba(248,250,255,0.96) 0%, rgba(248,250,255,0.78) 42%, rgba(248,250,255,0) 76%)',
+          }}
+        />
+        <div
+          className="pointer-events-none absolute inset-0 hidden dark:block"
           style={{
             background:
               'radial-gradient(75% 52% at 24% 60%, rgb(var(--auth-scrim) / 0.95) 0%, rgb(var(--auth-scrim) / 0.78) 42%, rgb(var(--auth-scrim) / 0) 76%)',
@@ -161,33 +215,41 @@ export function AuthLayout({ headline, blurb, children }: AuthLayoutProps) {
 
         {/* The dissolve: the panel becomes the page's background, so there is no
             seam — the two colours fade into each other instead of meeting. */}
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-[58%] bg-gradient-to-r from-transparent via-[#f6f7fc]/60 to-[#f6f7fc] dark:via-surface-100/60 dark:to-surface-100" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-[52%] bg-gradient-to-r from-transparent via-[#f6f7fc]/40 to-[#f6f7fc] dark:w-[58%] dark:via-surface-100/60 dark:to-surface-100" />
 
         <div className="relative flex items-center gap-3">
           <img src="/favicon.svg" alt="" aria-hidden="true" className="h-8 w-8" />
-          <span className="text-lg font-semibold tracking-tight text-white">RAMSey</span>
+          <span className="text-lg font-semibold tracking-tight text-primary-950 dark:text-white">
+            RAMSey
+          </span>
         </div>
 
         <div className="relative max-w-[26rem]">
           {headline}
-          <p className="mt-4 text-sm leading-relaxed text-white/45">{blurb}</p>
+          <p className="mt-4 text-sm leading-relaxed text-surface-600 dark:text-white/45">
+            {blurb}
+          </p>
         </div>
 
         <div className="relative grid max-w-[24rem] grid-cols-2 gap-x-8 gap-y-3">
           {DIAGRAM_TYPES.map(({ label, color }) => (
             <div key={label} className="flex items-center gap-2.5">
               <span
-                className="h-px w-4 shrink-0 rounded-full"
+                className="h-0.5 w-5 shrink-0 rounded-full"
                 style={{ backgroundColor: color, opacity: 0.8 }}
               />
-              <span className="font-mono text-[11px] tracking-wide text-white/50">{label}</span>
+              <span className="font-mono text-[11px] tracking-wide text-surface-600 dark:text-white/50">
+                {label}
+              </span>
             </div>
           ))}
         </div>
       </div>
 
       {/* ── Form ── */}
-      <div className="relative flex flex-1 flex-col items-center justify-center px-8 py-12">
+      <div
+        className={`relative flex flex-1 flex-col items-center justify-center px-8 ${formPadding}`}
+      >
         {/* Back to home — mirrors the back control on the canvas. */}
         <Link
           to="/"
@@ -197,9 +259,9 @@ export function AuthLayout({ headline, blurb, children }: AuthLayoutProps) {
         >
           <ArrowLeft className="h-5 w-5" />
         </Link>
-        <div className="mb-10 flex flex-col items-center gap-1.5 lg:hidden">
-          <img src="/favicon.svg" alt="" aria-hidden="true" className="h-10 w-10" />
-          <span className="text-lg font-semibold text-primary-600">RAMSey</span>
+        <div className={`items-center lg:hidden ${mobileBrandLayout}`}>
+          <img src="/favicon.svg" alt="" aria-hidden="true" className={mobileBrandIcon} />
+          <span className={mobileBrandText}>RAMSey</span>
         </div>
         <div className="w-full max-w-[360px]">{children}</div>
       </div>
@@ -210,7 +272,7 @@ export function AuthLayout({ headline, blurb, children }: AuthLayoutProps) {
 /** The headline style both pages use. */
 export function AuthHeadline({ children }: { children: ReactNode }) {
   return (
-    <h2 className="text-[2.15rem] leading-tight font-semibold tracking-tight text-white">
+    <h2 className="text-[2.15rem] leading-tight font-semibold tracking-tight text-primary-950 dark:text-white">
       {children}
     </h2>
   );

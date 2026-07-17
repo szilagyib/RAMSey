@@ -205,6 +205,14 @@ body {
   padding: 0 0.5rem 0.25rem 0;
 }
 
+/* Clear the 10px custom canvas scrollbar tracks, plus a small breathing gap.
+   The extra specificity beats React Flow's later-loaded bottom/right rules. */
+.react-flow__attribution.react-flow__panel.bottom.right {
+  right: 14px;
+  bottom: 14px;
+  padding: 0;
+}
+
 .react-flow__attribution a {
   color: rgb(var(--surface-400));
   font-size: 10px;

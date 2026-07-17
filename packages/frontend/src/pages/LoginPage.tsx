@@ -44,6 +44,7 @@ export function LoginPage() {
 
   return (
     <AuthLayout
+      fitShortViewport
       headline={
         <AuthHeadline>
           Reliability analysis
@@ -54,9 +55,14 @@ export function LoginPage() {
       blurb="Build, validate, and collaborate on safety-critical system models — from block diagrams to full FMEA studies."
     >
       <h1 className="mb-1 text-2xl font-semibold tracking-tight text-surface-900">Welcome back</h1>
-      <p className="mb-8 text-sm text-surface-400">Sign in to your account to continue.</p>
+      <p className="mb-8 text-sm text-surface-400 [@media(max-height:700px)]:mb-5">
+        Sign in to your account to continue.
+      </p>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      <form
+        onSubmit={handleSubmit}
+        className="flex flex-col gap-5 [@media(max-height:700px)]:gap-4"
+      >
         <Input
           label="Email"
           type="email"
@@ -95,7 +101,7 @@ export function LoginPage() {
 
       {googleOAuth && (
         <>
-          <div className="my-6 flex items-center gap-3">
+          <div className="my-6 flex items-center gap-3 [@media(max-height:700px)]:my-4">
             <div className="flex-1 border-t border-surface-200 dark:border-surface-300" />
             <span className="text-xs text-surface-400">or</span>
             <div className="flex-1 border-t border-surface-200 dark:border-surface-300" />
@@ -128,7 +134,7 @@ export function LoginPage() {
         </>
       )}
 
-      <p className="mt-8 text-center text-sm text-surface-400">
+      <p className="mt-8 text-center text-sm text-surface-400 [@media(max-height:700px)]:mt-5">
         Don&apos;t have an account?{' '}
         <Link
           to="/register"
@@ -147,7 +153,7 @@ export function LoginPage() {
         </Link>
       </p>
 
-      <p className="mt-6 text-center text-xs text-surface-300">
+      <p className="mt-6 text-center text-xs text-surface-500 dark:text-surface-400 [@media(max-height:700px)]:mt-4">
         <Link to="/privacy" className="hover:text-surface-500 hover:underline">
           Privacy policy
         </Link>

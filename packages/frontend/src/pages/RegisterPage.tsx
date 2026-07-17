@@ -47,6 +47,7 @@ export function RegisterPage() {
 
   return (
     <AuthLayout
+      compact
       headline={
         <AuthHeadline>
           Start your
@@ -59,9 +60,14 @@ export function RegisterPage() {
       <h1 className="mb-1 text-2xl font-semibold tracking-tight text-surface-900">
         Create an account
       </h1>
-      <p className="mb-8 text-sm text-surface-400">Fill in your details to get started.</p>
+      <p className="mb-6 text-sm text-surface-400 [@media(max-height:700px)]:mb-4">
+        Fill in your details to get started.
+      </p>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      <form
+        onSubmit={handleSubmit}
+        className="flex flex-col gap-4 [@media(max-height:700px)]:gap-3"
+      >
         <Input
           label="Name"
           value={name}
@@ -130,7 +136,7 @@ export function RegisterPage() {
         </Button>
       </form>
 
-      <p className="mt-8 text-center text-sm text-surface-400">
+      <p className="mt-6 text-center text-sm text-surface-400 [@media(max-height:700px)]:mt-4">
         Already have an account?{' '}
         <Link
           to="/login"
