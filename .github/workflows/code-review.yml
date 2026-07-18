@@ -1,0 +1,12 @@
+name: Code Review
+on: pull_request
+
+jobs:
+  gitagents:
+    uses: szilagyib/GitAgents/.github/workflows/gitagents.yml@main
+    with:
+      provider: openai
+      model: gpt-4.1-mini
+    secrets:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      GH_PAT: ${{ secrets.GH_PAT }}
