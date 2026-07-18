@@ -43,7 +43,7 @@ minimal cheap deployment is therefore: no API key, no solver-worker container.
 
 Production uses two deliberately small pieces:
 
-- **Frontend:** Cloudflare Pages builds `npm run build:frontend` from `master`
+- **Frontend:** Cloudflare Pages builds `npm run build:frontend` from `main`
   and serves `ramseytools.com`.
 - **Backend:** a free-tier EC2 instance in `eu-central-1` runs
   `docker/docker-compose.host.yml` (Postgres, Redis, API, backups, and a
@@ -51,7 +51,7 @@ Production uses two deliberately small pieces:
   TLS and ingress terminate at Cloudflare.
 
 Cloudflare Pages deploys frontend changes automatically after a push to
-`master`. Backend changes are deployed on the host:
+`main`. Backend changes are deployed on the host:
 
 ```bash
 cd ~/RAMSey
