@@ -3,7 +3,7 @@ on: pull_request
 
 jobs:
   gitagents:
-    uses: szilagyib/GitAgents/.github/workflows/gitagents.yml@main
+    uses: szilagyib/GitAgents/.github/workflows/gitagents.yml@7854a401943e27a66ba20f67aa7c611bca736e83
     with:
       provider: openai
       model: gpt-4.1-mini
