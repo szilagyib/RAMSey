@@ -6,6 +6,8 @@ import { runAnalysis } from '../../../src/lib/analysisClient';
 // exercises the inline fallback path — verifying the client returns correct
 // engine results regardless of where execution happens.
 describe('runAnalysis (inline fallback)', () => {
+  // The full suite runs many jsdom files concurrently; keep this real solver integration
+  // test strict, but give it enough headroom for CPU contention on CI and dev machines.
   it('returns the engine result for a Markov availability request', async () => {
     const ir: ModelIR = {
       version: '1.0.0',
@@ -32,8 +34,13 @@ describe('runAnalysis (inline fallback)', () => {
       repairPolicy: null,
     };
 
-    const res = await runAnalysis({ modelIR: ir, method: 'availability', options: {}, executionTarget: 'browser' });
+    const res = await runAnalysis({
+      modelIR: ir,
+      method: 'availability',
+      options: {},
+      executionTarget: 'browser',
+    });
     expect(res.status).toBe('success');
     expect(Math.abs((res.metrics.availability as number) - 0.01 / 0.011)).toBeLessThan(1e-6);
-  });
+  }, 10_000);
 });
