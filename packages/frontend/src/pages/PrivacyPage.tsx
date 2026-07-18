@@ -34,7 +34,7 @@ export function PrivacyPage() {
 
       <main className="mx-auto max-w-3xl px-6 py-8">
         <p className="mb-8 text-xs text-surface-500">
-          Last updated: 17 July 2026. RAMSey (&quot;the service&quot;) is a free, independent
+          Last updated: 18 July 2026. RAMSey (&quot;the service&quot;) is a free, independent
           project maintained by a solo developer based in Hungary. It stores your data only to run
           your account, projects, and teams — nothing else. For any privacy question or request,
           contact{' '}
@@ -98,7 +98,8 @@ export function PrivacyPage() {
             </li>
             <li>
               <strong>Cloudflare</strong> — serves the website and proxies traffic to the API
-              (content delivery and network security).
+              (content delivery and network security), and stores daily off-site backups of the
+              database in its EU region (R2 object storage).
             </li>
             <li>
               <strong>Resend</strong> — delivers account emails (address verification and password
@@ -111,9 +112,9 @@ export function PrivacyPage() {
             </li>
           </ul>
           <p>
-            The application and database are hosted in the EU. Email delivery (Resend) and network
-            services (Cloudflare) may process limited data outside the EU under standard contractual
-            clauses.
+            The application, database, and off-site backups are hosted in the EU. The Cloudflare
+            content-delivery and proxy layer, and email delivery (Resend), may process limited data
+            outside the EU under standard contractual clauses.
           </p>
         </Section>
 
@@ -129,9 +130,10 @@ export function PrivacyPage() {
           <p>
             Account and content data are kept while your account exists. Server logs are kept for a
             short period (roughly 30 days) for security and abuse prevention. The database is backed
-            up automatically each day, and backups are retained for up to a few weeks on a rolling
-            cycle. When you delete your account, personal data is erased immediately (see below);
-            residual copies leave the backups within the backup cycle.
+            up automatically each day — on the server and off-site to Cloudflare&apos;s EU storage —
+            and backups rotate on a schedule, retained for up to about four months. When you delete
+            your account, personal data is erased immediately (see below); residual copies leave the
+            backups within that cycle.
           </p>
         </Section>
 
