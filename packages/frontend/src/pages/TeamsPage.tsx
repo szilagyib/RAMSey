@@ -329,7 +329,7 @@ export function TeamsPage() {
                 </div>
               </>
             ) : (
-              <div className="flex h-48 items-center justify-center rounded-lg border border-dashed border-surface-200 dark:border-surface-300 bg-white dark:bg-surface-100">
+              <div className="flex h-full min-h-[12rem] items-center justify-center rounded-lg border border-dashed border-surface-200 dark:border-surface-300 bg-white dark:bg-surface-100">
                 <p className="text-sm text-surface-400">Select a team to view details</p>
               </div>
             )}
