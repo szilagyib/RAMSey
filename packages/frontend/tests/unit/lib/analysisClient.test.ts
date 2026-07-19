@@ -41,6 +41,8 @@ describe('runAnalysis (inline fallback)', () => {
       executionTarget: 'browser',
     });
     expect(res.status).toBe('success');
-    expect(Math.abs((res.metrics.availability as number) - 0.01 / 0.011)).toBeLessThan(1e-6);
+    const availability = res.metrics.availability;
+    expect(availability).toBeTypeOf('number');
+    expect(Math.abs((availability as number) - 0.01 / 0.011)).toBeLessThan(1e-6);
   }, 10_000);
 });
