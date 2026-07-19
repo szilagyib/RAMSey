@@ -25,18 +25,79 @@ interface LocalDb {
   diagrams: Record<string, LocalDiagram>;
 }
 
+let validationCache: { raw: string; valid: boolean } | undefined;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isLocalProject(value: unknown): value is LocalProject {
+  if (!isRecord(value)) return false;
+
+  return (
+    typeof value.id === 'string' &&
+    typeof value.name === 'string' &&
+    (value.description === undefined || typeof value.description === 'string') &&
+    typeof value.ownerId === 'string' &&
+    value.ownerType === 'user' &&
+    typeof value.createdAt === 'string' &&
+    typeof value.updatedAt === 'string'
+  );
+}
+
+function isLocalDiagram(value: unknown): value is LocalDiagram {
+  if (!isRecord(value)) return false;
+
+  return (
+    typeof value.id === 'string' &&
+    typeof value.projectId === 'string' &&
+    typeof value.name === 'string' &&
+    typeof value.type === 'string' &&
+    typeof value.createdAt === 'string' &&
+    typeof value.updatedAt === 'string'
+  );
+}
+
+function isLocalDb(value: unknown): value is LocalDb {
+  if (!isRecord(value) || !isRecord(value.projects) || !isRecord(value.diagrams)) {
+    return false;
+  }
+
+  return (
+    Object.values(value.projects).every(isLocalProject) &&
+    Object.values(value.diagrams).every(isLocalDiagram)
+  );
+}
+
 function loadDb(): LocalDb {
+  let raw: string | null = null;
+
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as LocalDb;
+    raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      // Parsing is unavoidable, but only walk every record when the stored payload changes.
+      if (validationCache?.raw === raw) {
+        return validationCache.valid
+          ? (JSON.parse(raw) as LocalDb)
+          : { projects: {}, diagrams: {} };
+      }
+
+      const parsed: unknown = JSON.parse(raw);
+      const valid = isLocalDb(parsed);
+      validationCache = { raw, valid };
+      if (valid) return parsed;
+    }
   } catch {
+    if (raw) validationCache = { raw, valid: false };
     // corrupted storage — start fresh
   }
   return { projects: {}, diagrams: {} };
 }
 
 function saveDb(db: LocalDb): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+  const raw = JSON.stringify(db);
+  localStorage.setItem(STORAGE_KEY, raw);
+  validationCache = { raw, valid: true };
 }
 
 function newId(): string {
