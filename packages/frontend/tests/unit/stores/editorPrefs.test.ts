@@ -58,6 +58,42 @@ describe('collapsible side panels', () => {
   });
 });
 
+describe('resizable side panels', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    state().setPaletteWidth(208);
+    state().setInspectorWidth(288);
+  });
+
+  it('starts at the widths the panels used to be fixed at', () => {
+    expect(state().paletteWidth).toBe(208);
+    expect(state().inspectorWidth).toBe(288);
+  });
+
+  it('persists a resize, so the layout survives a reload', () => {
+    state().setPaletteWidth(300);
+    expect(state().paletteWidth).toBe(300);
+    expect(localStorage.getItem('ramsey-palette-width')).toBe('300');
+  });
+
+  it('clamps to the bounds, so a runaway drag cannot swallow the canvas', () => {
+    state().setPaletteWidth(5000);
+    expect(state().paletteWidth).toBe(420);
+    state().setPaletteWidth(-100);
+    expect(state().paletteWidth).toBe(160);
+
+    state().setInspectorWidth(5000);
+    expect(state().inspectorWidth).toBe(560);
+    state().setInspectorWidth(0);
+    expect(state().inspectorWidth).toBe(240);
+  });
+
+  it('rounds sub-pixel drag deltas to whole pixels', () => {
+    state().setPaletteWidth(240.6);
+    expect(state().paletteWidth).toBe(241);
+  });
+});
+
 describe('sidebar tab', () => {
   beforeEach(() => state().setRightTab('properties'));
 

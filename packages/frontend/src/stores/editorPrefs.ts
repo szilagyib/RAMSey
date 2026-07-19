@@ -7,7 +7,24 @@ const STORAGE_KEY = 'ramsey-bg-mode';
 const MINIMAP_KEY = 'ramsey-minimap';
 const PALETTE_KEY = 'ramsey-palette';
 const INSPECTOR_KEY = 'ramsey-inspector';
+const PALETTE_WIDTH_KEY = 'ramsey-palette-width';
+const INSPECTOR_WIDTH_KEY = 'ramsey-inspector-width';
 const MODES: BackgroundMode[] = ['dots', 'grid', 'none'];
+
+/** Panel width bounds in px: below the min the contents stop fitting, above the
+ *  max the canvas is squeezed for no gain. */
+const PALETTE_WIDTH = { initial: 208, min: 160, max: 420 };
+const INSPECTOR_WIDTH = { initial: 288, min: 240, max: 560 };
+type WidthBounds = typeof PALETTE_WIDTH;
+
+function clamp(value: number, { min, max }: WidthBounds): number {
+  return Math.min(max, Math.max(min, Math.round(value)));
+}
+
+function loadWidth(key: string, bounds: WidthBounds): number {
+  const stored = typeof localStorage !== 'undefined' ? Number(localStorage.getItem(key)) : NaN;
+  return stored > 0 ? clamp(stored, bounds) : bounds.initial;
+}
 
 function load(): BackgroundMode {
   const v = typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
@@ -39,6 +56,14 @@ interface EditorPrefsStore {
   togglePalette: () => void;
   inspector: boolean;
   toggleInspector: () => void;
+
+  /** Width of each panel while expanded, in px. Clamped by the setters, so a
+   *  drag can be fed the raw pointer delta. Persisted alongside the collapse
+   *  state — same workspace layout choice. */
+  paletteWidth: number;
+  setPaletteWidth: (px: number) => void;
+  inspectorWidth: number;
+  setInspectorWidth: (px: number) => void;
 
   /** Element whose label is being edited in place (double-click), if any. */
   editing: { kind: 'node' | 'edge'; id: string } | null;
@@ -83,6 +108,20 @@ export const useEditorPrefs = create<EditorPrefsStore>((set, get) => ({
     const next = !get().inspector;
     localStorage.setItem(INSPECTOR_KEY, next ? 'on' : 'off');
     set({ inspector: next });
+  },
+
+  paletteWidth: loadWidth(PALETTE_WIDTH_KEY, PALETTE_WIDTH),
+  setPaletteWidth: (px) => {
+    const next = clamp(px, PALETTE_WIDTH);
+    localStorage.setItem(PALETTE_WIDTH_KEY, String(next));
+    set({ paletteWidth: next });
+  },
+
+  inspectorWidth: loadWidth(INSPECTOR_WIDTH_KEY, INSPECTOR_WIDTH),
+  setInspectorWidth: (px) => {
+    const next = clamp(px, INSPECTOR_WIDTH);
+    localStorage.setItem(INSPECTOR_WIDTH_KEY, String(next));
+    set({ inspectorWidth: next });
   },
 
   // Transient UI state (not persisted).
