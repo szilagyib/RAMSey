@@ -2,6 +2,7 @@ import { MessageSquare, Settings2, BarChart3, PanelRightClose, PanelRightOpen } 
 import { PropertyPanel } from './PropertyPanel';
 import { ChatPanel } from './ChatPanel';
 import { AnalysisPanel } from './AnalysisPanel';
+import { PanelResizer } from './PanelResizer';
 import { useCapabilities } from '../../lib/capabilities';
 import { useEditorPrefs, type RightTab } from '../../stores/editorPrefs';
 import { cn } from '../../lib/utils';
@@ -16,6 +17,8 @@ export function RightPanel({ projectId, diagramId }: RightPanelProps) {
   const setRightTab = useEditorPrefs((s) => s.setRightTab);
   const inspector = useEditorPrefs((s) => s.inspector);
   const toggleInspector = useEditorPrefs((s) => s.toggleInspector);
+  const inspectorWidth = useEditorPrefs((s) => s.inspectorWidth);
+  const setInspectorWidth = useEditorPrefs((s) => s.setInspectorWidth);
   const { aiChat } = useCapabilities();
 
   // Collapsed: a rail wide enough to click, so the canvas gets the width back.
@@ -43,7 +46,10 @@ export function RightPanel({ projectId, diagramId }: RightPanelProps) {
   const tab: RightTab = tabs.some((t) => t.id === activeTab) ? activeTab : 'properties';
 
   return (
-    <aside className="flex w-72 shrink-0 min-h-0 flex-col border-l border-surface-200 bg-white dark:bg-surface-100">
+    <aside
+      className="relative z-10 flex shrink-0 min-h-0 flex-col border-l border-surface-200 bg-white dark:bg-surface-100"
+      style={{ width: inspectorWidth }}
+    >
       <div className="flex items-stretch border-b border-surface-200">
         {tabs.map(({ id, label, icon: Icon }) => (
           <button
@@ -76,6 +82,13 @@ export function RightPanel({ projectId, diagramId }: RightPanelProps) {
         {tab === 'analysis' && <AnalysisPanel projectId={projectId} diagramId={diagramId} />}
         {tab === 'chat' && aiChat && <ChatPanel />}
       </div>
+
+      <PanelResizer
+        side="right"
+        width={inspectorWidth}
+        onResize={setInspectorWidth}
+        label="Resize properties and analysis panel"
+      />
     </aside>
   );
 }

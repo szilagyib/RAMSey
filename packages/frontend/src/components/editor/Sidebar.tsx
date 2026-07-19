@@ -4,6 +4,7 @@ import { useDiagramStore } from '../../stores/diagramStore';
 import { useEditorPrefs } from '../../stores/editorPrefs';
 import { NODE_SUBTYPE_MIME, NODE_SIZE_MIME, formatNodeSize } from '../../lib/dragPayload';
 import { getDiagramTypeConfig, type SidebarItem } from '../../diagram-types/registry';
+import { PanelResizer } from './PanelResizer';
 import { cn } from '../../lib/utils';
 
 const ICON_SIZE = 20;
@@ -486,6 +487,8 @@ export function Sidebar() {
   const diagramType = useDiagramStore((s) => s.diagramType);
   const palette = useEditorPrefs((s) => s.palette);
   const togglePalette = useEditorPrefs((s) => s.togglePalette);
+  const paletteWidth = useEditorPrefs((s) => s.paletteWidth);
+  const setPaletteWidth = useEditorPrefs((s) => s.setPaletteWidth);
 
   const config = getDiagramTypeConfig(diagramType);
 
@@ -509,8 +512,13 @@ export function Sidebar() {
     );
   }
 
+  // z-10: the resizer overhangs the canvas, a later sibling that would
+  // otherwise paint over it.
   return (
-    <aside className="flex w-52 shrink-0 min-h-0 flex-col border-r border-surface-200 bg-white dark:bg-surface-100">
+    <aside
+      className="relative z-10 flex shrink-0 min-h-0 flex-col border-r border-surface-200 bg-white dark:bg-surface-100"
+      style={{ width: paletteWidth }}
+    >
       <div className="flex justify-end border-b border-surface-200 px-2 py-1">
         <button
           onClick={togglePalette}
@@ -543,6 +551,13 @@ export function Sidebar() {
           {edges.length !== 1 ? 's' : ''}
         </p>
       </div>
+
+      <PanelResizer
+        side="left"
+        width={paletteWidth}
+        onResize={setPaletteWidth}
+        label="Resize palette"
+      />
     </aside>
   );
 }
