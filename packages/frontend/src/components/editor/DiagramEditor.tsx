@@ -42,7 +42,7 @@ interface DiagramEditorProps {
   onNavigateBack?: () => void;
   onSave?: () => void;
   onCreateSnapshot?: () => void;
-  onRename?: (name: string) => void;
+  onRename: (name: string) => void;
   diagramName?: string;
   isSaving?: boolean;
   projectId?: string;
@@ -53,6 +53,7 @@ function DiagramEditorInner({
   onNavigateBack,
   onSave,
   onCreateSnapshot,
+  onRename,
   diagramName,
   isSaving,
   projectId,
@@ -293,6 +294,7 @@ function DiagramEditorInner({
         onValidate={() => setValidationOpen(true)}
         onAnalyze={() => setRightTab('analysis')}
         diagramName={diagramName}
+        onRename={onRename}
         isSaving={isSaving}
         collaborators={peers}
       />
@@ -410,6 +412,7 @@ export function DiagramEditor({
   onNavigateBack,
   onSave,
   onCreateSnapshot,
+  onRename,
   diagramName,
   isSaving,
   projectId,
@@ -421,6 +424,7 @@ export function DiagramEditor({
         onNavigateBack={onNavigateBack}
         onSave={onSave}
         onCreateSnapshot={onCreateSnapshot}
+        onRename={onRename}
         diagramName={diagramName}
         isSaving={isSaving}
         projectId={projectId}

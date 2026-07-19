@@ -5,6 +5,7 @@ import { DiagramEditor } from '../components/editor/DiagramEditor';
 import { FMEAEditor } from '../diagram-types/fmea/FMEAEditor';
 import { Button } from '../components/ui/Button';
 import { MenuBar, type MenuDefinition } from '../components/editor/MenuBar';
+import { DiagramTitle } from '../components/editor/DiagramTitle';
 import { ExportDialog } from '../components/editor/ExportDialog';
 import { ThemeToggle } from '../components/ui/ThemeToggle';
 import { useDiagramStore } from '../stores/diagramStore';
@@ -110,14 +111,18 @@ export function EditorPage() {
   const handleRename = useCallback(
     async (newName: string) => {
       if (!projectId || !diagramId) return;
+      // Show the new name straight away, then put the old one back if the write
+      // fails — a header that disagrees with what's stored is worse than none.
+      const previous = diagramName;
       setDiagramName(newName);
       try {
         await ds.diagrams.update(projectId, diagramId, { name: newName });
-      } catch {
-        // Revert on failure handled silently — name is already updated locally
+      } catch (err) {
+        setDiagramName(previous);
+        window.alert(`Failed to rename diagram: ${err}`);
       }
     },
-    [projectId, diagramId, ds],
+    [projectId, diagramId, diagramName, ds],
   );
 
   const handleBack = useCallback(() => {
@@ -225,11 +230,7 @@ export function EditorPage() {
               <MenuBar menus={fmeaMenus} />
             </div>
             <div className="flex items-center gap-1">
-              {diagramName && (
-                <span className="mr-2 max-w-40 truncate text-xs font-medium text-surface-500">
-                  {diagramName}
-                </span>
-              )}
+              <DiagramTitle name={diagramName} onRename={handleRename} />
               {saving && <span className="mr-1 text-[10px] text-surface-400">Saving…</span>}
               {user && (
                 <div
