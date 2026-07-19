@@ -29,6 +29,7 @@ import { useEditorPrefs, type BackgroundMode } from '../../stores/editorPrefs';
 import { parseDiagramJson } from '../../lib/importDiagram';
 import { cn } from '../../lib/utils';
 import { MenuBar, type MenuDefinition } from './MenuBar';
+import { DiagramTitle } from './DiagramTitle';
 import { ExportDialog } from './ExportDialog';
 import { ThemeToggle } from '../ui/ThemeToggle';
 import { NotificationBell } from '../NotificationBell';
@@ -61,6 +62,7 @@ interface ToolbarProps {
   onValidate?: () => void;
   onAnalyze?: () => void;
   diagramName?: string;
+  onRename: (name: string) => void;
   isSaving?: boolean;
   collaborators?: Array<{ id?: string; name?: string; color?: string }>;
 }
@@ -72,6 +74,7 @@ export function Toolbar({
   onValidate,
   onAnalyze,
   diagramName,
+  onRename,
   isSaving,
   collaborators = [],
 }: ToolbarProps) {
@@ -567,11 +570,7 @@ export function Toolbar({
         </div>
 
         <div className="flex items-center gap-1">
-          {diagramName && (
-            <span className="mr-2 max-w-40 truncate text-xs font-medium text-surface-500">
-              {diagramName}
-            </span>
-          )}
+          <DiagramTitle name={diagramName} onRename={onRename} />
 
           {collaborators.length > 0 && (
             <div className="mr-2 flex items-center gap-1">
