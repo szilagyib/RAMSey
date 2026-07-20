@@ -75,6 +75,23 @@ export function stopActiveTurn(): void {
   activeTurn = null;
 }
 
+/**
+ * Identifies this chat session to the server's per-session AI cost budget.
+ *
+ * Module-level for the same reason as the turn handle, but the stakes are
+ * higher: held as component state it was regenerated every time the panel
+ * remounted — i.e. on every switch away from and back to the AI tab — which
+ * silently reset the per-session budget tier and made the cap trivial to evade.
+ * It deliberately survives `clearMessages` too, so starting a fresh conversation
+ * does not buy a fresh allowance.
+ */
+let chatSessionId: string | null = null;
+
+export function getChatSessionId(): string {
+  chatSessionId ??= crypto.randomUUID();
+  return chatSessionId;
+}
+
 export const useChatStore = create<ChatStore>((set) => ({
   messages: [],
   isLoading: false,

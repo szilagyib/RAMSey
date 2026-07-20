@@ -1,5 +1,11 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { beginTurn, endTurn, stopActiveTurn } from '../../../src/stores/chatStore';
+import {
+  beginTurn,
+  endTurn,
+  getChatSessionId,
+  stopActiveTurn,
+  useChatStore,
+} from '../../../src/stores/chatStore';
 
 afterEach(() => {
   endTurn();
@@ -36,5 +42,20 @@ describe('active chat turn', () => {
     stopActiveTurn();
     expect(first.aborted).toBe(false);
     expect(second.aborted).toBe(true);
+  });
+});
+
+// The id keys the server's per-session AI cost budget. Held as component state
+// it was regenerated on every panel remount — one AI-tab switch reset the tier.
+describe('chat session id', () => {
+  it('stays the same across calls', () => {
+    expect(getChatSessionId()).toBe(getChatSessionId());
+  });
+
+  // Otherwise the trash button would hand out a fresh budget allowance.
+  it('survives clearing the conversation', () => {
+    const before = getChatSessionId();
+    useChatStore.getState().clearMessages();
+    expect(getChatSessionId()).toBe(before);
   });
 });

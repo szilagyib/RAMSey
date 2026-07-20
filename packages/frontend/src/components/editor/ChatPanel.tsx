@@ -3,6 +3,7 @@ import { Send, Square, Trash2, Wrench } from 'lucide-react';
 import {
   beginTurn,
   endTurn,
+  getChatSessionId,
   stopActiveTurn,
   useChatStore,
   type ChatError,
@@ -121,8 +122,6 @@ export function ChatPanel() {
   const { aiProviderLabel } = useCapabilities();
 
   const [inputValue, setInputValue] = useState('');
-  // Stable id for this chat session — drives the per-session AI cost budget.
-  const [sessionId] = useState(() => crypto.randomUUID());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -160,7 +159,7 @@ export function ChatPanel() {
       await sendChatRequest(
         chatMessages,
         context,
-        sessionId,
+        getChatSessionId(),
         signal,
         (delta) => {
           appendToAssistantMessage(assistantMsgId, delta);
@@ -192,7 +191,6 @@ export function ChatPanel() {
   }, [
     inputValue,
     isLoading,
-    sessionId,
     addUserMessage,
     startAssistantMessage,
     appendToAssistantMessage,

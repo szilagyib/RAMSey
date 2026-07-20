@@ -77,10 +77,12 @@ const chatRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
       let usage: TokenUsage | undefined;
       try {
         for await (const event of streamChat(messages, context, abort.signal)) {
-          // Read usage before bailing out, so a cancelled turn is still charged.
           if (event.type === 'done') usage = event.usage;
-          if (!canWrite()) break;
-          reply.raw.write(`data: ${JSON.stringify(event)}\n\n`);
+          // Drain to the end even with nobody listening, rather than breaking:
+          // usage arrives on the final event, so bailing out early on a dropped
+          // connection would leave the turn unrecorded and therefore free. The
+          // abort above already stops the upstream call, so this ends promptly.
+          if (canWrite()) reply.raw.write(`data: ${JSON.stringify(event)}\n\n`);
         }
       } catch (err) {
         // An abort is the expected end of a cancelled turn, not a failure.
@@ -108,6 +110,15 @@ const chatRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
         } catch (err) {
           fastify.log.error(err, 'failed to record chat usage');
         }
+      } else if (!abort.signal.aborted) {
+        // A completed turn that reports no tokens means the provider returned no
+        // usage — nothing gets recorded, so the cost ceiling silently stops
+        // enforcing. Most likely an OpenAI-compatible endpoint that ignores
+        // stream_options.include_usage (see docs/OPERATIONS.md).
+        fastify.log.warn(
+          { userId },
+          'chat turn reported zero tokens — AI budget is not being enforced',
+        );
       }
 
       // Already gone when the client hung up or pressed Stop.

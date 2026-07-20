@@ -93,6 +93,29 @@ set against Claude Sonnet pricing; the same ceilings allow far more spend-value
 on a cheaper model and far less on a more expensive one. Re-tune them when you
 switch models.
 
+### What the cost ceiling does and does not stop
+
+The two monthly tiers are the real controls: they key on the authenticated user
+id and a UTC month, both server-derived, so a client cannot influence them.
+
+The per-session tier is a **guardrail, not a security boundary**. `sessionId`
+comes from the request body, so a crafted client can send a fresh id per request
+and never accumulate against it. It bounds a runaway editing session; it does
+not bound a determined user. The monthly tiers are what actually cap spend.
+
+Two known gaps, neither a regression — worth knowing before you set the numbers:
+
+- **Concurrency.** The budget is checked before a turn and recorded after it, so
+  simultaneous requests can all pass the check before any of them records. The
+  chat rate limit (20/min) bounds the overshoot rather than eliminating it.
+- **A turn that crosses a tier still completes.** By design — the *next* request
+  is the one refused.
+
+Watch for `chat turn reported zero tokens — AI budget is not being enforced` in
+the logs. It means the provider returned no usage, so nothing is being recorded
+and the ceiling has silently stopped working — almost always an endpoint that
+ignores `stream_options.include_usage`.
+
 ## Deploy
 
 Production uses two deliberately small pieces:
