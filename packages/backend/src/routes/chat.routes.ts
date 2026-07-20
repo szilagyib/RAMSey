@@ -41,7 +41,7 @@ const chatRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
       const sessionId = validation.sessionId ?? crypto.randomUUID();
       const budget = new ChatBudgetService(fastify.prisma);
 
-      // Enforce the cost ceiling before calling Anthropic.
+      // Enforce the cost ceiling before spending any tokens.
       const decision = await budget.check(userId, sessionId);
 
       reply.raw.writeHead(200, {
@@ -53,21 +53,52 @@ const chatRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
 
       if (!decision.allowed) {
         reply.raw.write(
-          `data: ${JSON.stringify({ type: 'error', message: decision.message })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'error',
+            message: decision.message,
+            code: 'budget_exceeded',
+          })}\n\n`,
         );
         reply.raw.end();
         return;
       }
 
+      // Stopping the stream (Stop button, closed tab, dropped connection) must
+      // abort the upstream LLM request too, or tokens keep being billed for
+      // output nobody will read.
+      const abort = new AbortController();
+      reply.raw.on('close', () => abort.abort());
+
+      // An abrupt disconnect destroys the socket without setting writableEnded,
+      // and writing to a destroyed response emits an unhandled 'error'. Both
+      // conditions have to be checked before every write.
+      const canWrite = () => !reply.raw.writableEnded && !reply.raw.destroyed;
+
       let usage: TokenUsage | undefined;
       try {
-        for await (const event of streamChat(messages, context)) {
+        for await (const event of streamChat(messages, context, abort.signal)) {
+          // Read usage before bailing out, so a cancelled turn is still charged.
           if (event.type === 'done') usage = event.usage;
+          if (!canWrite()) break;
           reply.raw.write(`data: ${JSON.stringify(event)}\n\n`);
         }
       } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : 'Unknown error';
-        reply.raw.write(`data: ${JSON.stringify({ type: 'error', message: errorMsg })}\n\n`);
+        // An abort is the expected end of a cancelled turn, not a failure.
+        if (!abort.signal.aborted) {
+          // Upstream SDK errors can carry request URLs, headers and model
+          // details; keep those in structured logs rather than reflecting them
+          // to the browser, as the readiness check already does.
+          fastify.log.error(err, 'AI chat stream failed');
+          if (canWrite()) {
+            reply.raw.write(
+              `data: ${JSON.stringify({
+                type: 'error',
+                message: 'The AI provider could not be reached. Please try again.',
+                code: 'provider_error',
+              })}\n\n`,
+            );
+          }
+        }
       }
 
       // Charge the budget for whatever was actually spent (best-effort).
@@ -79,7 +110,8 @@ const chatRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
         }
       }
 
-      reply.raw.end();
+      // Already gone when the client hung up or pressed Stop.
+      if (canWrite()) reply.raw.end();
     },
   );
 };

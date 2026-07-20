@@ -13,7 +13,8 @@
 #   SMTP_PASS           Resend API key
 #   TUNNEL_TOKEN        Cloudflare Tunnel connector token
 # Optional (leave blank to keep the feature off):
-#   GOOGLE_CLIENT_ID  GOOGLE_CLIENT_SECRET  ANTHROPIC_API_KEY  SENTRY_DSN
+#   GOOGLE_CLIENT_ID  GOOGLE_CLIENT_SECRET  SENTRY_DSN
+#   ANTHROPIC_API_KEY (or AI_PROVIDER / AI_API_KEY / AI_MODEL / AI_BASE_URL)
 #   Off-box backups to Cloudflare R2 — set ALL four to enable the backup-offsite
 #   service: R2_BUCKET, R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY
 #
@@ -122,7 +123,15 @@ services:
       SMTP_FROM: RAMSey <no-reply@mail.ramseytools.com>
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      # AI chat. ANTHROPIC_API_KEY alone still works; set AI_PROVIDER/AI_API_KEY/
+      # AI_MODEL instead to use an OpenAI-compatible endpoint. Leave all unset to
+      # ship without AI — the tab hides itself. See docs/OPERATIONS.md.
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      AI_PROVIDER: ${AI_PROVIDER:-}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-}
+      AI_BASE_URL: ${AI_BASE_URL:-}
+      AI_PROVIDER_LABEL: ${AI_PROVIDER_LABEL:-}
       SENTRY_DSN: ${SENTRY_DSN:-}
     networks: [ramsey]
 

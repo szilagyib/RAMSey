@@ -18,17 +18,29 @@ export interface ToolCall {
   input: Record<string, unknown>;
 }
 
+/** Mirrors the backend's StreamErrorCode (ai.service.ts). */
+export type ChatErrorCode = 'not_configured' | 'budget_exceeded' | 'provider_error';
+
+/**
+ * `code` separates an expected limit from a fault: a spent AI budget is normal
+ * and is shown as a notice, not as a red failure.
+ */
+export interface ChatError {
+  message: string;
+  code?: ChatErrorCode;
+}
+
 export interface ChatStore {
   messages: ChatMessage[];
   isLoading: boolean;
-  error: string | null;
+  error: ChatError | null;
 
   addUserMessage: (content: string) => void;
   startAssistantMessage: () => string;
   appendToAssistantMessage: (id: string, text: string) => void;
   addToolCallToMessage: (id: string, toolCall: ToolCall) => void;
   finishAssistantMessage: (id: string) => void;
-  setError: (error: string | null) => void;
+  setError: (error: ChatError | null) => void;
   setLoading: (loading: boolean) => void;
   clearMessages: () => void;
 }
@@ -38,6 +50,30 @@ export interface ChatStore {
 // ---------------------------------------------------------------------------
 
 let messageCounter = 0;
+
+/**
+ * The in-flight turn's abort handle. Module-level rather than component state on
+ * purpose: the panel unmounts whenever the user switches to another right-hand
+ * tab, and a turn must survive that — it keeps drawing on the canvas, and Stop
+ * has to still work when the user comes back. Not part of render state, so it
+ * lives outside the store's reactive fields.
+ */
+let activeTurn: AbortController | null = null;
+
+export function beginTurn(): AbortSignal {
+  activeTurn = new AbortController();
+  return activeTurn.signal;
+}
+
+export function endTurn(): void {
+  activeTurn = null;
+}
+
+/** Cancels the streaming turn, if any. Safe to call when nothing is running. */
+export function stopActiveTurn(): void {
+  activeTurn?.abort();
+  activeTurn = null;
+}
 
 export const useChatStore = create<ChatStore>((set) => ({
   messages: [],
@@ -83,7 +119,7 @@ export const useChatStore = create<ChatStore>((set) => ({
     }));
   },
 
-  setError: (error: string | null) => {
+  setError: (error: ChatError | null) => {
     set({ error });
   },
 

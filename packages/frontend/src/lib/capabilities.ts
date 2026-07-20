@@ -8,12 +8,19 @@ import { apiUrl } from '../config/runtime';
  */
 export interface Capabilities {
   aiChat: boolean;
+  /**
+   * Where chat data is sent, for the panel's privacy notice. Null when AI chat
+   * is off. The UI must render this rather than naming a provider itself — a
+   * deployment can point at any OpenAI-compatible host.
+   */
+  aiProviderLabel: string | null;
   serverAnalysis: boolean;
   googleOAuth: boolean;
 }
 
 export const NO_CAPABILITIES: Capabilities = {
   aiChat: false,
+  aiProviderLabel: null,
   serverAnalysis: false,
   googleOAuth: false,
 };
@@ -25,6 +32,7 @@ export async function fetchCapabilities(): Promise<Capabilities> {
     const body = (await res.json()) as Partial<Capabilities>;
     return {
       aiChat: body.aiChat === true,
+      aiProviderLabel: typeof body.aiProviderLabel === 'string' ? body.aiProviderLabel : null,
       serverAnalysis: body.serverAnalysis === true,
       googleOAuth: body.googleOAuth === true,
     };

@@ -37,7 +37,7 @@ function validateMessages(raw: unknown): ChatMessage[] | string {
   }
 
   // Keep only the most recent slice, then drop any leading assistant turns so
-  // the forwarded conversation starts with a user message (Anthropic requires it).
+  // the forwarded conversation starts with a user message (providers require it).
   let sliced = cleaned.slice(-limits.chat.maxHistoryMessages);
   while (sliced.length > 0 && sliced[0].role !== 'user') {
     sliced = sliced.slice(1);

@@ -61,7 +61,7 @@ Analysis is implemented for all five graph diagram types, in a shared engine pac
 | Cache & queue | Redis (shared rate-limit counters), pg-boss (Postgres-backed analysis job queue) |
 | Collaboration | Yjs, y-websocket (custom Fastify sync server) |
 | Auth | JWT sessions (httpOnly cookie) + Google OAuth |
-| AI | Anthropic SDK (Claude) with tool calling |
+| AI | Pluggable LLM provider (Anthropic or any OpenAI-compatible endpoint) with tool calling |
 | Analysis | Shared `@ramsey/engine` package (client Web Worker + server solver worker) |
 | Export | html-to-image, custom TikZ serializers |
 | Infrastructure | Docker, Docker Compose, GitHub Actions |
@@ -164,7 +164,7 @@ Browser (Vite SPA)
   ├── React Flow canvas (diagram editing)
   ├── Zustand (state management)
   ├── Yjs (CRDT real-time sync) + awareness (cursors/selection)
-  ├── AI Chat Panel (Anthropic SDK, tool calling)
+  ├── AI Chat Panel (streaming, tool calling — draws on the canvas live)
   └── Client analysis (Web Worker, @ramsey/engine)
           │
           │ WebSocket + REST
@@ -188,6 +188,7 @@ Architectural principle: **the API server doesn't perform heavy computation**. S
 - Guest mode is local-only (no offline-first sync).
 - Fault-tree probabilities use **MOCUS + inclusion–exclusion** (exact for typical sizes), not BDD.
 - Optional features (AI assistant, server-side analysis) hide themselves when the deployment doesn't configure them.
+- The AI assistant needs a provider key; quality of generated diagrams varies with the model chosen (see [`docs/OPERATIONS.md`](docs/OPERATIONS.md#ai-provider)).
 
 ## Self-hosting
 
