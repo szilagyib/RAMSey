@@ -182,7 +182,9 @@ export const useDiagramStore = create<DiagramStore>((set, get) => ({
       // Inside a group only the first mutation records; the rest fold into it.
       if (historyGroupRecorded) return;
       historyGroupRecorded = true;
-      historyTag = null; // a group is one entry, never coalesced with prior edits
+      // Clear the coalescing tag so an edit just after the group closes starts a
+      // fresh entry instead of merging into this one.
+      historyTag = null;
     } else {
       const now = Date.now();
       if (tag !== null && tag === historyTag && now - historyTagTime < COALESCE_MS) {
@@ -593,8 +595,11 @@ export const useDiagramStore = create<DiagramStore>((set, get) => ({
 
   loadDiagram: (nodes, edges, type) => {
     // A load is a new editing context — history from the previous document
-    // must not leak into it.
+    // must not leak into it. Also drop any coalescing tag and reset the group
+    // counters so a group left open by a torn-down turn can't wedge history.
     historyTag = null;
+    historyGroupDepth = 0;
+    historyGroupRecorded = false;
     set({
       nodes,
       edges,
