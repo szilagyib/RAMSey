@@ -147,6 +147,52 @@ describe('diagram undo/redo', () => {
     expect(state().nodes).toHaveLength(0);
   });
 
+  // An AI chat turn streams its tool calls in over time, so it can't use the
+  // synchronous runInHistoryEntry — it brackets the turn with begin/endHistoryGroup.
+  it('collapses an async group of mutations into one undo/redo step', () => {
+    state().beginHistoryGroup();
+    state().addNode({ x: 0, y: 0 });
+    state().addNode({ x: 100, y: 0 });
+    state().addNode({ x: 200, y: 0 });
+    state().updateNodeData('state-0', { label: 'X' });
+    state().endHistoryGroup();
+
+    expect(state().nodes).toHaveLength(3);
+    expect(state().undoStack).toHaveLength(1);
+
+    state().undo();
+    expect(state().nodes).toHaveLength(0);
+
+    state().redo();
+    expect(state().nodes).toHaveLength(3);
+  });
+
+  // Each AI tool call wraps itself in runInHistoryEntry (see executeToolCall);
+  // the surrounding turn group must still fold those into a single entry.
+  it('folds nested runInHistoryEntry calls into the surrounding group', () => {
+    state().beginHistoryGroup();
+    state().runInHistoryEntry(() => state().addNode({ x: 0, y: 0 }));
+    state().runInHistoryEntry(() => state().addNode({ x: 100, y: 0 }));
+    state().endHistoryGroup();
+
+    expect(state().nodes).toHaveLength(2);
+    expect(state().undoStack).toHaveLength(1);
+  });
+
+  // A text-only AI reply opens and closes a group but mutates nothing — it must
+  // not add a phantom undo entry or wipe a pending redo.
+  it('a group with no mutations records nothing and preserves the redo stack', () => {
+    state().addNode({ x: 0, y: 0 });
+    state().undo();
+    expect(state().redoStack).toHaveLength(1);
+
+    state().beginHistoryGroup();
+    state().endHistoryGroup();
+
+    expect(state().undoStack).toHaveLength(0);
+    expect(state().redoStack).toHaveLength(1);
+  });
+
   it('loadDiagram clears history (no cross-document undo)', () => {
     state().addNode({ x: 0, y: 0 });
     state().loadDiagram([], [], 'markov_chain');

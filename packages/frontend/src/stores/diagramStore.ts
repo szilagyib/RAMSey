@@ -40,6 +40,9 @@ export interface DiagramStore {
   redoStack: HistorySnapshot[];
   recordHistory: (tag?: string | null) => void;
   runInHistoryEntry: (fn: () => void) => void;
+  /** Open/close an undo group spanning async mutations (a whole AI chat turn). */
+  beginHistoryGroup: () => void;
+  endHistoryGroup: () => void;
   undo: () => void;
   redo: () => void;
 
@@ -100,6 +103,15 @@ const COALESCE_MS = 800;
 let historyTag: string | null = null;
 let historyTagTime = 0;
 let historySuppressed = false;
+
+// An open history group makes an asynchronous sequence of mutations (an AI chat
+// turn, whose tool calls stream in over time) collapse to ONE undo entry: the
+// first mutation captures the pre-group snapshot and the rest fold in. A group
+// with no mutations records nothing, so a text-only reply never adds a phantom
+// entry or clears the redo stack. Reference-counted so an unbalanced
+// begin/end degrades gracefully rather than wedging history.
+let historyGroupDepth = 0;
+let historyGroupRecorded = false;
 
 /** How many times the current clipboard has been pasted (drives the offset). */
 let pasteCount = 0;
@@ -165,13 +177,22 @@ export const useDiagramStore = create<DiagramStore>((set, get) => ({
    */
   recordHistory: (tag = null) => {
     if (historySuppressed) return;
-    const now = Date.now();
-    if (tag !== null && tag === historyTag && now - historyTagTime < COALESCE_MS) {
-      historyTagTime = now; // sliding window: a continuous gesture stays one entry
-      return;
+
+    if (historyGroupDepth > 0) {
+      // Inside a group only the first mutation records; the rest fold into it.
+      if (historyGroupRecorded) return;
+      historyGroupRecorded = true;
+      historyTag = null; // a group is one entry, never coalesced with prior edits
+    } else {
+      const now = Date.now();
+      if (tag !== null && tag === historyTag && now - historyTagTime < COALESCE_MS) {
+        historyTagTime = now; // sliding window: a continuous gesture stays one entry
+        return;
+      }
+      historyTag = tag;
+      historyTagTime = now;
     }
-    historyTag = tag;
-    historyTagTime = now;
+
     set((state) => ({
       undoStack: [...state.undoStack.slice(-(HISTORY_LIMIT - 1)), takeSnapshot(state)],
       redoStack: [],
@@ -187,6 +208,21 @@ export const useDiagramStore = create<DiagramStore>((set, get) => ({
     } finally {
       historySuppressed = false;
     }
+  },
+
+  /**
+   * Open an undo group spanning ASYNCHRONOUS mutations — used for an AI chat
+   * turn, whose tool calls stream in one at a time so the synchronous
+   * runInHistoryEntry can't wrap them. Every mutation until endHistoryGroup
+   * folds into a single undo/redo step; the per-call runInHistoryEntry nests
+   * inside harmlessly. Always pair the calls in a finally.
+   */
+  beginHistoryGroup: () => {
+    historyGroupDepth += 1;
+  },
+  endHistoryGroup: () => {
+    if (historyGroupDepth > 0) historyGroupDepth -= 1;
+    if (historyGroupDepth === 0) historyGroupRecorded = false;
   },
 
   undo: () => {

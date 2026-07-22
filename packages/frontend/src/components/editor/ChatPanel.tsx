@@ -155,6 +155,11 @@ export function ChatPanel() {
     const assistantMsgId = startAssistantMessage();
     const signal = beginTurn();
 
+    // Collapse every tool call this turn applies into ONE undo/redo step, so a
+    // generated diagram reverts in a single undo instead of one per node/edge.
+    // A text-only reply mutates nothing, so the group records nothing.
+    useDiagramStore.getState().beginHistoryGroup();
+
     try {
       await sendChatRequest(
         chatMessages,
@@ -186,6 +191,7 @@ export function ChatPanel() {
       finishAssistantMessage(assistantMsgId);
       setLoading(false);
     } finally {
+      useDiagramStore.getState().endHistoryGroup();
       endTurn();
     }
   }, [
