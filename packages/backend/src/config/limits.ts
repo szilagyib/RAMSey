@@ -27,7 +27,7 @@ export const limits = {
   chat: {
     maxRawMessages: 100,
     maxHistoryMessages: 16,
-    maxMessageChars: 4000,
+    maxMessageChars: 2000,
     maxContextNodes: 600,
     maxContextEdges: 1200,
     maxSessionIdChars: 100,

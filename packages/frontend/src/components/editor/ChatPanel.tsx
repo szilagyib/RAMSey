@@ -18,7 +18,7 @@ import { apiUrl } from '../../config/runtime';
 
 // Mirror the backend chat.validation bounds so the UI fails fast instead of
 // round-tripping to a 400. Keep these in sync with chat.validation.ts.
-const MAX_MESSAGE_CHARS = 4000;
+const MAX_MESSAGE_CHARS = 2000;
 const MAX_HISTORY_MESSAGES = 16;
 
 // ---------------------------------------------------------------------------
