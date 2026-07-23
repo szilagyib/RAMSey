@@ -346,7 +346,7 @@ export function DashboardPage() {
               <>
                 <span className="flex items-center gap-1.5 rounded-full border border-surface-200 dark:border-surface-400 bg-surface-50 dark:bg-surface-200 px-2.5 py-1 text-[11px] font-medium text-surface-400 dark:text-surface-600">
                   <span className="h-1.5 w-1.5 rounded-full bg-surface-300 dark:bg-surface-500" />
-                  Local mode
+                  Guest mode
                 </span>
                 <span className="mx-1 h-4 w-px bg-surface-200" />
                 <Link

@@ -78,7 +78,7 @@ function DropdownMenu({
                 className={cn(
                   'flex w-full items-center justify-between px-3 py-1.5 text-left text-xs',
                   entry.disabled
-                    ? 'cursor-default text-surface-300'
+                    ? 'cursor-default text-surface-400'
                     : 'text-surface-700 hover:bg-surface-50',
                 )}
               >

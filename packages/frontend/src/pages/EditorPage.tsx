@@ -238,7 +238,7 @@ export function EditorPage() {
                     'flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-semibold text-white',
                     isGuest ? 'bg-surface-400' : 'bg-primary-500',
                   )}
-                  title={isGuest ? 'Guest (local mode)' : (user.name ?? user.email ?? '')}
+                  title={isGuest ? 'Guest mode' : (user.name ?? user.email ?? '')}
                 >
                   {(user.name ?? user.email ?? 'G').slice(0, 2).toUpperCase()}
                 </div>
