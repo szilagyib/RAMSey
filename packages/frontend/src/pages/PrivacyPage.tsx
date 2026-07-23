@@ -71,10 +71,11 @@ export function PrivacyPage() {
           </p>
           {aiChat && (
             <p>
-              <strong>AI assistant data.</strong> When you use the optional AI diagram assistant, the
-              messages you send it and the contents of the diagram open at that moment — node and
-              edge labels and properties — are sent to {aiProvider} to generate its responses. This
-              happens only while you are using the assistant; if you never open it, nothing is sent.
+              <strong>AI assistant data.</strong> When you use the optional AI diagram assistant,
+              the messages you send it and the contents of the diagram open at that moment — node
+              and edge labels and properties — are sent to {aiProvider} to generate its responses.
+              This happens only while you are using the assistant; if you never open it, nothing is
+              sent.
             </p>
           )}
         </Section>
@@ -164,8 +165,8 @@ export function PrivacyPage() {
           {aiChat && (
             <p>
               We do not store your AI conversations. Only a token count per request is recorded, to
-              enforce usage limits. {aiProvider} may retain the inputs you send it for a short period
-              for abuse monitoring under its own terms before deleting them.
+              enforce usage limits. {aiProvider} may retain the inputs you send it for a short
+              period for abuse monitoring under its own terms before deleting them.
             </p>
           )}
         </Section>
