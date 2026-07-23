@@ -1,4 +1,4 @@
-import { MessageSquare, Settings2, BarChart3, PanelRightClose, PanelRightOpen } from 'lucide-react';
+import { Sparkles, Settings2, BarChart3, PanelRightClose, PanelRightOpen } from 'lucide-react';
 import { PropertyPanel } from './PropertyPanel';
 import { ChatPanel } from './ChatPanel';
 import { AnalysisPanel } from './AnalysisPanel';
@@ -41,7 +41,7 @@ export function RightPanel({ projectId, diagramId }: RightPanelProps) {
   const tabs: Array<{ id: RightTab; label: string; icon: typeof Settings2 }> = [
     { id: 'properties', label: 'Properties', icon: Settings2 },
     { id: 'analysis', label: 'Analysis', icon: BarChart3 },
-    ...(aiChat ? [{ id: 'chat' as const, label: 'AI Chat', icon: MessageSquare }] : []),
+    ...(aiChat ? [{ id: 'chat' as const, label: 'AI Chat', icon: Sparkles }] : []),
   ];
   const tab: RightTab = tabs.some((t) => t.id === activeTab) ? activeTab : 'properties';
 

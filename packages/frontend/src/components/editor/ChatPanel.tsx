@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Send, Square, Trash2, Wrench } from 'lucide-react';
+import { Send, Square, Eraser, Wrench, Sparkles } from 'lucide-react';
 import {
   beginTurn,
   endTurn,
@@ -224,16 +224,18 @@ export function ChatPanel() {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-surface-200 px-4 py-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-surface-500">
-          AI Assistant
+      <div className="flex items-center justify-between border-b border-surface-200 bg-primary-50/60 px-4 py-2 dark:bg-primary-500/10">
+        <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-surface-600">
+          <Sparkles className="h-3.5 w-3.5 text-primary-600 dark:text-primary-400" />
+          AI
         </h3>
         <button
           onClick={clearMessages}
-          className="rounded p-1 text-surface-400 hover:bg-surface-100 hover:text-surface-600"
+          className="rounded p-1 text-surface-400 hover:bg-surface-200 hover:text-surface-700"
           title="Clear chat"
+          aria-label="Clear chat"
         >
-          <Trash2 className="h-3.5 w-3.5" />
+          <Eraser className="h-3.5 w-3.5" />
         </button>
       </div>
 
@@ -241,14 +243,16 @@ export function ChatPanel() {
       <div className="flex-1 overflow-y-auto p-4">
         {messages.length === 0 &&
           (isGuest ? (
-            <div className="flex h-full flex-col items-center justify-center text-center">
-              <p className="text-sm text-surface-400">The AI assistant requires an account.</p>
-              <p className="mt-2 text-xs text-surface-300">
-                <Link to="/login" className="text-primary-600 hover:underline">
-                  Log in or sign up
-                </Link>{' '}
-                to use it.
+            <div className="flex h-full flex-col items-center justify-center px-4 text-center">
+              <p className="text-sm font-medium text-surface-700">
+                The AI assistant requires an account.
               </p>
+              <Link
+                to="/login"
+                className="mt-3 inline-flex items-center rounded-md bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700"
+              >
+                Log in or sign up
+              </Link>
             </div>
           ) : (
             <div className="flex h-full flex-col items-center justify-center text-center">
@@ -265,11 +269,16 @@ export function ChatPanel() {
             className={cn(
               'mb-3 rounded-lg px-3 py-2 text-sm',
               msg.role === 'user'
-                ? 'ml-6 bg-primary-50 text-primary-900'
-                : 'mr-6 bg-surface-100 text-surface-800',
+                ? 'ml-6 bg-primary-600 text-white'
+                : 'mr-6 bg-surface-100 text-surface-800 dark:bg-surface-200',
             )}
           >
-            <div className="mb-1 text-xs font-medium text-surface-400">
+            <div
+              className={cn(
+                'mb-1 text-xs font-medium',
+                msg.role === 'user' ? 'text-primary-100' : 'text-surface-500',
+              )}
+            >
               {msg.role === 'user' ? 'You' : 'AI'}
             </div>
             <div className="whitespace-pre-wrap">{msg.content}</div>
@@ -304,8 +313,8 @@ export function ChatPanel() {
               // A spent budget or an unconfigured provider is an expected state,
               // not a fault — red would misrepresent both.
               error.code === 'budget_exceeded' || error.code === 'not_configured'
-                ? 'bg-amber-50 text-amber-800'
-                : 'bg-red-50 text-red-700',
+                ? 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300'
+                : 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300',
             )}
           >
             {error.message}
