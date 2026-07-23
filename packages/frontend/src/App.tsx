@@ -1,4 +1,4 @@
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, type ComponentType } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './contexts/theme';
 import { AuthProvider } from './contexts/auth';
@@ -7,36 +7,62 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 // Route-level code splitting: each page loads on demand, so the heavy editor
 // stack (React Flow, elkjs, yjs, engine) isn't in the initial bundle for
 // login/dashboard visitors.
-const DashboardPage = lazy(() =>
+//
+// A failed dynamic import almost always means this tab holds chunk hashes from
+// before a deploy (the new build removed them). Reload once to pick up the fresh
+// index.html + chunks; the timestamp guard avoids a reload loop if a chunk is
+// genuinely broken.
+function retryChunkLoad<T>(factory: () => Promise<T>): Promise<T> {
+  return factory().catch((err: unknown) => {
+    const key = 'chunkReloadAt';
+    const last = Number(sessionStorage.getItem(key) ?? '0');
+    if (Date.now() - last > 10_000) {
+      sessionStorage.setItem(key, String(Date.now()));
+      window.location.reload();
+      return new Promise<T>(() => {}); // never resolves; the reload takes over
+    }
+    throw err;
+  });
+}
+
+function lazyRoute<T extends ComponentType<unknown>>(factory: () => Promise<{ default: T }>) {
+  return lazy(() => retryChunkLoad(factory));
+}
+
+const DashboardPage = lazyRoute(() =>
   import('./pages/DashboardPage').then((m) => ({ default: m.DashboardPage })),
 );
-const ProjectPage = lazy(() =>
+const ProjectPage = lazyRoute(() =>
   import('./pages/ProjectPage').then((m) => ({ default: m.ProjectPage })),
 );
-const EditorPage = lazy(() =>
+const EditorPage = lazyRoute(() =>
   import('./pages/EditorPage').then((m) => ({ default: m.EditorPage })),
 );
-const LoginPage = lazy(() => import('./pages/LoginPage').then((m) => ({ default: m.LoginPage })));
-const RegisterPage = lazy(() =>
+const LoginPage = lazyRoute(() =>
+  import('./pages/LoginPage').then((m) => ({ default: m.LoginPage })),
+);
+const RegisterPage = lazyRoute(() =>
   import('./pages/RegisterPage').then((m) => ({ default: m.RegisterPage })),
 );
-const ForgotPasswordPage = lazy(() =>
+const ForgotPasswordPage = lazyRoute(() =>
   import('./pages/ForgotPasswordPage').then((m) => ({ default: m.ForgotPasswordPage })),
 );
-const ResetPasswordPage = lazy(() =>
+const ResetPasswordPage = lazyRoute(() =>
   import('./pages/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })),
 );
-const VerifyEmailPage = lazy(() =>
+const VerifyEmailPage = lazyRoute(() =>
   import('./pages/VerifyEmailPage').then((m) => ({ default: m.VerifyEmailPage })),
 );
-const TeamsPage = lazy(() => import('./pages/TeamsPage').then((m) => ({ default: m.TeamsPage })));
-const AccountPage = lazy(() =>
+const TeamsPage = lazyRoute(() =>
+  import('./pages/TeamsPage').then((m) => ({ default: m.TeamsPage })),
+);
+const AccountPage = lazyRoute(() =>
   import('./pages/AccountPage').then((m) => ({ default: m.AccountPage })),
 );
-const PrivacyPage = lazy(() =>
+const PrivacyPage = lazyRoute(() =>
   import('./pages/PrivacyPage').then((m) => ({ default: m.PrivacyPage })),
 );
-const ShareRedeemPage = lazy(() =>
+const ShareRedeemPage = lazyRoute(() =>
   import('./pages/ShareRedeemPage').then((m) => ({ default: m.ShareRedeemPage })),
 );
 
