@@ -77,6 +77,13 @@ const chatRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
       // output nobody will read.
       const abort = new AbortController();
       reply.raw.on('close', () => abort.abort());
+      // A write can still lose the race between the canWrite() check and the
+      // write itself if the socket tears down in between; without a listener
+      // that surfaces as an unhandled 'error' on the raw stream. Swallow it —
+      // a client that hung up mid-stream is expected, not a failure.
+      reply.raw.on('error', () => {
+        /* client disconnected mid-write; nothing to do */
+      });
 
       // An abrupt disconnect destroys the socket without setting writableEnded,
       // and writing to a destroyed response emits an unhandled 'error'. Both
