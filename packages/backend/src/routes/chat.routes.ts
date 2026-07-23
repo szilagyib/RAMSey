@@ -53,20 +53,20 @@ const chatRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
       // Enforce the cost ceiling before spending any tokens.
       const decision = await budget.check(userId, sessionId);
 
-      // Writing SSE headers to the raw socket bypasses @fastify/cors' onRequest
-      // hook, so a cross-origin browser would reject the stream for missing CORS
-      // headers ("Failed to fetch"). Copy the ones cors already set on the reply.
-      const sseHeaders: Record<string, string> = {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        Connection: 'keep-alive',
-        'X-Accel-Buffering': 'no',
-      };
-      for (const h of ['access-control-allow-origin', 'access-control-allow-credentials', 'vary']) {
-        const v = reply.getHeader(h);
-        if (v !== undefined) sseHeaders[h] = String(v);
+      // Streaming to the raw socket bypasses Fastify's reply, which would drop
+      // every header its onRequest hooks set — CORS (@fastify/cors) and the
+      // security headers (@fastify/helmet). Missing CORS makes a cross-origin
+      // browser reject the stream ("Failed to fetch"); missing helmet headers
+      // silently weakens the response. Re-apply everything Fastify accumulated,
+      // then set the SSE-specific headers (setHeader overwrites any same-named).
+      for (const [name, value] of Object.entries(reply.getHeaders())) {
+        if (value !== undefined) reply.raw.setHeader(name, value);
       }
-      reply.raw.writeHead(200, sseHeaders);
+      reply.raw.setHeader('content-type', 'text/event-stream');
+      reply.raw.setHeader('cache-control', 'no-cache');
+      reply.raw.setHeader('connection', 'keep-alive');
+      reply.raw.setHeader('x-accel-buffering', 'no');
+      reply.raw.writeHead(200);
 
       if (!decision.allowed) {
         // Expected, not a fault — but log it so an operator can see who is
