@@ -32,13 +32,20 @@ const PROVIDER_LABELS: Record<LlmProviderId, string> = {
   openai: 'OpenAI',
 };
 
+/**
+ * Values of AI_CHAT_ENABLED that turn the feature off (case-insensitive,
+ * trimmed). A kill-switch should honour every obvious "off" spelling, not only
+ * "false" — otherwise `AI_CHAT_ENABLED=0` set in a hurry would leave it on.
+ */
+const AI_CHAT_DISABLED_VALUES = new Set(['false', '0', 'no', 'off']);
+
 export function resolveLlmConfig(env: Env): LlmConfigResult {
   // Explicit kill-switch: one var turns AI chat off regardless of keys or model,
   // so an operator can disable it (incident, cost spike) without touching
-  // credentials. Absent or anything other than "false" leaves the feature
-  // driven by whether a valid provider config is present.
-  if ((env.AI_CHAT_ENABLED ?? '').toLowerCase() === 'false') {
-    return { ok: false, error: 'AI chat is disabled (AI_CHAT_ENABLED=false).' };
+  // credentials. Any obvious "off" value disables; absent or anything else
+  // leaves the feature driven by whether a valid provider config resolves.
+  if (AI_CHAT_DISABLED_VALUES.has((env.AI_CHAT_ENABLED ?? '').trim().toLowerCase())) {
+    return { ok: false, error: 'AI chat is disabled via AI_CHAT_ENABLED.' };
   }
 
   const provider = resolveProvider(env.AI_PROVIDER);

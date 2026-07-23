@@ -44,16 +44,23 @@ describe('resolveLlmConfig — AI_CHAT_ENABLED kill-switch', () => {
     );
   });
 
-  it('is case-insensitive', () => {
-    const result = resolveLlmConfig(env({ ANTHROPIC_API_KEY: 'sk-ant', AI_CHAT_ENABLED: 'FALSE' }));
-    expect(result.ok).toBe(false);
+  it('treats common off spellings as disabled (case-insensitive, trimmed)', () => {
+    for (const v of ['FALSE', '0', 'off', 'no', ' false ']) {
+      expect(resolveLlmConfig(env({ ANTHROPIC_API_KEY: 'sk-ant', AI_CHAT_ENABLED: v })).ok).toBe(
+        false,
+      );
+    }
   });
 
-  it('stays enabled when unset (default on) or explicitly "true"', () => {
-    expect(resolveLlmConfig(env({ ANTHROPIC_API_KEY: 'sk-ant' })).ok).toBe(true);
-    expect(
-      resolveLlmConfig(env({ ANTHROPIC_API_KEY: 'sk-ant', AI_CHAT_ENABLED: 'true' })).ok,
-    ).toBe(true);
+  it('stays enabled when unset (default on) or a non-off value', () => {
+    for (const opts of [
+      {},
+      { AI_CHAT_ENABLED: 'true' },
+      { AI_CHAT_ENABLED: '1' },
+      { AI_CHAT_ENABLED: 'yes' },
+    ]) {
+      expect(resolveLlmConfig(env({ ANTHROPIC_API_KEY: 'sk-ant', ...opts })).ok).toBe(true);
+    }
   });
 });
 
