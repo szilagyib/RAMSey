@@ -404,20 +404,24 @@ export function Toolbar({
         },
         { divider: true },
         ...(['dots', 'grid', 'none'] as BackgroundMode[]).map((mode) => ({
-          label: `${background === mode ? '✓ ' : '  '}Background: ${mode}`,
+          label: `Background: ${mode}`,
+          checked: background === mode,
           onClick: () => setBackground(mode),
         })),
         { divider: true },
         {
-          label: `${minimap ? '✓ ' : '  '}Minimap`,
+          label: 'Minimap',
+          checked: minimap,
           onClick: toggleMinimap,
         },
         {
-          label: `${palette ? '✓ ' : '  '}Palette`,
+          label: 'Palette',
+          checked: palette,
           onClick: togglePalette,
         },
         {
-          label: `${inspector ? '✓ ' : '  '}Properties panel`,
+          label: 'Properties panel',
+          checked: inspector,
           onClick: toggleInspector,
         },
         { divider: true },

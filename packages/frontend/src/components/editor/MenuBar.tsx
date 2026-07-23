@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { Check } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 // ---------------------------------------------------------------------------
@@ -10,6 +11,8 @@ export interface MenuItem {
   shortcut?: string;
   onClick: () => void;
   disabled?: boolean;
+  /** Renders a check column; toggles/radios set this instead of prefixing the label. */
+  checked?: boolean;
 }
 
 export interface MenuDivider {
@@ -43,6 +46,9 @@ function DropdownMenu({
   onHover: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  // Reserve a check column for every item once any item in the menu is a toggle,
+  // so labels line up in a 2-column grid and don't shift when checked/unchecked.
+  const hasCheckable = menu.items.some((e) => !isDivider(e) && e.checked !== undefined);
 
   return (
     <div className="relative" ref={ref}>
@@ -82,7 +88,17 @@ function DropdownMenu({
                     : 'text-surface-700 hover:bg-surface-50',
                 )}
               >
-                <span>{entry.label}</span>
+                <span className="flex min-w-0 items-center gap-1.5">
+                  {hasCheckable && (
+                    <Check
+                      className={cn(
+                        'h-3.5 w-3.5 shrink-0',
+                        entry.checked ? 'text-primary-600' : 'opacity-0',
+                      )}
+                    />
+                  )}
+                  <span className="truncate">{entry.label}</span>
+                </span>
                 {entry.shortcut && (
                   <span
                     className={cn(
