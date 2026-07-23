@@ -53,12 +53,20 @@ const chatRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
       // Enforce the cost ceiling before spending any tokens.
       const decision = await budget.check(userId, sessionId);
 
-      reply.raw.writeHead(200, {
+      // Writing SSE headers to the raw socket bypasses @fastify/cors' onRequest
+      // hook, so a cross-origin browser would reject the stream for missing CORS
+      // headers ("Failed to fetch"). Copy the ones cors already set on the reply.
+      const sseHeaders: Record<string, string> = {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
         Connection: 'keep-alive',
         'X-Accel-Buffering': 'no',
-      });
+      };
+      for (const h of ['access-control-allow-origin', 'access-control-allow-credentials', 'vary']) {
+        const v = reply.getHeader(h);
+        if (v !== undefined) sseHeaders[h] = String(v);
+      }
+      reply.raw.writeHead(200, sseHeaders);
 
       if (!decision.allowed) {
         // Expected, not a fault — but log it so an operator can see who is
