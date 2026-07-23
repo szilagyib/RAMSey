@@ -138,7 +138,10 @@ export function routeEdgesAfterLayout(nodes: Node[], edges: Edge[]): Edge[] {
     const a = center.get(e.source);
     const b = center.get(e.target);
 
-    if (!a || !b || !hasReverse(e)) {
+    // Self-loops (source === target) render their own fixed loop in the edge
+    // component; a control point here would just be a degenerate point at the
+    // node centre, dragging the loop under the node.
+    if (e.source === e.target || !a || !b || !hasReverse(e)) {
       // Straight/automatic routing.
       data.cpX = null;
       data.cpY = null;

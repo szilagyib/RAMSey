@@ -49,10 +49,25 @@ function TransitionEdgeComponent({
     };
   }, [targetNode]);
 
+  const isSelfLoop = source === target;
+
   let edgePath: string;
   let labelX: number;
   let labelY: number;
-  if (cp) {
+  if (isSelfLoop) {
+    // A self-loop through the normal bezier collapses under the node (source ≈
+    // target). Draw a fixed loop arcing above the node instead, with the
+    // arrowhead returning to the top rim.
+    const cx = targetDisc?.cx ?? sourceX;
+    const cy = targetDisc?.cy ?? sourceY;
+    const r = targetDisc?.r ?? 24;
+    const rimY = cy - r * 0.83;
+    edgePath =
+      `M ${cx - r * 0.55},${rimY} ` +
+      `C ${cx - r * 1.9},${cy - r * 2.7} ${cx + r * 1.9},${cy - r * 2.7} ${cx + r * 0.55},${rimY}`;
+    labelX = cx;
+    labelY = cy - r * 2.6;
+  } else if (cp) {
     // Label stays on the full curve's midpoint; only the drawn path is trimmed.
     [edgePath, labelX, labelY] = quadraticPath(sourceX, sourceY, cp.x, cp.y, targetX, targetY);
     if (targetDisc) {
@@ -80,7 +95,7 @@ function TransitionEdgeComponent({
   );
   let chipX = labelX;
   let chipY = labelY;
-  if (!cp && hasReverse) {
+  if (!isSelfLoop && !cp && hasReverse) {
     const dx = targetX - sourceX;
     const dy = targetY - sourceY;
     const len = Math.hypot(dx, dy) || 1;
@@ -109,7 +124,7 @@ function TransitionEdgeComponent({
       >
         {displayLabel}
       </EdgeLabel>
-      {selected && (
+      {selected && !isSelfLoop && (
         <EdgeControlPoint edgeId={id} x={cp?.x ?? labelX} y={cp?.y ?? labelY - 26} active={!!cp} />
       )}
     </>

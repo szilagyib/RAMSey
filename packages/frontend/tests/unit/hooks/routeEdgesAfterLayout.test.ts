@@ -54,4 +54,12 @@ describe('routeEdgesAfterLayout', () => {
     const [e] = routeEdgesAfterLayout(nodes, [edge('e1', 'a', 'ghost')]);
     expect(e.data).toMatchObject({ cpX: null, cpY: null });
   });
+
+  // A self-loop is its own reverse, so it must NOT get a pair control point
+  // (that lands at the node centre and hides the loop under the node); the edge
+  // component draws its own loop.
+  it('clears the control point on a self-loop instead of arcing it', () => {
+    const [e] = routeEdgesAfterLayout(nodes, [edge('e1', 'a', 'a', { cpX: 5, cpY: 5 })]);
+    expect(e.data).toMatchObject({ cpX: null, cpY: null });
+  });
 });
