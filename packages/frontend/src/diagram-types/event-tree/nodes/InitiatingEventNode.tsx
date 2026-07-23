@@ -26,12 +26,11 @@ function InitiatingEventNodeComponent({ data, selected }: NodeProps) {
           'flex h-12 w-32 items-center justify-center overflow-hidden rounded-lg border-2 px-2 transition-shadow',
           selected && 'ring-2 ring-primary-500',
         )}
-        style={
-          nodeColorStyle(data) ?? {
-            backgroundColor: 'var(--dg-intermediate-fill)',
-            borderColor: 'var(--dg-intermediate-stroke)',
-          }
-        }
+        style={{
+          backgroundColor: 'var(--dg-intermediate-fill)',
+          borderColor: 'var(--dg-intermediate-stroke)',
+          ...nodeColorStyle(data),
+        }}
       >
         <span
           className="line-clamp-2 w-full text-center text-sm leading-tight font-semibold select-none"

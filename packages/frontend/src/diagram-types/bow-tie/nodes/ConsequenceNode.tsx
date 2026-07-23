@@ -28,13 +28,12 @@ function ConsequenceNodeComponent({ data, selected }: NodeProps) {
           'flex h-12 w-28 items-center justify-center overflow-hidden rounded-lg border-2 px-2 transition-shadow',
           selected && 'ring-2 ring-primary-500',
         )}
-        style={
-          nodeColorStyle(data) ?? {
-            background: 'var(--dg-consequence-fill)',
-            borderColor: 'var(--dg-consequence-stroke)',
-            color: 'var(--dg-consequence-text)',
-          }
-        }
+        style={{
+          background: 'var(--dg-consequence-fill)',
+          borderColor: 'var(--dg-consequence-stroke)',
+          color: 'var(--dg-consequence-text)',
+          ...nodeColorStyle(data),
+        }}
       >
         <span className="line-clamp-2 w-full text-center text-sm leading-tight font-semibold select-none">
           {nodeData.label}

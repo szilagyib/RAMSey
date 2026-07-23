@@ -68,7 +68,10 @@ function StateNodeComponent({ data, selected }: NodeProps) {
       >
         <div
           className="flex h-12 w-12 items-center justify-center rounded-full border-2"
-          style={custom ?? { backgroundColor: tokens.fill, borderColor: tokens.stroke }}
+          // Merge over the defaults, don't replace them: setting only a text
+          // color must keep the default borderColor, or the border falls back to
+          // currentColor (the new text color) and picks it up unintentionally.
+          style={{ backgroundColor: tokens.fill, borderColor: tokens.stroke, ...custom }}
         >
           <span
             className="text-sm font-semibold select-none"

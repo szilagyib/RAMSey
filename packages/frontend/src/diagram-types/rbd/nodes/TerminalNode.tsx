@@ -51,7 +51,7 @@ function TerminalNodeComponent({ data, selected }: NodeProps) {
           'flex h-12 w-12 items-center justify-center rounded-full border-2 transition-shadow',
           selected && 'ring-2 ring-primary-500',
         )}
-        style={custom ?? { backgroundColor: tokens.fill, borderColor: tokens.stroke }}
+        style={{ backgroundColor: tokens.fill, borderColor: tokens.stroke, ...custom }}
       >
         <span
           className="text-xs font-semibold select-none"

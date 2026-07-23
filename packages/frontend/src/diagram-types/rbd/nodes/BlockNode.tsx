@@ -27,9 +27,11 @@ function BlockNodeComponent({ data, selected }: NodeProps) {
           'flex h-16 w-28 flex-col items-center justify-center gap-0.5 overflow-hidden rounded-md border-2 px-2 py-1 transition-shadow',
           selected && 'ring-2 ring-primary-500',
         )}
-        style={
-          custom ?? { backgroundColor: 'var(--dg-blue-fill)', borderColor: 'var(--dg-blue-stroke)' }
-        }
+        style={{
+          backgroundColor: 'var(--dg-blue-fill)',
+          borderColor: 'var(--dg-blue-stroke)',
+          ...custom,
+        }}
       >
         <span
           className="line-clamp-2 w-full text-center text-sm leading-tight font-semibold select-none"

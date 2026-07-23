@@ -50,7 +50,7 @@ function BarrierNodeComponent({ data, selected }: NodeProps) {
           'flex h-20 w-8 items-center justify-center overflow-hidden border-2 transition-shadow',
           selected && 'ring-2 ring-primary-500',
         )}
-        style={custom ?? { backgroundColor: tokens.fill, borderColor: tokens.stroke }}
+        style={{ backgroundColor: tokens.fill, borderColor: tokens.stroke, ...custom }}
       >
         <span
           className="text-[10px] font-semibold leading-tight select-none"

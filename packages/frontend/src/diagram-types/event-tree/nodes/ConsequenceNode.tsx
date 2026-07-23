@@ -42,7 +42,7 @@ function ConsequenceNodeComponent({ data, selected }: NodeProps) {
           'flex h-12 w-28 items-center justify-center overflow-hidden rounded-lg border-2 px-2 transition-shadow',
           selected && 'ring-2 ring-primary-500',
         )}
-        style={custom ?? { backgroundColor: tok.fill, borderColor: tok.stroke }}
+        style={{ backgroundColor: tok.fill, borderColor: tok.stroke, ...custom }}
       >
         <span
           className="line-clamp-2 w-full text-center text-sm leading-tight font-semibold select-none"
