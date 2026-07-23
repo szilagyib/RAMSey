@@ -89,6 +89,9 @@ CLAUDE.md
 .claude/
 docs/superpowers/
 
+# Local-only ops diagnostic (kept on disk if we ever need it; not for the repo)
+packages/backend/scripts/check-openai.cjs
+
 # Playwright
 test-results/
 playwright-report/
