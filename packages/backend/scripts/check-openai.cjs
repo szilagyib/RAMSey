@@ -19,13 +19,40 @@ if (!key) {
   process.exit(1);
 }
 
-console.log('POST', base + '/chat/completions', 'model=' + model);
+console.log('STREAM POST', base + '/chat/completions', 'model=' + model);
 
 fetch(base + '/chat/completions', {
   method: 'POST',
   headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
-  body: JSON.stringify({ model, messages: [{ role: 'user', content: 'ping' }], max_tokens: 5 }),
+  body: JSON.stringify({
+    model,
+    messages: [{ role: 'user', content: 'count to five' }],
+    max_tokens: 30,
+    stream: true,
+    stream_options: { include_usage: true },
+  }),
   signal: AbortSignal.timeout(20000),
 })
-  .then((r) => r.text().then((b) => console.log('STATUS', r.status, '\n' + b.slice(0, 400))))
+  .then(async (r) => {
+    console.log('STATUS', r.status);
+    if (!r.ok || !r.body) {
+      console.log((await r.text()).slice(0, 400));
+      return;
+    }
+    const reader = r.body.getReader();
+    const dec = new TextDecoder();
+    let chunks = 0;
+    let firstAt = 0;
+    const start = Date.now();
+    let sample = '';
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (chunks === 0) firstAt = Date.now() - start;
+      chunks += 1;
+      if (chunks <= 2) sample += dec.decode(value);
+    }
+    console.log('stream chunks:', chunks, '| first byte after(ms):', firstAt);
+    console.log('sample:', sample.replace(/\n/g, ' ').slice(0, 200));
+  })
   .catch((e) => console.log('ERR', e.name, e.message));
