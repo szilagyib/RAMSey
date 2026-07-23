@@ -116,6 +116,11 @@ const chatRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
               })}\n\n`,
             );
           }
+        } else {
+          // A cancelled turn tears down with an expected error, so it's not
+          // logged as a failure — but record it at debug so a genuine error that
+          // coincides with an abort isn't wholly invisible.
+          fastify.log.debug({ err }, 'AI chat stream ended after abort');
         }
       }
 
