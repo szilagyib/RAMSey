@@ -33,6 +33,19 @@ const envSchema = z.object({
   // "AI chat not configured" error event instead of failing to boot.
   ANTHROPIC_API_KEY: z.string().optional(),
 
+  // LLM provider selection. Deliberately loose strings, validated in
+  // services/llm/config.ts: a bad value there disables AI chat, whereas a strict
+  // enum here would refuse to boot the whole backend over a typo'd provider name.
+  // ANTHROPIC_API_KEY alone still works — these are all optional.
+  AI_PROVIDER: z.string().optional(),
+  AI_API_KEY: z.string().optional(),
+  AI_MODEL: z.string().optional(),
+  AI_BASE_URL: z.string().optional(),
+  AI_PROVIDER_LABEL: z.string().optional(),
+  // One-var kill-switch. Default on; set to "false" to disable AI chat
+  // regardless of keys/model (resolved in services/llm/config.ts).
+  AI_CHAT_ENABLED: z.string().optional(),
+
   // Optional error tracking. When unset, Sentry is a no-op.
   SENTRY_DSN: z.string().optional(),
 
@@ -82,6 +95,11 @@ function loadEnv(): Env {
         PUBLIC_API_URL: 'http://localhost:3000',
         TRUST_PROXY: undefined,
         ANTHROPIC_API_KEY: undefined,
+        AI_PROVIDER: undefined,
+        AI_API_KEY: undefined,
+        AI_MODEL: undefined,
+        AI_BASE_URL: undefined,
+        AI_PROVIDER_LABEL: undefined,
         SENTRY_DSN: undefined,
         AI_BUDGET_PER_SESSION_TOKENS: 200_000,
         AI_BUDGET_PER_USER_MONTHLY_TOKENS: 2_000_000,

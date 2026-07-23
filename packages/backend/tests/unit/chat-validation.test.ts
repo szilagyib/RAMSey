@@ -110,6 +110,23 @@ describe('validateChatRequest', () => {
     });
     expect(res.ok).toBe(false);
   });
+
+  // A non-object element would throw in the system-prompt builder; reject it
+  // here with a clean 400 instead.
+  it('rejects a non-object node or edge', () => {
+    expect(
+      validateChatRequest({
+        messages: [userMsg('hi')],
+        context: { diagramType: 'markov_chain', nodes: [null], edges: [] },
+      }).ok,
+    ).toBe(false);
+    expect(
+      validateChatRequest({
+        messages: [userMsg('hi')],
+        context: { diagramType: 'markov_chain', nodes: [], edges: ['nope'] },
+      }).ok,
+    ).toBe(false);
+  });
 });
 
 describe('RAMSEY_SYSTEM_PROMPT guardrails', () => {
@@ -132,7 +149,13 @@ describe('RAMSEY_SYSTEM_PROMPT guardrails', () => {
   });
 
   it('covers each supported diagram type for confident drawing', () => {
-    for (const t of ['Markov chain', 'Fault tree', 'Event tree', 'Reliability block diagram', 'Bow-tie']) {
+    for (const t of [
+      'Markov chain',
+      'Fault tree',
+      'Event tree',
+      'Reliability block diagram',
+      'Bow-tie',
+    ]) {
       expect(RAMSEY_SYSTEM_PROMPT).toContain(t);
     }
   });

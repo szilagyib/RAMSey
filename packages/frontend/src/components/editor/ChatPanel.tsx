@@ -1,15 +1,26 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Trash2, Wrench } from 'lucide-react';
-import { useChatStore, type ToolCall } from '../../stores/chatStore';
+import { Link } from 'react-router-dom';
+import { Send, Square, Trash2, Wrench } from 'lucide-react';
+import {
+  beginTurn,
+  endTurn,
+  getChatSessionId,
+  stopActiveTurn,
+  useChatStore,
+  type ChatError,
+  type ToolCall,
+} from '../../stores/chatStore';
 import { useDiagramStore } from '../../stores/diagramStore';
 import { serializeDiagramContext } from '../../lib/diagramSerializer';
 import { executeToolCall } from '../../lib/chatToolExecutor';
+import { useCapabilities } from '../../lib/capabilities';
+import { useAuth } from '../../contexts/auth';
 import { cn } from '../../lib/utils';
 import { apiUrl } from '../../config/runtime';
 
 // Mirror the backend chat.validation bounds so the UI fails fast instead of
 // round-tripping to a 400. Keep these in sync with chat.validation.ts.
-const MAX_MESSAGE_CHARS = 4000;
+const MAX_MESSAGE_CHARS = 2000;
 const MAX_HISTORY_MESSAGES = 16;
 
 // ---------------------------------------------------------------------------
@@ -20,9 +31,10 @@ async function sendChatRequest(
   messages: Array<{ role: 'user' | 'assistant'; content: string }>,
   context: ReturnType<typeof serializeDiagramContext>,
   sessionId: string,
+  signal: AbortSignal,
   onTextDelta: (text: string) => void,
   onToolCall: (tc: ToolCall) => void,
-  onError: (msg: string) => void,
+  onError: (err: ChatError) => void,
   onDone: () => void,
 ) {
   const res = await fetch(apiUrl('/api/ai/chat'), {
@@ -32,18 +44,19 @@ async function sendChatRequest(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ messages, context, sessionId }),
+    signal,
   });
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    onError(body.error || `Request failed: ${res.status}`);
+    onError({ message: body.error || `Request failed: ${res.status}` });
     onDone();
     return;
   }
 
   const reader = res.body?.getReader();
   if (!reader) {
-    onError('No response body');
+    onError({ message: 'No response body' });
     onDone();
     return;
   }
@@ -78,7 +91,7 @@ async function sendChatRequest(
             input: event.input,
           });
         } else if (event.type === 'error') {
-          onError(event.message);
+          onError({ message: event.message, code: event.code });
         } else if (event.type === 'done') {
           // Stream complete
         }
@@ -108,9 +121,10 @@ export function ChatPanel() {
   const setLoading = useChatStore((s) => s.setLoading);
   const clearMessages = useChatStore((s) => s.clearMessages);
 
+  const { aiProviderLabel } = useCapabilities();
+  const { isGuest } = useAuth();
+
   const [inputValue, setInputValue] = useState('');
-  // Stable id for this chat session — drives the per-session AI cost budget.
-  const [sessionId] = useState(() => crypto.randomUUID());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -118,9 +132,13 @@ export function ChatPanel() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Deliberately no abort on unmount: switching right-hand tabs unmounts this
+  // panel, and a half-drawn diagram is worse than a request that finishes.
+  const handleStop = useCallback(() => stopActiveTurn(), []);
+
   const handleSend = useCallback(async () => {
     const text = inputValue.trim();
-    if (!text || isLoading) return;
+    if (!text || isLoading || isGuest || text.length > MAX_MESSAGE_CHARS) return;
 
     setInputValue('');
     addUserMessage(text);
@@ -138,12 +156,19 @@ export function ChatPanel() {
       .slice(-MAX_HISTORY_MESSAGES);
 
     const assistantMsgId = startAssistantMessage();
+    const signal = beginTurn();
+
+    // Collapse every tool call this turn applies into ONE undo/redo step, so a
+    // generated diagram reverts in a single undo instead of one per node/edge.
+    // A text-only reply mutates nothing, so the group records nothing.
+    useDiagramStore.getState().beginHistoryGroup();
 
     try {
       await sendChatRequest(
         chatMessages,
         context,
-        sessionId,
+        getChatSessionId(),
+        signal,
         (delta) => {
           appendToAssistantMessage(assistantMsgId, delta);
         },
@@ -152,8 +177,8 @@ export function ChatPanel() {
           // Execute the tool call against the diagram store
           executeToolCall(toolCall, useDiagramStore.getState());
         },
-        (errMsg) => {
-          setError(errMsg);
+        (err) => {
+          setError(err);
         },
         () => {
           finishAssistantMessage(assistantMsgId);
@@ -161,14 +186,21 @@ export function ChatPanel() {
         },
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send message');
+      // Stopping is a deliberate user action: keep whatever was already drawn
+      // and say nothing, rather than reporting a failure.
+      if (!signal.aborted) {
+        setError({ message: err instanceof Error ? err.message : 'Failed to send message' });
+      }
       finishAssistantMessage(assistantMsgId);
       setLoading(false);
+    } finally {
+      useDiagramStore.getState().endHistoryGroup();
+      endTurn();
     }
   }, [
     inputValue,
     isLoading,
-    sessionId,
+    isGuest,
     addUserMessage,
     startAssistantMessage,
     appendToAssistantMessage,
@@ -184,6 +216,10 @@ export function ChatPanel() {
       handleSend();
     }
   };
+
+  // Trimmed, because that is what actually gets sent and what the server bounds.
+  const messageLength = inputValue.trim().length;
+  const isTooLong = messageLength > MAX_MESSAGE_CHARS;
 
   return (
     <div className="flex h-full flex-col">
@@ -203,14 +239,25 @@ export function ChatPanel() {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4">
-        {messages.length === 0 && (
-          <div className="flex h-full flex-col items-center justify-center text-center">
-            <p className="text-sm text-surface-400">Ask the AI to help with your diagram.</p>
-            <p className="mt-2 text-xs text-surface-300">
-              Try: &quot;Create a Markov chain for a redundant pump system&quot;
-            </p>
-          </div>
-        )}
+        {messages.length === 0 &&
+          (isGuest ? (
+            <div className="flex h-full flex-col items-center justify-center text-center">
+              <p className="text-sm text-surface-400">The AI assistant requires an account.</p>
+              <p className="mt-2 text-xs text-surface-300">
+                <Link to="/login" className="text-primary-600 hover:underline">
+                  Log in or sign up
+                </Link>{' '}
+                to use it.
+              </p>
+            </div>
+          ) : (
+            <div className="flex h-full flex-col items-center justify-center text-center">
+              <p className="text-sm text-surface-400">Ask the AI to help with your diagram.</p>
+              <p className="mt-2 text-xs text-surface-300">
+                Try: &quot;Create a Markov chain for a redundant pump system&quot;
+              </p>
+            </div>
+          ))}
 
         {messages.map((msg) => (
           <div
@@ -250,7 +297,19 @@ export function ChatPanel() {
         ))}
 
         {error && (
-          <div className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+          <div
+            role="status"
+            className={cn(
+              'mb-3 rounded-lg px-3 py-2 text-sm',
+              // A spent budget or an unconfigured provider is an expected state,
+              // not a fault — red would misrepresent both.
+              error.code === 'budget_exceeded' || error.code === 'not_configured'
+                ? 'bg-amber-50 text-amber-800'
+                : 'bg-red-50 text-red-700',
+            )}
+          >
+            {error.message}
+          </div>
         )}
 
         <div ref={messagesEndRef} />
@@ -264,32 +323,58 @@ export function ChatPanel() {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask the AI..."
+            placeholder={isGuest ? 'Sign in to use the AI assistant' : 'Ask the AI...'}
             rows={1}
-            maxLength={MAX_MESSAGE_CHARS}
             className={cn(
               'flex-1 resize-none rounded-md border border-surface-300 px-3 py-2 text-sm',
               'placeholder-surface-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500',
               'disabled:opacity-50',
             )}
-            disabled={isLoading}
+            disabled={isLoading || isGuest}
           />
-          <button
-            onClick={handleSend}
-            disabled={isLoading || !inputValue.trim()}
-            className={cn(
-              'flex items-center justify-center rounded-md px-3 py-2',
-              'bg-primary-600 text-white hover:bg-primary-700',
-              'disabled:cursor-not-allowed disabled:opacity-50',
-              'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
-            )}
-          >
-            <Send className="h-4 w-4" />
-          </button>
+          {isLoading ? (
+            <button
+              onClick={handleStop}
+              title="Stop generating"
+              aria-label="Stop generating"
+              className={cn(
+                'flex items-center justify-center rounded-md px-3 py-2',
+                'bg-surface-200 text-surface-700 hover:bg-surface-300',
+                'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
+              )}
+            >
+              <Square className="h-4 w-4 fill-current" />
+            </button>
+          ) : (
+            <button
+              onClick={handleSend}
+              disabled={!inputValue.trim() || isTooLong || isGuest}
+              title="Send"
+              aria-label="Send"
+              className={cn(
+                'flex items-center justify-center rounded-md px-3 py-2',
+                'bg-primary-600 text-white hover:bg-primary-700',
+                'disabled:cursor-not-allowed disabled:opacity-50',
+                'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
+              )}
+            >
+              <Send className="h-4 w-4" />
+            </button>
+          )}
         </div>
-        <p className="mt-1.5 text-[10px] leading-snug text-surface-300">
-          Messages and the open diagram are sent to Anthropic (Claude) to generate responses.
-        </p>
+        {isTooLong && (
+          <p role="alert" className="mt-1.5 text-[11px] leading-snug text-red-600">
+            Message is too long — {messageLength.toLocaleString()}/
+            {MAX_MESSAGE_CHARS.toLocaleString()} characters. Shorten it to send.
+          </p>
+        )}
+        {/* Names the real destination, which varies by deployment — see
+            aiProviderLabel in /api/capabilities. */}
+        {aiProviderLabel && !isGuest && (
+          <p className="mt-1.5 text-[10px] leading-snug text-surface-300">
+            Messages and the open diagram are sent to {aiProviderLabel} to generate responses.
+          </p>
+        )}
       </div>
     </div>
   );

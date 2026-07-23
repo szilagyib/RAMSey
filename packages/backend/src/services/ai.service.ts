@@ -1,7 +1,7 @@
-import Anthropic from '@anthropic-ai/sdk';
-import type { MessageParam, Tool, ContentBlock } from '@anthropic-ai/sdk/resources/messages';
 import { RAMSEY_SYSTEM_PROMPT } from './ai-system-prompt.js';
 import { limits } from '../config/limits.js';
+import { createLlmProvider, resolveLlmConfig } from './llm/config.js';
+import type { LlmMessage, LlmStopReason, LlmToolCall, LlmToolSpec } from './llm/provider.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -35,21 +35,27 @@ export interface TokenUsage {
   totalTokens: number;
 }
 
+/**
+ * `code` lets the client tell an expected limit apart from a real failure, so a
+ * spent budget is shown as a notice rather than an error.
+ */
+export type StreamErrorCode = 'not_configured' | 'budget_exceeded' | 'provider_error';
+
 export type StreamEvent =
   | { type: 'text_delta'; text: string }
   | { type: 'tool_call'; id: string; name: string; input: Record<string, unknown> }
-  | { type: 'error'; message: string }
+  | { type: 'error'; message: string; code: StreamErrorCode }
   | { type: 'done'; usage: TokenUsage };
 
 // ---------------------------------------------------------------------------
 // Tool definitions
 // ---------------------------------------------------------------------------
 
-const TOOLS: Tool[] = [
+const TOOLS: LlmToolSpec[] = [
   {
     name: 'add_node',
     description: 'Add a new node to the diagram. Returns the ID of the created node.',
-    input_schema: {
+    parameters: {
       type: 'object' as const,
       properties: {
         subType: {
@@ -88,7 +94,7 @@ const TOOLS: Tool[] = [
     name: 'add_edge',
     description:
       'Add a new edge (connection) between two nodes. Use node IDs or labels to identify source and target.',
-    input_schema: {
+    parameters: {
       type: 'object' as const,
       properties: {
         source: {
@@ -115,7 +121,7 @@ const TOOLS: Tool[] = [
   {
     name: 'remove_node',
     description: 'Remove a node from the diagram by its ID or label.',
-    input_schema: {
+    parameters: {
       type: 'object' as const,
       properties: {
         nodeId: {
@@ -129,7 +135,7 @@ const TOOLS: Tool[] = [
   {
     name: 'remove_edge',
     description: 'Remove an edge from the diagram by its ID.',
-    input_schema: {
+    parameters: {
       type: 'object' as const,
       properties: {
         edgeId: {
@@ -143,7 +149,7 @@ const TOOLS: Tool[] = [
   {
     name: 'update_node',
     description: "Update an existing node's data properties.",
-    input_schema: {
+    parameters: {
       type: 'object' as const,
       properties: {
         nodeId: {
@@ -162,7 +168,7 @@ const TOOLS: Tool[] = [
   {
     name: 'update_edge',
     description: "Update an existing edge's data properties.",
-    input_schema: {
+    parameters: {
       type: 'object' as const,
       properties: {
         edgeId: {
@@ -182,7 +188,7 @@ const TOOLS: Tool[] = [
     name: 'clear_diagram',
     description:
       'Remove all nodes and edges from the diagram. Use with caution — ask the user for confirmation first.',
-    input_schema: {
+    parameters: {
       type: 'object' as const,
       properties: {},
       required: [],
@@ -191,7 +197,7 @@ const TOOLS: Tool[] = [
   {
     name: 'validate_diagram',
     description: 'Run validation on the current diagram and return any errors or warnings.',
-    input_schema: {
+    parameters: {
       type: 'object' as const,
       properties: {},
       required: [],
@@ -279,32 +285,27 @@ function wrapUserInput(text: string): string {
 export async function* streamChat(
   messages: ChatMessage[],
   context: DiagramContext,
+  signal?: AbortSignal,
 ): AsyncGenerator<StreamEvent> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    yield {
-      type: 'error',
-      message:
-        'ANTHROPIC_API_KEY is not configured. Set the ANTHROPIC_API_KEY environment variable to enable AI chat.',
-    };
+  const resolved = resolveLlmConfig(process.env);
+  if (!resolved.ok) {
+    yield { type: 'error', message: resolved.error, code: 'not_configured' };
     return;
   }
+  const { config } = resolved;
+  const provider = createLlmProvider(config);
 
-  const client = new Anthropic({ apiKey });
+  // User turns are wrapped in <user> tags and escaped so injected text can't
+  // masquerade as system text; assistant turns are replayed as-is.
+  const conversation: LlmMessage[] = messages.map((m) =>
+    m.role === 'user'
+      ? { role: 'user', content: wrapUserInput(m.content) }
+      : { role: 'assistant', text: m.content, toolCalls: [] },
+  );
 
-  const systemPrompt = buildSystemPrompt(context);
-
-  // Convert our simple messages to Anthropic format. User turns are wrapped in
-  // <user> tags and escaped so injected text can't masquerade as system text;
-  // assistant turns are passed through unchanged.
-  const anthropicMessages: MessageParam[] = messages.map((m) => ({
-    role: m.role,
-    content: m.role === 'user' ? wrapUserInput(m.content) : m.content,
-  }));
-
-  // Multi-turn tool-calling loop
-  let currentMessages = [...anthropicMessages];
-  const maxRounds = limits.chat.maxToolRounds;
+  // Cache the large static constitution; only the small diagram-state tail and
+  // the conversation vary between requests.
+  const system = [{ text: buildSystemPrompt(context), cacheable: true }];
 
   // Accumulate token usage across rounds so the route can charge the budget.
   let inputTokens = 0;
@@ -315,79 +316,56 @@ export async function* streamChat(
   // runaway "build 500 nodes" turns get bounded server-side).
   let toolCallsEmitted = 0;
 
-  for (let round = 0; round < maxRounds; round++) {
-    const stream = client.messages.stream({
-      model: limits.chat.model,
-      // Bounded so a single turn can't run away with tokens; tool-calling
-      // across rounds still lets larger diagrams build up incrementally.
-      max_tokens: limits.chat.maxOutputTokens,
-      // Cache the large static constitution; only the small diagram-state tail
-      // and the conversation vary between requests.
-      system: [
+  for (let round = 0; round < limits.chat.maxToolRounds; round++) {
+    if (signal?.aborted) break;
+
+    // Calls received this round, replayed to the model at the end of it.
+    const roundCalls: LlmToolCall[] = [];
+    let assistantText = '';
+    let stopReason: LlmStopReason = 'other';
+
+    try {
+      for await (const event of provider.streamMessage(
         {
-          type: 'text',
-          text: systemPrompt,
-          cache_control: { type: 'ephemeral' },
+          model: config.model,
+          // Bounded so a single turn can't run away with tokens; tool-calling
+          // across rounds still lets larger diagrams build up incrementally.
+          maxTokens: limits.chat.maxOutputTokens,
+          system,
+          messages: conversation,
+          tools: TOOLS,
         },
-      ],
-      messages: currentMessages,
-      tools: TOOLS,
-    });
-
-    // Collect content blocks for potential follow-up
-    const contentBlocks: ContentBlock[] = [];
-    let currentToolInput = '';
-    let currentToolName = '';
-    let currentToolId = '';
-
-    for await (const event of stream) {
-      if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-        yield { type: 'text_delta', text: event.delta.text };
-      }
-
-      if (event.type === 'content_block_start' && event.content_block.type === 'tool_use') {
-        currentToolName = event.content_block.name;
-        currentToolId = event.content_block.id;
-        currentToolInput = '';
-      }
-
-      if (event.type === 'content_block_delta' && event.delta.type === 'input_json_delta') {
-        currentToolInput += event.delta.partial_json;
-      }
-
-      if (event.type === 'content_block_stop') {
-        if (currentToolName) {
+        signal,
+      )) {
+        if (event.type === 'text_delta') {
+          assistantText += event.text;
+          yield event;
+        } else if (event.type === 'tool_call') {
           if (toolCallsEmitted < limits.chat.maxToolCallsPerTurn) {
-            try {
-              const input = JSON.parse(currentToolInput || '{}');
-              yield {
-                type: 'tool_call',
-                id: currentToolId,
-                name: currentToolName,
-                input,
-              };
-              toolCallsEmitted++;
-            } catch {
-              // JSON parse error — skip this tool call
-            }
+            roundCalls.push({ id: event.id, name: event.name, input: event.input });
+            yield event;
+            toolCallsEmitted++;
           }
-          currentToolName = '';
-          currentToolId = '';
-          currentToolInput = '';
+        } else {
+          stopReason = event.stopReason;
+          inputTokens += event.usage.inputTokens;
+          outputTokens += event.usage.outputTokens;
         }
       }
+    } catch (err) {
+      // Cancelling throws out of the SDK stream mid-round. Swallow only that
+      // case and fall through to the `done` yield below: earlier rounds already
+      // cost real tokens, and letting the error propagate would drop the whole
+      // turn's usage and leave a cancelled turn free.
+      if (!signal?.aborted) throw err;
     }
 
-    // Get the final message to check stop reason
-    const finalMessage = await stream.finalMessage();
-    contentBlocks.push(...finalMessage.content);
-    inputTokens += finalMessage.usage?.input_tokens ?? 0;
-    outputTokens += finalMessage.usage?.output_tokens ?? 0;
+    // Aborted mid-round: stop, but still report the tokens already spent.
+    if (signal?.aborted) break;
 
-    if (
-      finalMessage.stop_reason === 'tool_use' &&
-      toolCallsEmitted >= limits.chat.maxToolCallsPerTurn
-    ) {
+    if (stopReason !== 'tool_use' || roundCalls.length === 0) break;
+
+    if (toolCallsEmitted >= limits.chat.maxToolCallsPerTurn) {
       // Cap reached mid-build: tell the user instead of silently truncating.
       yield {
         type: 'text_delta',
@@ -396,33 +374,19 @@ export async function* streamChat(
       break;
     }
 
-    if (finalMessage.stop_reason === 'tool_use') {
-      // Extract tool use blocks and provide results to continue
-      const toolUseBlocks = finalMessage.content.filter(
-        (b): b is Anthropic.ToolUseBlock => b.type === 'tool_use',
-      );
-
-      // Add assistant message
-      currentMessages.push({
-        role: 'assistant',
-        content: finalMessage.content,
+    // Replay the assistant turn, then answer every call in it. The turn is
+    // rebuilt from the calls actually received — never from the raw response —
+    // so it cannot contain a call without a matching result, which OpenAI
+    // rejects outright. Results are a generic success: the client is what
+    // actually applies each change.
+    conversation.push({ role: 'assistant', text: assistantText, toolCalls: roundCalls });
+    for (const call of roundCalls) {
+      conversation.push({
+        role: 'tool_result',
+        toolCallId: call.id,
+        content: JSON.stringify({ success: true }),
       });
-
-      // Add tool results (generic success — actual execution happens on the client)
-      currentMessages.push({
-        role: 'user',
-        content: toolUseBlocks.map((tc) => ({
-          type: 'tool_result' as const,
-          tool_use_id: tc.id,
-          content: JSON.stringify({ success: true }),
-        })),
-      });
-
-      continue; // Next round
     }
-
-    // AI is done (stop_reason: 'end_turn' or 'max_tokens')
-    break;
   }
 
   yield {

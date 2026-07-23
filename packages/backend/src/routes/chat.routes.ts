@@ -3,6 +3,7 @@ import { authenticate } from '../middleware/authenticate.js';
 import { streamChat, type TokenUsage } from '../services/ai.service.js';
 import { validateChatRequest } from './chat.validation.js';
 import { ChatBudgetService } from '../services/chat-budget.service.js';
+import { describeAiConfig } from '../services/llm/config.js';
 import { limits } from '../config/limits.js';
 
 const chatRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
@@ -29,6 +30,14 @@ const chatRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
       config: { rateLimit: limits.rateLimits.chat },
     },
     async (request, reply) => {
+      // When AI chat is disabled (AI_CHAT_ENABLED=false or no provider resolves)
+      // the endpoint is unavailable — mirrors server-side analysis' 503, and is
+      // checked before any budget query or SSE headers. The UI already hides the
+      // tab; this is the clean refusal for a hand-crafted request.
+      if (!describeAiConfig(process.env).configured) {
+        return reply.status(503).send({ error: 'AI chat is not available' });
+      }
+
       const validation = validateChatRequest(request.body);
       if (!validation.ok) {
         reply.status(400);
@@ -41,7 +50,7 @@ const chatRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
       const sessionId = validation.sessionId ?? crypto.randomUUID();
       const budget = new ChatBudgetService(fastify.prisma);
 
-      // Enforce the cost ceiling before calling Anthropic.
+      // Enforce the cost ceiling before spending any tokens.
       const decision = await budget.check(userId, sessionId);
 
       reply.raw.writeHead(200, {
@@ -52,22 +61,70 @@ const chatRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
       });
 
       if (!decision.allowed) {
+        // Expected, not a fault — but log it so an operator can see who is
+        // hitting which tier (e.g. to spot a cap that needs tuning).
+        fastify.log.info({ userId, tier: decision.tier }, 'AI chat budget exceeded');
         reply.raw.write(
-          `data: ${JSON.stringify({ type: 'error', message: decision.message })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'error',
+            message: decision.message,
+            code: 'budget_exceeded',
+          })}\n\n`,
         );
         reply.raw.end();
         return;
       }
 
+      // Stopping the stream (Stop button, closed tab, dropped connection) must
+      // abort the upstream LLM request too, or tokens keep being billed for
+      // output nobody will read.
+      const abort = new AbortController();
+      reply.raw.on('close', () => abort.abort());
+      // A write can still lose the race between the canWrite() check and the
+      // write itself if the socket tears down in between; without a listener
+      // that surfaces as an unhandled 'error' on the raw stream. Swallow it —
+      // a client that hung up mid-stream is expected, not a failure.
+      reply.raw.on('error', () => {
+        /* client disconnected mid-write; nothing to do */
+      });
+
+      // An abrupt disconnect destroys the socket without setting writableEnded,
+      // and writing to a destroyed response emits an unhandled 'error'. Both
+      // conditions have to be checked before every write.
+      const canWrite = () => !reply.raw.writableEnded && !reply.raw.destroyed;
+
       let usage: TokenUsage | undefined;
       try {
-        for await (const event of streamChat(messages, context)) {
+        for await (const event of streamChat(messages, context, abort.signal)) {
           if (event.type === 'done') usage = event.usage;
-          reply.raw.write(`data: ${JSON.stringify(event)}\n\n`);
+          // Drain to the end even with nobody listening, rather than breaking:
+          // usage arrives on the final event, so bailing out early on a dropped
+          // connection would leave the turn unrecorded and therefore free. The
+          // abort above already stops the upstream call, so this ends promptly.
+          if (canWrite()) reply.raw.write(`data: ${JSON.stringify(event)}\n\n`);
         }
       } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : 'Unknown error';
-        reply.raw.write(`data: ${JSON.stringify({ type: 'error', message: errorMsg })}\n\n`);
+        // An abort is the expected end of a cancelled turn, not a failure.
+        if (!abort.signal.aborted) {
+          // Upstream SDK errors can carry request URLs, headers and model
+          // details; keep those in structured logs rather than reflecting them
+          // to the browser, as the readiness check already does.
+          fastify.log.error(err, 'AI chat stream failed');
+          if (canWrite()) {
+            reply.raw.write(
+              `data: ${JSON.stringify({
+                type: 'error',
+                message: 'The AI provider could not be reached. Please try again.',
+                code: 'provider_error',
+              })}\n\n`,
+            );
+          }
+        } else {
+          // A cancelled turn tears down with an expected error, so it's not
+          // logged as a failure — but record it at debug so a genuine error that
+          // coincides with an abort isn't wholly invisible.
+          fastify.log.debug({ err }, 'AI chat stream ended after abort');
+        }
       }
 
       // Charge the budget for whatever was actually spent (best-effort).
@@ -77,9 +134,19 @@ const chatRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
         } catch (err) {
           fastify.log.error(err, 'failed to record chat usage');
         }
+      } else if (!abort.signal.aborted) {
+        // A completed turn that reports no tokens means the provider returned no
+        // usage — nothing gets recorded, so the cost ceiling silently stops
+        // enforcing. Most likely an OpenAI-compatible endpoint that ignores
+        // stream_options.include_usage (see docs/OPERATIONS.md).
+        fastify.log.warn(
+          { userId },
+          'chat turn reported zero tokens — AI budget is not being enforced',
+        );
       }
 
-      reply.raw.end();
+      // Already gone when the client hung up or pressed Stop.
+      if (canWrite()) reply.raw.end();
     },
   );
 };

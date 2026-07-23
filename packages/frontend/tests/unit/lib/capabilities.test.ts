@@ -16,13 +16,30 @@ describe('fetchCapabilities', () => {
   it('parses enabled capabilities', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () => okResponse({ aiChat: true, serverAnalysis: true, googleOAuth: true })),
+      vi.fn(async () =>
+        okResponse({
+          aiChat: true,
+          aiProviderLabel: 'OpenAI',
+          serverAnalysis: true,
+          googleOAuth: true,
+        }),
+      ),
     );
     expect(await fetchCapabilities()).toEqual({
       aiChat: true,
+      aiProviderLabel: 'OpenAI',
       serverAnalysis: true,
       googleOAuth: true,
     });
+  });
+
+  // The label drives a privacy notice, so a non-string must not reach the UI.
+  it('drops a non-string provider label', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => okResponse({ aiChat: true, aiProviderLabel: 42 })),
+    );
+    expect(await fetchCapabilities()).toMatchObject({ aiChat: true, aiProviderLabel: null });
   });
 
   it('fails closed on non-boolean / missing fields', async () => {

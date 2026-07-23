@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import { useCapabilities } from '../lib/capabilities';
 
 /**
  * Privacy policy + cookie notice.
@@ -21,6 +22,14 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 export function PrivacyPage() {
+  // The AI assistant is optional and configured per deployment, so its
+  // disclosures render only when it is actually enabled — mirroring the
+  // dark-launch pattern the rest of the app uses. The destination can be any
+  // OpenAI-compatible host, so name it from the deployment's label rather than
+  // hardcoding a provider (same rule the chat panel follows).
+  const { aiChat, aiProviderLabel } = useCapabilities();
+  const aiProvider = aiProviderLabel ?? 'our AI provider';
+
   return (
     <div className="min-h-screen bg-surface-50">
       <header className="border-b border-surface-200 bg-white dark:bg-surface-100">
@@ -34,7 +43,7 @@ export function PrivacyPage() {
 
       <main className="mx-auto max-w-3xl px-6 py-8">
         <p className="mb-8 text-xs text-surface-500">
-          Last updated: 18 July 2026. RAMSey (&quot;the service&quot;) is a free, independent
+          Last updated: 22 July 2026. RAMSey (&quot;the service&quot;) is a free, independent
           project maintained by a solo developer based in Hungary. It stores your data only to run
           your account, projects, and teams — nothing else. For any privacy question or request,
           contact{' '}
@@ -60,6 +69,15 @@ export function PrivacyPage() {
             <strong>Technical data.</strong> Server logs (IP address, request metadata) for security
             and rate limiting, and audit-log entries recording account and project actions.
           </p>
+          {aiChat && (
+            <p>
+              <strong>AI assistant data.</strong> When you use the optional AI diagram assistant,
+              the messages you send it and the contents of the diagram open at that moment — node
+              and edge labels and properties — are sent to {aiProvider} to generate its responses.
+              This happens only while you are using the assistant; if you never open it, nothing is
+              sent.
+            </p>
+          )}
         </Section>
 
         <Section title="What we do NOT do">
@@ -110,11 +128,20 @@ export function PrivacyPage() {
               receive your Google profile id, email, name, and picture to create or sign you into
               your account.
             </li>
+            {aiChat && (
+              <li>
+                <strong>{aiProvider}</strong> (only if you use the AI diagram assistant) — receives
+                your chat messages and the contents of the open diagram to generate the
+                assistant&apos;s responses.
+              </li>
+            )}
           </ul>
           <p>
             The application, database, and off-site backups are hosted in the EU. The Cloudflare
             content-delivery and proxy layer, and email delivery (Resend), may process limited data
             outside the EU under standard contractual clauses.
+            {aiChat &&
+              ` If you use the AI assistant, ${aiProvider} may likewise process your inputs outside the EU under standard contractual clauses.`}
           </p>
         </Section>
 
@@ -135,6 +162,13 @@ export function PrivacyPage() {
             your account, personal data is erased immediately (see below); residual copies leave the
             backups within that cycle.
           </p>
+          {aiChat && (
+            <p>
+              We do not store your AI conversations. Only a token count per request is recorded, to
+              enforce usage limits. {aiProvider} may retain the inputs you send it for a short
+              period for abuse monitoring under its own terms before deleting them.
+            </p>
+          )}
         </Section>
 
         <Section title="Your rights">

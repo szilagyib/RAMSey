@@ -19,7 +19,13 @@ place) — this document mirrors them.
 | `PUBLIC_API_URL`                                                    | no       | `http://localhost:3000`  | Public API base URL used for OAuth callbacks                                                                      |
 | `TRUST_PROXY`                                                       | no       | —                        | Comma-separated trusted proxy CIDRs/IPs used to resolve the real client IP                                        |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`                         | no       | —                        | Google OAuth; the login button is hidden when unset                                                               |
-| `ANTHROPIC_API_KEY`                                                 | no       | —                        | AI chat; the endpoint degrades gracefully when unset                                                              |
+| `ANTHROPIC_API_KEY`                                                 | no       | —                        | AI chat key, Anthropic only. Shorthand for `AI_API_KEY` — see "AI provider" below                                 |
+| `AI_CHAT_ENABLED`                                                   | no       | `true`                   | One-var kill-switch. Set to `false` (or `0`/`no`/`off`) to disable AI chat regardless of keys/model (hides the tab); anything else = on |
+| `AI_PROVIDER`                                                       | no       | `anthropic`              | `anthropic` or `openai`. An unrecognised value disables AI chat rather than blocking boot                          |
+| `AI_API_KEY`                                                        | no       | —                        | Key for the chosen provider; takes precedence over `ANTHROPIC_API_KEY`                                            |
+| `AI_MODEL`                                                          | no       | see below                | Model id. Defaults to the house Claude model for `anthropic`; **required** for `openai`                           |
+| `AI_BASE_URL`                                                       | no       | —                        | OpenAI-compatible endpoint (Azure, OpenRouter, Ollama, vLLM). Also changes the privacy label the UI shows          |
+| `AI_PROVIDER_LABEL`                                                 | no       | derived                  | Overrides the destination name shown in the chat panel's privacy notice                                           |
 | `AI_BUDGET_PER_SESSION_TOKENS`                                      | no       | `200000`                 | AI cost ceiling, per chat session                                                                                 |
 | `AI_BUDGET_PER_USER_MONTHLY_TOKENS`                                 | no       | `2000000`                | AI cost ceiling, per user per UTC month                                                                           |
 | `AI_BUDGET_TOTAL_MONTHLY_TOKENS`                                    | no       | `50000000`               | AI cost ceiling, global per UTC month                                                                             |
@@ -34,10 +40,88 @@ worker retry, `chat_usage` retention) live in `config/limits.ts` — change them
 there, in one place.
 
 **Dark-launch:** optional features hide themselves when unconfigured.
-`GET /api/capabilities` reports `{ aiChat, serverAnalysis }`; the UI drops the
-AI Chat tab when `ANTHROPIC_API_KEY` is unset and the "Run on server" toggle
-when the analysis queue isn't running (client-side analysis still works). A
-minimal cheap deployment is therefore: no API key, no solver-worker container.
+`GET /api/capabilities` reports `{ aiChat, aiProviderLabel, serverAnalysis,
+googleOAuth }`; the UI drops the AI Chat tab when no AI provider resolves, and
+the "Run on server" toggle when the analysis queue isn't running (client-side
+analysis still works). A minimal cheap deployment is therefore: no API key, no
+solver-worker container.
+
+## AI provider
+
+The assistant talks to Anthropic or to any OpenAI-compatible endpoint, selected
+per deployment. `services/llm/` holds one adapter per provider behind a single
+streaming interface; nothing outside that directory imports a provider SDK.
+
+```bash
+# Anthropic (default — an existing ANTHROPIC_API_KEY alone still works)
+ANTHROPIC_API_KEY=sk-ant-...
+
+# OpenAI
+AI_PROVIDER=openai
+AI_API_KEY=sk-...
+AI_MODEL=gpt-4.1-mini
+
+# Any OpenAI-compatible endpoint
+AI_PROVIDER=openai
+AI_API_KEY=...
+AI_MODEL=llama-3.3-70b
+AI_BASE_URL=https://openrouter.ai/api/v1
+```
+
+Configuration resolves on every capabilities request and never throws: a bad
+`AI_PROVIDER`, a missing key, or `openai` without `AI_MODEL` all disable AI chat
+and hide the tab, exactly as an unset key already did. The backend still boots.
+
+`AI_CHAT_ENABLED=false` (or `0`, `no`, `off` — case-insensitive) is an explicit
+kill-switch: it disables AI chat even when a valid key and model are present, so
+you can turn the feature off during an incident or cost spike without deleting
+credentials. Leave it unset (or any non-off value) to keep the feature governed
+by whether a provider resolves.
+
+**What an `AI_BASE_URL` endpoint must support.** The OpenAI adapter streams with
+`stream_options: {include_usage: true}`, without which no usage is reported and
+the cost ceiling would charge zero for every turn. Managed OpenAI, Azure,
+OpenRouter, recent Ollama and vLLM all accept it; a stricter or older proxy may
+reject the request outright. It also relies on `finish_reason` to decide whether
+to run another tool round — an endpoint that omits it stops the assistant after
+one round, so tool calls still apply but larger diagrams stop early. Test a new
+endpoint with a multi-step prompt ("build a 2oo3 voted pump station") before
+trusting it.
+
+**Privacy notice.** The chat panel names where diagram data is sent, from
+`aiProviderLabel`. With `AI_BASE_URL` set the label defaults to that URL's
+hostname rather than the provider name — a deployment pointed at OpenRouter or a
+self-hosted model must not claim data goes to OpenAI. Use `AI_PROVIDER_LABEL` to
+word it exactly. Whenever you change the provider, revisit the subprocessor
+section of the privacy policy (`PrivacyPage.tsx`) to match.
+
+**Budgets are denominated in tokens, not currency.** `AI_BUDGET_*` defaults were
+set against Claude Sonnet pricing; the same ceilings allow far more spend-value
+on a cheaper model and far less on a more expensive one. Re-tune them when you
+switch models.
+
+### What the cost ceiling does and does not stop
+
+The two monthly tiers are the real controls: they key on the authenticated user
+id and a UTC month, both server-derived, so a client cannot influence them.
+
+The per-session tier is a **guardrail, not a security boundary**. `sessionId`
+comes from the request body, so a crafted client can send a fresh id per request
+and never accumulate against it. It bounds a runaway editing session; it does
+not bound a determined user. The monthly tiers are what actually cap spend.
+
+Two known gaps, neither a regression — worth knowing before you set the numbers:
+
+- **Concurrency.** The budget is checked before a turn and recorded after it, so
+  simultaneous requests can all pass the check before any of them records. The
+  chat rate limit (20/min) bounds the overshoot rather than eliminating it.
+- **A turn that crosses a tier still completes.** By design — the *next* request
+  is the one refused.
+
+Watch for `chat turn reported zero tokens — AI budget is not being enforced` in
+the logs. It means the provider returned no usage, so nothing is being recorded
+and the ceiling has silently stopped working — almost always an endpoint that
+ignores `stream_options.include_usage`.
 
 ## Deploy
 

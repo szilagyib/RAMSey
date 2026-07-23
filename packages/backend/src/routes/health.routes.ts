@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { env } from '../config/env.js';
 import { getAnalysisQueue } from '../queue/analysisQueue.js';
+import { describeAiConfig } from '../services/llm/config.js';
 
 const healthRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
   /**
@@ -18,11 +19,15 @@ const healthRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
   /**
    * GET /api/capabilities
    * Which optional features this deployment has enabled, so the UI can hide
-   * (rather than break) what isn't configured. Booleans only — no secrets.
+   * (rather than break) what isn't configured. No secrets: `aiProviderLabel`
+   * names where chat data is sent (for the panel's privacy notice) and is null
+   * whenever AI chat is off.
    */
   fastify.get('/api/capabilities', async (_request, _reply) => {
+    const ai = describeAiConfig(process.env);
     return {
-      aiChat: Boolean(env.ANTHROPIC_API_KEY),
+      aiChat: ai.configured,
+      aiProviderLabel: ai.label,
       serverAnalysis: getAnalysisQueue() !== null,
       googleOAuth: Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET),
     };

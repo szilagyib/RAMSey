@@ -71,9 +71,10 @@ describe('Health Routes', () => {
       const response = await app.inject({ method: 'GET', url: '/api/capabilities' });
 
       expect(response.statusCode).toBe(200);
-      // Test env has no ANTHROPIC_API_KEY and no analysis queue.
+      // Test env has no AI provider key and no analysis queue.
       expect(response.json()).toEqual({
         aiChat: false,
+        aiProviderLabel: null,
         serverAnalysis: false,
         googleOAuth: false,
       });
