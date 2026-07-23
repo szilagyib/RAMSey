@@ -3,6 +3,7 @@ import { authenticate } from '../middleware/authenticate.js';
 import { streamChat, type TokenUsage } from '../services/ai.service.js';
 import { validateChatRequest } from './chat.validation.js';
 import { ChatBudgetService } from '../services/chat-budget.service.js';
+import { describeAiConfig } from '../services/llm/config.js';
 import { limits } from '../config/limits.js';
 
 const chatRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
@@ -29,6 +30,14 @@ const chatRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
       config: { rateLimit: limits.rateLimits.chat },
     },
     async (request, reply) => {
+      // When AI chat is disabled (AI_CHAT_ENABLED=false or no provider resolves)
+      // the endpoint is unavailable — mirrors server-side analysis' 503, and is
+      // checked before any budget query or SSE headers. The UI already hides the
+      // tab; this is the clean refusal for a hand-crafted request.
+      if (!describeAiConfig(process.env).configured) {
+        return reply.status(503).send({ error: 'AI chat is not available' });
+      }
+
       const validation = validateChatRequest(request.body);
       if (!validation.ok) {
         reply.status(400);
