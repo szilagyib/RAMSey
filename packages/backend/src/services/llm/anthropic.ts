@@ -42,6 +42,12 @@ export class AnthropicProvider implements LlmProvider {
       { signal },
     );
 
+    // A MessageStream is an EventEmitter: an aborted or failed request emits an
+    // 'error' event, which crashes the process if nothing is listening. Errors
+    // still surface through the async iterator below (caught upstream), so this
+    // listener only prevents the duplicate unhandled 'error' emission on abort.
+    stream.on('error', () => {});
+
     // Tool input arrives as JSON fragments across input_json_delta events; hold
     // the partial until content_block_stop closes the block.
     let toolId = '';

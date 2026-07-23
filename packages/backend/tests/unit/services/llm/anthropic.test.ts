@@ -19,13 +19,18 @@ interface FinalMessage {
   usage?: Record<string, number>;
 }
 
-/** The SDK's stream object: async-iterable, plus finalMessage(). */
+/** The SDK's stream object: an async-iterable EventEmitter, plus finalMessage(). */
 function streamOf(events: Event[], final: FinalMessage) {
   return {
     async *[Symbol.asyncIterator]() {
       for (const event of events) yield event;
     },
     finalMessage: async () => final,
+    // MessageStream is an EventEmitter; the adapter attaches a no-op 'error'
+    // listener to avoid an unhandled 'error' crash on abort. on() returns this.
+    on() {
+      return this;
+    },
   };
 }
 
@@ -79,7 +84,10 @@ function sentBody(): SentBody {
   return streamMock.mock.calls[0][0] as SentBody;
 }
 
-const ended: FinalMessage = { stop_reason: 'end_turn', usage: { input_tokens: 0, output_tokens: 0 } };
+const ended: FinalMessage = {
+  stop_reason: 'end_turn',
+  usage: { input_tokens: 0, output_tokens: 0 },
+};
 
 beforeEach(() => {
   streamMock.mockReset();
