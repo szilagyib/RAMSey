@@ -57,6 +57,13 @@ function validateContext(raw: unknown): DiagramContext | string {
   const edges = Array.isArray(c.edges) ? c.edges : [];
   if (nodes.length > limits.chat.maxContextNodes) return 'diagram has too many nodes';
   if (edges.length > limits.chat.maxContextEdges) return 'diagram has too many edges';
+  // Each element must be an object: the system-prompt builder reads n.data / n.id
+  // directly, so a null or primitive would throw mid-request instead of failing
+  // fast here with a clean 400.
+  if ((nodes as unknown[]).some((n) => !n || typeof n !== 'object'))
+    return 'invalid node in context';
+  if ((edges as unknown[]).some((e) => !e || typeof e !== 'object'))
+    return 'invalid edge in context';
 
   return {
     diagramType: c.diagramType,

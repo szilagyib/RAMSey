@@ -61,6 +61,9 @@ const chatRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
       });
 
       if (!decision.allowed) {
+        // Expected, not a fault — but log it so an operator can see who is
+        // hitting which tier (e.g. to spot a cap that needs tuning).
+        fastify.log.info({ userId, tier: decision.tier }, 'AI chat budget exceeded');
         reply.raw.write(
           `data: ${JSON.stringify({
             type: 'error',
