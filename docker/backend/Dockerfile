@@ -12,7 +12,6 @@ COPY packages/engine/package.json ./packages/engine/package.json
 COPY packages/backend/package.json ./packages/backend/package.json
 COPY packages/backend/prisma.config.ts ./packages/backend/prisma.config.ts
 COPY packages/frontend/package.json ./packages/frontend/package.json
-COPY infra/package.json ./infra/package.json
 COPY packages/backend/prisma ./packages/backend/prisma
 
 # Git hooks belong on developer machines, not in deterministic image builds.
@@ -46,7 +45,6 @@ COPY packages/engine/package.json ./packages/engine/package.json
 COPY packages/backend/package.json ./packages/backend/package.json
 COPY packages/backend/prisma.config.ts ./packages/backend/prisma.config.ts
 COPY packages/frontend/package.json ./packages/frontend/package.json
-COPY infra/package.json ./infra/package.json
 COPY packages/backend/prisma ./packages/backend/prisma
 
 RUN npm pkg delete scripts.prepare \
