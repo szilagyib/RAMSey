@@ -84,7 +84,16 @@ function DropdownMenu({
               >
                 <span>{entry.label}</span>
                 {entry.shortcut && (
-                  <span className="ml-6 text-[10px] text-surface-400">{entry.shortcut}</span>
+                  <span
+                    className={cn(
+                      'ml-6 text-[10px]',
+                      // Muted-but-legible when disabled; stronger when active — so
+                      // the shortcut tracks the label and disabled stays distinct.
+                      entry.disabled ? 'text-surface-400' : 'text-surface-500',
+                    )}
+                  >
+                    {entry.shortcut}
+                  </span>
                 )}
               </button>
             );
