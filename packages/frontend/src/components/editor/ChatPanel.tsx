@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { Send, Square, Trash2, Wrench } from 'lucide-react';
 import {
   beginTurn,
@@ -13,6 +14,7 @@ import { useDiagramStore } from '../../stores/diagramStore';
 import { serializeDiagramContext } from '../../lib/diagramSerializer';
 import { executeToolCall } from '../../lib/chatToolExecutor';
 import { useCapabilities } from '../../lib/capabilities';
+import { useAuth } from '../../contexts/auth';
 import { cn } from '../../lib/utils';
 import { apiUrl } from '../../config/runtime';
 
@@ -120,6 +122,7 @@ export function ChatPanel() {
   const clearMessages = useChatStore((s) => s.clearMessages);
 
   const { aiProviderLabel } = useCapabilities();
+  const { isGuest } = useAuth();
 
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -135,7 +138,7 @@ export function ChatPanel() {
 
   const handleSend = useCallback(async () => {
     const text = inputValue.trim();
-    if (!text || isLoading) return;
+    if (!text || isLoading || isGuest || text.length > MAX_MESSAGE_CHARS) return;
 
     setInputValue('');
     addUserMessage(text);
@@ -197,6 +200,7 @@ export function ChatPanel() {
   }, [
     inputValue,
     isLoading,
+    isGuest,
     addUserMessage,
     startAssistantMessage,
     appendToAssistantMessage,
@@ -212,6 +216,10 @@ export function ChatPanel() {
       handleSend();
     }
   };
+
+  // Trimmed, because that is what actually gets sent and what the server bounds.
+  const messageLength = inputValue.trim().length;
+  const isTooLong = messageLength > MAX_MESSAGE_CHARS;
 
   return (
     <div className="flex h-full flex-col">
@@ -231,14 +239,25 @@ export function ChatPanel() {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4">
-        {messages.length === 0 && (
-          <div className="flex h-full flex-col items-center justify-center text-center">
-            <p className="text-sm text-surface-400">Ask the AI to help with your diagram.</p>
-            <p className="mt-2 text-xs text-surface-300">
-              Try: &quot;Create a Markov chain for a redundant pump system&quot;
-            </p>
-          </div>
-        )}
+        {messages.length === 0 &&
+          (isGuest ? (
+            <div className="flex h-full flex-col items-center justify-center text-center">
+              <p className="text-sm text-surface-400">The AI assistant requires an account.</p>
+              <p className="mt-2 text-xs text-surface-300">
+                <Link to="/login" className="text-primary-600 hover:underline">
+                  Log in or sign up
+                </Link>{' '}
+                to use it.
+              </p>
+            </div>
+          ) : (
+            <div className="flex h-full flex-col items-center justify-center text-center">
+              <p className="text-sm text-surface-400">Ask the AI to help with your diagram.</p>
+              <p className="mt-2 text-xs text-surface-300">
+                Try: &quot;Create a Markov chain for a redundant pump system&quot;
+              </p>
+            </div>
+          ))}
 
         {messages.map((msg) => (
           <div
@@ -304,15 +323,14 @@ export function ChatPanel() {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask the AI..."
+            placeholder={isGuest ? 'Sign in to use the AI assistant' : 'Ask the AI...'}
             rows={1}
-            maxLength={MAX_MESSAGE_CHARS}
             className={cn(
               'flex-1 resize-none rounded-md border border-surface-300 px-3 py-2 text-sm',
               'placeholder-surface-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500',
               'disabled:opacity-50',
             )}
-            disabled={isLoading}
+            disabled={isLoading || isGuest}
           />
           {isLoading ? (
             <button
@@ -330,7 +348,7 @@ export function ChatPanel() {
           ) : (
             <button
               onClick={handleSend}
-              disabled={!inputValue.trim()}
+              disabled={!inputValue.trim() || isTooLong || isGuest}
               title="Send"
               aria-label="Send"
               className={cn(
@@ -344,9 +362,15 @@ export function ChatPanel() {
             </button>
           )}
         </div>
+        {isTooLong && (
+          <p role="alert" className="mt-1.5 text-[11px] leading-snug text-red-600">
+            Message is too long — {messageLength.toLocaleString()}/
+            {MAX_MESSAGE_CHARS.toLocaleString()} characters. Shorten it to send.
+          </p>
+        )}
         {/* Names the real destination, which varies by deployment — see
             aiProviderLabel in /api/capabilities. */}
-        {aiProviderLabel && (
+        {aiProviderLabel && !isGuest && (
           <p className="mt-1.5 text-[10px] leading-snug text-surface-300">
             Messages and the open diagram are sent to {aiProviderLabel} to generate responses.
           </p>
