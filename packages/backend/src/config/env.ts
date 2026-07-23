@@ -42,6 +42,9 @@ const envSchema = z.object({
   AI_MODEL: z.string().optional(),
   AI_BASE_URL: z.string().optional(),
   AI_PROVIDER_LABEL: z.string().optional(),
+  // One-var kill-switch. Default on; set to "false" to disable AI chat
+  // regardless of keys/model (resolved in services/llm/config.ts).
+  AI_CHAT_ENABLED: z.string().optional(),
 
   // Optional error tracking. When unset, Sentry is a no-op.
   SENTRY_DSN: z.string().optional(),

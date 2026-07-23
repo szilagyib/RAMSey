@@ -33,6 +33,14 @@ const PROVIDER_LABELS: Record<LlmProviderId, string> = {
 };
 
 export function resolveLlmConfig(env: Env): LlmConfigResult {
+  // Explicit kill-switch: one var turns AI chat off regardless of keys or model,
+  // so an operator can disable it (incident, cost spike) without touching
+  // credentials. Absent or anything other than "false" leaves the feature
+  // driven by whether a valid provider config is present.
+  if ((env.AI_CHAT_ENABLED ?? '').toLowerCase() === 'false') {
+    return { ok: false, error: 'AI chat is disabled (AI_CHAT_ENABLED=false).' };
+  }
+
   const provider = resolveProvider(env.AI_PROVIDER);
   if (!provider) {
     return { ok: false, error: `AI_PROVIDER "${env.AI_PROVIDER}" is not supported.` };

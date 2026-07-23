@@ -35,6 +35,28 @@ describe('resolveLlmConfig — provider', () => {
   });
 });
 
+describe('resolveLlmConfig — AI_CHAT_ENABLED kill-switch', () => {
+  it('disables AI even with a valid key when set to "false"', () => {
+    const result = resolveLlmConfig(env({ ANTHROPIC_API_KEY: 'sk-ant', AI_CHAT_ENABLED: 'false' }));
+    expect(result).toEqual({ ok: false, error: expect.stringContaining('disabled') });
+    expect(describeAiConfig(env({ ANTHROPIC_API_KEY: 'sk-ant', AI_CHAT_ENABLED: 'false' }))).toEqual(
+      { configured: false, label: null },
+    );
+  });
+
+  it('is case-insensitive', () => {
+    const result = resolveLlmConfig(env({ ANTHROPIC_API_KEY: 'sk-ant', AI_CHAT_ENABLED: 'FALSE' }));
+    expect(result.ok).toBe(false);
+  });
+
+  it('stays enabled when unset (default on) or explicitly "true"', () => {
+    expect(resolveLlmConfig(env({ ANTHROPIC_API_KEY: 'sk-ant' })).ok).toBe(true);
+    expect(
+      resolveLlmConfig(env({ ANTHROPIC_API_KEY: 'sk-ant', AI_CHAT_ENABLED: 'true' })).ok,
+    ).toBe(true);
+  });
+});
+
 describe('resolveLlmConfig — key', () => {
   // Deployments predating AI_PROVIDER must keep working untouched.
   it('falls back to ANTHROPIC_API_KEY for the anthropic provider', () => {

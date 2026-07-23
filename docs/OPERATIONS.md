@@ -20,6 +20,7 @@ place) — this document mirrors them.
 | `TRUST_PROXY`                                                       | no       | —                        | Comma-separated trusted proxy CIDRs/IPs used to resolve the real client IP                                        |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`                         | no       | —                        | Google OAuth; the login button is hidden when unset                                                               |
 | `ANTHROPIC_API_KEY`                                                 | no       | —                        | AI chat key, Anthropic only. Shorthand for `AI_API_KEY` — see "AI provider" below                                 |
+| `AI_CHAT_ENABLED`                                                   | no       | `true`                   | One-var kill-switch. Set to `false` to disable AI chat regardless of keys/model (hides the tab); anything else = on |
 | `AI_PROVIDER`                                                       | no       | `anthropic`              | `anthropic` or `openai`. An unrecognised value disables AI chat rather than blocking boot                          |
 | `AI_API_KEY`                                                        | no       | —                        | Key for the chosen provider; takes precedence over `ANTHROPIC_API_KEY`                                            |
 | `AI_MODEL`                                                          | no       | see below                | Model id. Defaults to the house Claude model for `anthropic`; **required** for `openai`                           |
@@ -70,6 +71,11 @@ AI_BASE_URL=https://openrouter.ai/api/v1
 Configuration resolves on every capabilities request and never throws: a bad
 `AI_PROVIDER`, a missing key, or `openai` without `AI_MODEL` all disable AI chat
 and hide the tab, exactly as an unset key already did. The backend still boots.
+
+`AI_CHAT_ENABLED=false` is an explicit kill-switch: it disables AI chat even
+when a valid key and model are present, so you can turn the feature off during
+an incident or cost spike without deleting credentials. Leave it unset (or any
+value but `false`) to keep the feature governed by whether a provider resolves.
 
 **What an `AI_BASE_URL` endpoint must support.** The OpenAI adapter streams with
 `stream_options: {include_usage: true}`, without which no usage is reported and
