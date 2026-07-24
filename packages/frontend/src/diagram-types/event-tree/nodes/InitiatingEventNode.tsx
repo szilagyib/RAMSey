@@ -29,12 +29,16 @@ function InitiatingEventNodeComponent({ data, selected }: NodeProps) {
         style={{
           backgroundColor: 'var(--dg-intermediate-fill)',
           borderColor: 'var(--dg-intermediate-stroke)',
-          ...nodeColorStyle(data),
+          ...nodeColorStyle(data, 'var(--dg-intermediate-fill)'),
         }}
       >
         <span
           className="line-clamp-2 w-full text-center text-sm leading-tight font-semibold select-none"
-          style={{ color: nodeColorStyle(data)?.color ?? 'var(--dg-intermediate-text)' }}
+          style={{
+            color:
+              nodeColorStyle(data, 'var(--dg-intermediate-fill)')?.color ??
+              'var(--dg-intermediate-text)',
+          }}
         >
           {nodeData.label}
         </span>

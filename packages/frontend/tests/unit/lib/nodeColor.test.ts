@@ -54,7 +54,9 @@ describe('nodeColorStyle (independent fill / border / text)', () => {
   });
 
   it('all three combine, explicit fill overriding the border tint', () => {
-    expect(nodeColorStyle({ color: '#ff8800', fillColor: '#111111', textColor: '#ffffff' })).toEqual({
+    expect(
+      nodeColorStyle({ color: '#ff8800', fillColor: '#111111', textColor: '#ffffff' }),
+    ).toEqual({
       borderColor: '#ff8800',
       background: '#111111',
       color: '#ffffff',
@@ -66,7 +68,7 @@ describe('resolveTokenColors (SVG/token nodes)', () => {
   const def = { fill: 'F', stroke: 'S', text: 'T' };
 
   it('returns defaults when nothing is set', () => {
-    expect(resolveTokenColors({}, def)).toEqual(def);
+    expect(resolveTokenColors({}, def)).toEqual({ ...def, fillOpacity: 1 });
   });
 
   it('maps border→stroke with a tinted fill, neutral text', () => {
@@ -74,6 +76,7 @@ describe('resolveTokenColors (SVG/token nodes)', () => {
       stroke: '#ff8800',
       fill: '#ff880026',
       text: 'var(--dg-undeveloped-text)',
+      fillOpacity: 1,
     });
   });
 
@@ -82,7 +85,33 @@ describe('resolveTokenColors (SVG/token nodes)', () => {
       stroke: 'S',
       fill: '#123456',
       text: '#abcdef',
+      fillOpacity: 1,
     });
+  });
+});
+
+describe('opacity applies to the fill only', () => {
+  const def = { fill: 'F', stroke: 'S', text: 'T' };
+
+  it('reports the node opacity as fill-opacity for SVG shapes', () => {
+    expect(resolveTokenColors({ opacity: 0.4 }, def).fillOpacity).toBe(0.4);
+  });
+
+  // The border and the label must stay fully opaque — fading the whole element
+  // made a faded node unreadable and hard to grab.
+  it('fades only the background in the CSS style, leaving border and text', () => {
+    const style = nodeColorStyle({ color: '#ff8800', textColor: '#ffffff', opacity: 0.5 });
+    expect(style?.background).toContain('50%');
+    expect(style?.borderColor).toBe('#ff8800');
+    expect(style?.color).toBe('#ffffff');
+  });
+
+  it('fades a default fill even when no colour was picked', () => {
+    expect(nodeColorStyle({ opacity: 0.25 }, 'var(--dg-basic-fill)')?.background).toContain('25%');
+  });
+
+  it('leaves a fully opaque node untouched', () => {
+    expect(nodeColorStyle({}, 'var(--dg-basic-fill)')).toBeUndefined();
   });
 });
 

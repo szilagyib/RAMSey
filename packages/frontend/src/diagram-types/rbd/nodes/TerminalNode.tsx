@@ -32,7 +32,7 @@ function TerminalNodeComponent({ data, selected }: NodeProps) {
   const nodeData = data as RBDNodeData;
   const kind = nodeData.nodeKind as 'input_terminal' | 'output_terminal';
   const tokens = terminalTokens[kind] ?? terminalTokens.input_terminal;
-  const custom = nodeColorStyle(data);
+  const custom = nodeColorStyle(data, tokens.fill);
 
   return (
     <>

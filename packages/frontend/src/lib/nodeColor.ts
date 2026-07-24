@@ -39,12 +39,23 @@ export function tintFill(color: string): string {
 }
 
 /**
+ * Fade a colour to `alpha` without needing to know its notation — these fills
+ * are variously `#rrggbb`, `#rrggbbaa` (see tintFill) and `var(--dg-*)`, so
+ * string surgery is not an option. Used for CSS backgrounds; SVG shapes use the
+ * native `fill-opacity` attribute instead.
+ */
+export function withAlpha(color: string, alpha: number): string {
+  if (alpha >= 1) return color;
+  return `color-mix(in srgb, ${color} ${Math.round(alpha * 100)}%, transparent)`;
+}
+
+/**
  * Node opacity (node.data.opacity), 0–1. Null/absent means fully opaque.
  *
- * Applied to the whole node rather than to its fill, so it works the same for
- * the div-based nodes and the SVG ones (gates, events, the bow-tie diamond) —
- * and takes the border, the label and the handles with it, which is what you
- * want when you're fading a node back.
+ * Applied to the FILL only. Fading the whole element took the border, the label
+ * and the handles with it, so a faded node became unreadable and hard to grab;
+ * shading just the fill keeps the outline and text crisp, which is what "make
+ * this one recede" actually means on a diagram.
  */
 export function getNodeOpacity(data: unknown): number | null {
   const value = (data as { opacity?: unknown } | null | undefined)?.opacity;
@@ -74,14 +85,22 @@ export function hasCustomColor(c: ResolvedNodeColors): boolean {
  * explicit text color was picked (semantic light-on-dark text would wash out
  * against a custom fill).
  */
-export function nodeColorStyle(data: unknown): React.CSSProperties | undefined {
+export function nodeColorStyle(
+  data: unknown,
+  /** The node's own notation fill, so opacity can fade it even when the user has
+   *  picked no custom colour at all. */
+  defaultFill?: string,
+): React.CSSProperties | undefined {
   const { border, fill, text } = resolveNodeColors(data);
-  if (border === null && fill === null && text === null) return undefined;
+  const opacity = getNodeOpacity(data) ?? 1;
+  if (border === null && fill === null && text === null && opacity >= 1) return undefined;
 
   const style: React.CSSProperties = {};
   if (border !== null) style.borderColor = border;
-  if (fill !== null) style.background = fill;
-  else if (border !== null) style.background = tintFill(border);
+
+  const resolvedFill = fill ?? (border !== null ? tintFill(border) : defaultFill);
+  if (resolvedFill !== undefined) style.background = withAlpha(resolvedFill, opacity);
+
   if (text !== null) style.color = text;
   else if (border !== null || fill !== null) style.color = 'var(--dg-undeveloped-text)';
   return style;
@@ -95,12 +114,15 @@ export function nodeColorStyle(data: unknown): React.CSSProperties | undefined {
 export function resolveTokenColors(
   data: unknown,
   def: { fill: string; stroke: string; text: string },
-): { fill: string; stroke: string; text: string } {
+): { fill: string; stroke: string; text: string; fillOpacity: number } {
   const { border, fill, text } = resolveNodeColors(data);
   return {
     stroke: border ?? def.stroke,
     fill: fill ?? (border !== null ? tintFill(border) : def.fill),
     text: text ?? (border !== null || fill !== null ? 'var(--dg-undeveloped-text)' : def.text),
+    // SVG shapes fade via the fill-opacity attribute rather than a mixed colour:
+    // it applies to the fill by definition, leaving stroke and label untouched.
+    fillOpacity: getNodeOpacity(data) ?? 1,
   };
 }
 

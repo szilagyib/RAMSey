@@ -10,7 +10,7 @@ import type { BowTieNodeData } from '../../../types/diagram';
 
 function ThreatNodeComponent({ data, selected }: NodeProps) {
   const nodeData = data as BowTieNodeData;
-  const custom = nodeColorStyle(data);
+  const custom = nodeColorStyle(data, 'var(--dg-top-fill)');
 
   return (
     <>

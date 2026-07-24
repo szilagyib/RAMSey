@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { cn } from '../../../lib/utils';
-import { resolveTokenColors } from '../../../lib/nodeColor';
+import { resolveTokenColors, withAlpha } from '../../../lib/nodeColor';
 import type { FaultTreeNodeData } from '../../../types/diagram';
 
 // ---------------------------------------------------------------------------
@@ -18,6 +18,8 @@ interface EventTokens {
   fill: string;
   stroke: string;
   text: string;
+  /** Absent on the static defaults; resolveTokenColors always supplies it. */
+  fillOpacity?: number;
 }
 
 const eventTokens: Record<NonNullable<FaultTreeNodeData['eventType']>, EventTokens> = {
@@ -51,7 +53,15 @@ const eventTokens: Record<NonNullable<FaultTreeNodeData['eventType']>, EventToke
 function BasicEventSvg({ tokens }: { tokens: EventTokens }) {
   return (
     <svg width={SYMBOL_SIZE} height={SYMBOL_SIZE} viewBox="0 0 60 60">
-      <circle cx={30} cy={30} r={26} fill={tokens.fill} stroke={tokens.stroke} strokeWidth={2.5} />
+      <circle
+        cx={30}
+        cy={30}
+        r={26}
+        fill={tokens.fill}
+        fillOpacity={tokens.fillOpacity}
+        stroke={tokens.stroke}
+        strokeWidth={2.5}
+      />
     </svg>
   );
 }
@@ -62,6 +72,7 @@ function UndevelopedEventSvg({ tokens }: { tokens: EventTokens }) {
       <polygon
         points="30,4 56,30 30,56 4,30"
         fill={tokens.fill}
+        fillOpacity={tokens.fillOpacity}
         stroke={tokens.stroke}
         strokeWidth={2.5}
         strokeLinejoin="round"
@@ -104,7 +115,10 @@ function EventNodeComponent({ data, selected }: NodeProps) {
             'flex h-12 w-32 items-center justify-center rounded-sm px-2 text-center',
             eventType === 'top' ? 'border-[3px]' : 'border-2',
           )}
-          style={{ background: tokens.fill, borderColor: tokens.stroke }}
+          style={{
+            background: withAlpha(tokens.fill, tokens.fillOpacity ?? 1),
+            borderColor: tokens.stroke,
+          }}
         >
           <span
             className="line-clamp-2 text-xs font-semibold leading-tight select-none"

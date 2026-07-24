@@ -32,7 +32,7 @@ function ConsequenceNodeComponent({ data, selected }: NodeProps) {
           background: 'var(--dg-consequence-fill)',
           borderColor: 'var(--dg-consequence-stroke)',
           color: 'var(--dg-consequence-text)',
-          ...nodeColorStyle(data),
+          ...nodeColorStyle(data, 'var(--dg-consequence-fill)'),
         }}
       >
         <span className="line-clamp-2 w-full text-center text-sm leading-tight font-semibold select-none">

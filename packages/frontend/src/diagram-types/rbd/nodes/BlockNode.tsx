@@ -10,7 +10,7 @@ import type { RBDNodeData } from '../../../types/diagram';
 
 function BlockNodeComponent({ data, selected }: NodeProps) {
   const nodeData = data as RBDNodeData;
-  const custom = nodeColorStyle(data);
+  const custom = nodeColorStyle(data, 'var(--dg-blue-fill)');
 
   return (
     <>

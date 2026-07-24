@@ -14,7 +14,6 @@ function ConsequenceNodeComponent({ data, selected }: NodeProps) {
   // Use green for success outcomes, gray for generic/unlabeled consequences
   const hasLabel = nodeData.label && nodeData.label.trim() !== '';
   const isSuccess = hasLabel && /success|ok|safe/i.test(nodeData.label);
-  const custom = nodeColorStyle(data);
   const tok = isSuccess
     ? {
         fill: 'var(--dg-basic-fill)',
@@ -26,6 +25,7 @@ function ConsequenceNodeComponent({ data, selected }: NodeProps) {
         stroke: 'var(--dg-undeveloped-stroke)',
         text: 'var(--dg-undeveloped-text)',
       };
+  const custom = nodeColorStyle(data, tok.fill);
 
   return (
     <>

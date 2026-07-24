@@ -102,6 +102,7 @@ function KOfNGateSvg({ k, n }: { k?: number; n?: number }) {
         strokeLinejoin="round"
       />
       <text
+        fillOpacity={1}
         x={30}
         y={32}
         textAnchor="middle"
@@ -168,6 +169,8 @@ function GateNodeComponent({ data, selected }: NodeProps) {
     ...(custom
       ? ({
           '--dg-gate-fill': tokens.fill,
+          // Inherited by every shape below; <text> opts out so labels stay crisp.
+          fillOpacity: tokens.fillOpacity,
           '--dg-gate-stroke': tokens.stroke,
         } as React.CSSProperties)
       : {}),

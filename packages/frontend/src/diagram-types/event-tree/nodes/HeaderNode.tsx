@@ -10,7 +10,7 @@ import type { EventTreeNodeData } from '../../../types/diagram';
 
 function HeaderNodeComponent({ data, selected }: NodeProps) {
   const nodeData = data as EventTreeNodeData;
-  const custom = nodeColorStyle(data);
+  const custom = nodeColorStyle(data, 'var(--dg-blue-fill)');
 
   return (
     <>

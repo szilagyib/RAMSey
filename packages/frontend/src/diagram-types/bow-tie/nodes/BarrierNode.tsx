@@ -33,7 +33,7 @@ function BarrierNodeComponent({ data, selected }: NodeProps) {
   const kind =
     nodeData.nodeKind === 'mitigative_barrier' ? 'mitigative_barrier' : 'preventive_barrier';
   const tokens = barrierTokens[kind];
-  const custom = nodeColorStyle(data);
+  const custom = nodeColorStyle(data, tokens.fill);
 
   return (
     <>

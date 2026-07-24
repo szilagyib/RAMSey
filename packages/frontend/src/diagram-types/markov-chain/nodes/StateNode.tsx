@@ -44,7 +44,7 @@ function StateNodeComponent({ data, selected }: NodeProps) {
   const nodeData = data as MarkovNodeData;
   const tokens = stateTokens[nodeData.stateType] ?? stateTokens.operational;
   const isAbsorbing = nodeData.stateType === 'absorbing';
-  const custom = nodeColorStyle(data);
+  const custom = nodeColorStyle(data, tokens.fill);
   const strokeColor = custom?.borderColor ?? tokens.stroke;
 
   return (

@@ -88,6 +88,16 @@ function NodeColorControls({ nodeId, data }: { nodeId: string; data: Record<stri
         onSet={(c) => setDiscrete({ fillColor: c })}
         onPick={(c) => updateNodeData(nodeId, { fillColor: c })}
       />
+      {/* Sits under Fill, and is styled as a sub-control rather than a peer of
+          the colour channels: it fades the fill only. */}
+      <OpacityControl
+        value={getNodeOpacity(data) ?? 1}
+        // Dragging fires a continuous stream, so it stays coalesced into one
+        // undo entry; letting go, and Reset, are discrete.
+        onDrag={(v) => updateNodeData(nodeId, { opacity: v })}
+        onCommit={(v) => setDiscrete({ opacity: v })}
+        onReset={() => setDiscrete({ opacity: 1 })}
+      />
       <ColorControl
         label="Border"
         current={getNodeColor(data)}
@@ -99,15 +109,6 @@ function NodeColorControls({ nodeId, data }: { nodeId: string; data: Record<stri
         current={getNodeText(data)}
         onSet={(c) => setDiscrete({ textColor: c })}
         onPick={(c) => updateNodeData(nodeId, { textColor: c })}
-      />
-
-      <OpacityControl
-        value={getNodeOpacity(data) ?? 1}
-        // Dragging fires a continuous stream, so it stays coalesced into one
-        // undo entry; letting go, and Reset, are discrete.
-        onDrag={(v) => updateNodeData(nodeId, { opacity: v })}
-        onCommit={(v) => setDiscrete({ opacity: v })}
-        onReset={() => setDiscrete({ opacity: 1 })}
       />
     </div>
   );
@@ -129,7 +130,7 @@ function OpacityControl({
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-surface-600">Opacity</span>
+        <span className="text-xs text-surface-500">Opacity</span>
         <div className="flex items-center gap-2">
           <span className="font-mono text-[11px] text-surface-400">{percent}%</span>
           {value < 1 && (
