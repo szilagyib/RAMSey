@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Plus, Trash2, LogOut, Users, Settings, ChevronDown, ChevronRight } from 'lucide-react';
+import {
+  Plus,
+  Trash2,
+  Pencil,
+  LogOut,
+  Users,
+  Settings,
+  ChevronDown,
+  ChevronRight,
+} from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { NotificationBell } from '../components/NotificationBell';
@@ -158,6 +167,17 @@ export function DashboardPage() {
     }
   }
 
+  async function handleRename(entry: DiagramEntry) {
+    const name = window.prompt('Rename diagram', entry.diagramName)?.trim();
+    if (!name || name === entry.diagramName) return;
+    try {
+      await ds.diagrams.update(entry.projectId, entry.diagramId, { name });
+      await loadEntries();
+    } catch (err) {
+      window.alert(`Failed to rename: ${err}`);
+    }
+  }
+
   async function handleLogout() {
     await logout();
     if (!isGuest) {
@@ -304,13 +324,27 @@ export function DashboardPage() {
               })}
             </p>
           </button>
-          <button
-            onClick={() => handleDelete(entry)}
-            className="mt-0.5 ml-2 rounded p-1 text-surface-300 opacity-0 transition-colors group-hover:opacity-100 hover:bg-surface-100 hover:text-red-500"
-            title="Delete"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
+          {/* Always visible (not hover-only: that hid them entirely on touch)
+              and surface-400, which reads in both themes — surface-300 was
+              invisible on the dark card. */}
+          <div className="mt-0.5 ml-2 flex shrink-0 items-center gap-0.5">
+            <button
+              onClick={() => handleRename(entry)}
+              className="rounded p-1 text-surface-400 transition-colors hover:bg-surface-100 hover:text-primary-600"
+              title="Rename"
+              aria-label={`Rename ${entry.diagramName}`}
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => handleDelete(entry)}
+              className="rounded p-1 text-surface-400 transition-colors hover:bg-surface-100 hover:text-red-500"
+              title="Delete"
+              aria-label={`Delete ${entry.diagramName}`}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
       </div>
     );
