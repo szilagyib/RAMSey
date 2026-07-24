@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { FMEARow } from '../types/diagram';
+import { DEFAULT_RPN_THRESHOLDS, normalizeThresholds, type RpnThresholds } from '../lib/fmea';
 
 // ---------------------------------------------------------------------------
 // Store shape
@@ -16,6 +17,10 @@ export interface FMEAStore {
   recordHistory: (tag?: string | null) => void;
   undo: () => void;
   redo: () => void;
+
+  /** Risk-band boundaries for the RPN column; a per-browser preference. */
+  rpnThresholds: RpnThresholds;
+  setRpnThresholds: (next: RpnThresholds) => void;
 
   // Actions
   addRow: () => void;
@@ -36,11 +41,41 @@ const COALESCE_MS = 800;
 let historyTag: string | null = null;
 let historyTagTime = 0;
 
+// Thresholds are a reviewer preference, not diagram data, so they live per
+// browser alongside the other editor preferences rather than in the document.
+const RPN_THRESHOLDS_KEY = 'ramsey-fmea-rpn-thresholds';
+
+function loadThresholds(): RpnThresholds {
+  try {
+    const raw = localStorage.getItem(RPN_THRESHOLDS_KEY);
+    if (!raw) return DEFAULT_RPN_THRESHOLDS;
+    const parsed = JSON.parse(raw) as Partial<RpnThresholds>;
+    if (typeof parsed.medium !== 'number' || typeof parsed.high !== 'number') {
+      return DEFAULT_RPN_THRESHOLDS;
+    }
+    return normalizeThresholds({ medium: parsed.medium, high: parsed.high });
+  } catch {
+    // Unreadable or blocked storage is not worth failing the editor over.
+    return DEFAULT_RPN_THRESHOLDS;
+  }
+}
+
 export const useFMEAStore = create<FMEAStore>((set, get) => ({
   rows: [],
   selectedRowId: null,
   undoStack: [],
   redoStack: [],
+  rpnThresholds: loadThresholds(),
+
+  setRpnThresholds: (next) => {
+    const thresholds = normalizeThresholds(next);
+    try {
+      localStorage.setItem(RPN_THRESHOLDS_KEY, JSON.stringify(thresholds));
+    } catch {
+      // Preference just won't persist; the session still uses it.
+    }
+    set({ rpnThresholds: thresholds });
+  },
 
   /**
    * Capture the CURRENT rows as an undo entry — call before mutating. A tag

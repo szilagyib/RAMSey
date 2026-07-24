@@ -59,6 +59,7 @@ function isTextEntry(input: HTMLInputElement): boolean {
 interface ToolbarProps {
   onNavigateBack?: () => void;
   onSave?: () => void;
+  /** Wired by EditorPage; unused until the snapshot menu entry returns. */
   onCreateSnapshot?: () => void;
   onValidate?: () => void;
   onAnalyze?: () => void;
@@ -71,7 +72,6 @@ interface ToolbarProps {
 export function Toolbar({
   onNavigateBack,
   onSave,
-  onCreateSnapshot,
   onValidate,
   onAnalyze,
   diagramName,
@@ -282,11 +282,10 @@ export function Toolbar({
           shortcut: 'Ctrl+E',
           onClick: () => setShowExport(true),
         },
-        {
-          label: 'Create Snapshot',
-          onClick: () => onCreateSnapshot?.(),
-          disabled: !onCreateSnapshot,
-        },
+        // "Create Snapshot" is hidden until there is a version-history panel to
+        // browse and restore them: saving a copy the user can never get back is
+        // worse than not offering it. The backend (create + list) already
+        // exists, so re-add this entry once the restore UI ships.
         { divider: true },
         {
           label: 'Back to Dashboard',

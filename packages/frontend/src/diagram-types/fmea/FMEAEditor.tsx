@@ -1,7 +1,9 @@
-import { useCallback } from 'react';
-import { Trash2 } from 'lucide-react';
+import { useCallback, useMemo, useState } from 'react';
+import { Trash2, Undo2, Redo2, ArrowDownWideNarrow, Download, Filter } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useFMEAStore } from '../../stores/fmeaStore';
+import { downloadFmeaCsv } from '../../lib/exportUtils';
+import { rpnBand } from '../../lib/fmea';
 import type { FMEARow } from '../../types/diagram';
 
 const COLUMN_HEADERS = [
@@ -17,6 +19,69 @@ const COLUMN_HEADERS = [
   '',
 ] as const;
 
+/** Band colours that read on both themes (the old pairs inverted in dark mode). */
+const RPN_BAND_CLASS = {
+  high: 'bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-300',
+  medium: 'bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',
+  low: 'text-surface-600',
+} as const;
+
+function IconButton({
+  label,
+  onClick,
+  disabled,
+  active,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  active?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={label}
+      aria-label={label}
+      aria-pressed={active}
+      className={cn(
+        'rounded p-1.5 transition-colors',
+        active
+          ? 'bg-primary-50 text-primary-600 dark:bg-primary-500/15'
+          : 'text-surface-500 hover:bg-surface-100 hover:text-surface-700',
+        // Muted but still legible when disabled, so it stays distinguishable
+        // from an active control without vanishing.
+        'disabled:cursor-default disabled:text-surface-400 disabled:hover:bg-transparent',
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+/** Commits on blur/Enter so a half-typed number never re-bands the table. */
+function ThresholdInput({ value, onCommit }: { value: number; onCommit: (n: number) => void }) {
+  const [draft, setDraft] = useState(String(value));
+
+  return (
+    <input
+      type="number"
+      min={1}
+      max={1000}
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={() => onCommit(Number(draft))}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') e.currentTarget.blur();
+      }}
+      className="w-14 rounded border border-surface-300 bg-white px-1 py-0.5 text-xs text-surface-900 focus:border-primary-500 focus:outline-none dark:bg-surface-100"
+    />
+  );
+}
+
 /**
  * Table-based FMEA editor. Renders an editable HTML table where each row
  * corresponds to an FMEARow in the store.
@@ -28,6 +93,26 @@ export function FMEAEditor() {
   const updateRow = useFMEAStore((s) => s.updateRow);
   const deleteRow = useFMEAStore((s) => s.deleteRow);
   const selectRow = useFMEAStore((s) => s.selectRow);
+  const undo = useFMEAStore((s) => s.undo);
+  const redo = useFMEAStore((s) => s.redo);
+  const canUndo = useFMEAStore((s) => s.undoStack.length > 0);
+  const canRedo = useFMEAStore((s) => s.redoStack.length > 0);
+  const thresholds = useFMEAStore((s) => s.rpnThresholds);
+  const setRpnThresholds = useFMEAStore((s) => s.setRpnThresholds);
+
+  // View-only: sorting and filtering never reorder or drop the stored rows, so
+  // the worksheet order the team agreed on survives being triaged by risk.
+  const [sortByRpn, setSortByRpn] = useState(false);
+  const [highRiskOnly, setHighRiskOnly] = useState(false);
+
+  const visibleRows = useMemo(() => {
+    const filtered = highRiskOnly
+      ? rows.filter((r) => rpnBand(r.rpn, thresholds) === 'high')
+      : rows;
+    return sortByRpn ? [...filtered].sort((a, b) => b.rpn - a.rpn) : filtered;
+  }, [rows, sortByRpn, highRiskOnly, thresholds]);
+
+  const hiddenCount = rows.length - visibleRows.length;
 
   const handleTextChange = useCallback(
     (
@@ -52,20 +137,79 @@ export function FMEAEditor() {
 
   return (
     <div className={cn('flex flex-col gap-4 p-4 h-full overflow-auto')}>
-      <div className={cn('flex items-center justify-between')}>
-        <h2 className={cn('text-lg font-semibold')}>FMEA Table</h2>
-        <button
-          type="button"
-          onClick={addRow}
-          className={cn(
-            'px-4 py-2 text-sm font-medium rounded-md',
-            'bg-blue-600 text-white hover:bg-blue-700',
-            'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
-          )}
-        >
-          Add Row
-        </button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold">FMEA Table</h2>
+
+        <div className="flex flex-wrap items-center gap-1">
+          <IconButton label="Undo" onClick={undo} disabled={!canUndo}>
+            <Undo2 className="h-4 w-4" />
+          </IconButton>
+          <IconButton label="Redo" onClick={redo} disabled={!canRedo}>
+            <Redo2 className="h-4 w-4" />
+          </IconButton>
+
+          <span className="mx-1 h-5 w-px bg-surface-200" />
+
+          <IconButton
+            label="Sort by RPN (highest first)"
+            onClick={() => setSortByRpn((v) => !v)}
+            active={sortByRpn}
+          >
+            <ArrowDownWideNarrow className="h-4 w-4" />
+          </IconButton>
+          <IconButton
+            label={`Show only high risk (RPN ≥ ${thresholds.high})`}
+            onClick={() => setHighRiskOnly((v) => !v)}
+            active={highRiskOnly}
+          >
+            <Filter className="h-4 w-4" />
+          </IconButton>
+          <IconButton
+            label="Export as CSV"
+            onClick={() => downloadFmeaCsv(rows)}
+            disabled={rows.length === 0}
+          >
+            <Download className="h-4 w-4" />
+          </IconButton>
+
+          <span className="mx-1 h-5 w-px bg-surface-200" />
+
+          {/* Band boundaries are a team convention, so they're editable rather
+              than baked in — see rpnBand. */}
+          <label className="flex items-center gap-1 text-xs text-surface-500">
+            Amber ≥
+            <ThresholdInput
+              value={thresholds.medium}
+              onCommit={(medium) => setRpnThresholds({ ...thresholds, medium })}
+            />
+          </label>
+          <label className="flex items-center gap-1 text-xs text-surface-500">
+            Red ≥
+            <ThresholdInput
+              value={thresholds.high}
+              onCommit={(high) => setRpnThresholds({ ...thresholds, high })}
+            />
+          </label>
+
+          <button
+            type="button"
+            onClick={addRow}
+            className={cn(
+              'ml-1 rounded-md px-3 py-1.5 text-sm font-medium',
+              'bg-primary-600 text-white hover:bg-primary-700',
+              'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
+            )}
+          >
+            Add Row
+          </button>
+        </div>
       </div>
+
+      {hiddenCount > 0 && (
+        <p className="-mt-2 text-xs text-surface-500">
+          {hiddenCount} row{hiddenCount === 1 ? '' : 's'} hidden by the high-risk filter.
+        </p>
+      )}
 
       <div
         className={cn(
@@ -101,7 +245,7 @@ export function FMEAEditor() {
                 </td>
               </tr>
             )}
-            {rows.map((row) => (
+            {visibleRows.map((row) => (
               <tr
                 key={row.id}
                 onClick={() => selectRow(row.id)}
@@ -209,13 +353,10 @@ export function FMEAEditor() {
                 {/* RPN (read-only, auto-computed) */}
                 <td
                   className={cn(
-                    'border border-surface-200 dark:border-surface-300 px-3 py-1 text-center font-semibold',
-                    row.rpn >= 200 && 'bg-red-900 dark:bg-red-100 text-red-500 dark:text-red-700',
-                    row.rpn >= 100 &&
-                      row.rpn < 200 &&
-                      'bg-amber-900 dark:bg-amber-100 text-amber-500 dark:text-amber-700',
-                    row.rpn < 100 && 'text-green-500 dark:text-green-700',
+                    'border border-surface-200 px-3 py-1 text-center font-semibold dark:border-surface-300',
+                    RPN_BAND_CLASS[rpnBand(row.rpn, thresholds)],
                   )}
+                  title={`Severity ${row.severity} x Occurrence ${row.occurrence} x Detection ${row.detection}`}
                 >
                   {row.rpn}
                 </td>

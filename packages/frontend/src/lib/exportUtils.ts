@@ -2,6 +2,7 @@ import { toPng, toJpeg, toSvg } from 'html-to-image';
 import type { Node, Edge } from '@xyflow/react';
 import type { FMEARow } from '../types/diagram';
 import { generateLatex } from './tikz';
+import { fmeaToCsv } from './fmea';
 
 // ---------------------------------------------------------------------------
 // Options
@@ -130,6 +131,17 @@ export async function exportLatex(
   URL.revokeObjectURL(url);
 }
 
+/**
+ * FMEA worksheet as CSV — the format these tables actually get worked on in.
+ * Goes through the same save dialog as every other export.
+ */
+export async function downloadFmeaCsv(rows: FMEARow[], diagramName = 'fmea'): Promise<void> {
+  const blob = new Blob([fmeaToCsv(rows)], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  await download(url, `${diagramName || 'fmea'}.csv`);
+  URL.revokeObjectURL(url);
+}
+
 // ---------------------------------------------------------------------------
 // Download helper
 // ---------------------------------------------------------------------------
@@ -202,6 +214,7 @@ const MIME_BY_EXT: Record<string, string> = {
   jpg: 'image/jpeg',
   json: 'application/json',
   tex: 'application/x-tex',
+  csv: 'text/csv',
 };
 
 /**
