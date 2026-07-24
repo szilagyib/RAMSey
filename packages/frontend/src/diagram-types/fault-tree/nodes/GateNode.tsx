@@ -160,12 +160,6 @@ function GateNodeComponent({ data, selected }: NodeProps) {
     text: 'var(--dg-gate-stroke)',
   });
   const wrapperStyle: React.CSSProperties = {
-    ...(selected
-      ? {
-          filter:
-            'drop-shadow(0 0 1px var(--dg-edge-selected)) drop-shadow(0 0 2px var(--dg-edge-selected)) drop-shadow(0 0 5px var(--dg-select-glow))',
-        }
-      : {}),
     ...(custom
       ? ({
           '--dg-gate-fill': tokens.fill,
@@ -174,13 +168,15 @@ function GateNodeComponent({ data, selected }: NodeProps) {
           '--dg-gate-stroke': tokens.stroke,
         } as React.CSSProperties)
       : {}),
+    // Selection recolours the outline instead of adding a drop-shadow: a CSS
+    // filter is rasterised at the element's own size and then scaled by React
+    // Flow's zoom transform, which is what made these symbols look blurry.
+    // Last, so it wins over a custom stroke.
+    ...(selected ? ({ '--dg-gate-stroke': 'var(--dg-edge-selected)' } as React.CSSProperties) : {}),
   };
 
   return (
-    <div
-      className={cn('relative flex flex-col items-center transition-[filter]')}
-      style={wrapperStyle}
-    >
+    <div className={cn('relative flex flex-col items-center')} style={wrapperStyle}>
       {/* Tree edges run parent → child: the top handle receives the edge from
           the parent event; the bottom handle feeds this gate's inputs below. */}
       <Handle

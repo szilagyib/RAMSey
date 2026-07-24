@@ -40,7 +40,6 @@ import { useCollaboration } from '../../hooks/useCollaboration';
 interface DiagramEditorProps {
   onNavigateBack?: () => void;
   onSave?: () => void;
-  onCreateSnapshot?: () => void;
   onRename: (name: string) => void;
   diagramName?: string;
   isSaving?: boolean;
@@ -51,7 +50,6 @@ interface DiagramEditorProps {
 function DiagramEditorInner({
   onNavigateBack,
   onSave,
-  onCreateSnapshot,
   onRename,
   diagramName,
   isSaving,
@@ -276,7 +274,6 @@ function DiagramEditorInner({
       <Toolbar
         onNavigateBack={onNavigateBack}
         onSave={onSave}
-        onCreateSnapshot={onCreateSnapshot}
         onValidate={() => setValidationOpen(true)}
         onAnalyze={() => setRightTab('analysis')}
         diagramName={diagramName}
@@ -397,7 +394,6 @@ function DiagramEditorInner({
 export function DiagramEditor({
   onNavigateBack,
   onSave,
-  onCreateSnapshot,
   onRename,
   diagramName,
   isSaving,
@@ -409,7 +405,6 @@ export function DiagramEditor({
       <DiagramEditorInner
         onNavigateBack={onNavigateBack}
         onSave={onSave}
-        onCreateSnapshot={onCreateSnapshot}
         onRename={onRename}
         diagramName={diagramName}
         isSaving={isSaving}

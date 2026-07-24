@@ -71,7 +71,6 @@
   --dg-label-bg: #ffffff;
   --dg-label-border: #e2e8f0;
   --dg-label-text: #475569;
-  --dg-select-glow: rgba(99, 102, 241, 0.55);
 
   /* Fault tree (IEC 61025). Gates are graphite line art, per the convention —
      and so the only accent on the canvas is the selection, never the notation.
@@ -117,7 +116,6 @@
   --dg-label-bg: #0f172a;
   --dg-label-border: #1f2937;
   --dg-label-text: #cbd5e1;
-  --dg-select-glow: rgba(129, 140, 248, 0.6);
 
   --dg-gate-fill: #1e293b;
   --dg-gate-stroke: #94a3b8;
@@ -229,9 +227,9 @@ body {
   opacity: 1;
 }
 
-/* Selection — each node component draws its own shape-correct ring (boxes and
-   circles) or glow (SVG gates) with ring-primary-500 / --dg-select-glow; here we
-   only recolour and thicken the selected edge path. */
+/* Selection — each node component shows it in a shape-correct way: a ring on
+   boxes and circles, a recoloured outline on the SVG symbols. Here we only
+   recolour and thicken the selected edge path. */
 .react-flow__edge.selected .react-flow__edge-path {
   stroke: var(--dg-edge-selected);
   stroke-width: 3;

@@ -91,20 +91,18 @@ function EventNodeComponent({ data, selected }: NodeProps) {
   const tokens: EventTokens = resolveTokenColors(data, eventTokens[eventType] ?? eventTokens.basic);
   const isBox = eventType === 'top' || eventType === 'intermediate';
 
-  const selectedGlow = selected
-    ? {
-        filter:
-          'drop-shadow(0 0 1px var(--dg-edge-selected)) drop-shadow(0 0 2px var(--dg-edge-selected)) drop-shadow(0 0 5px var(--dg-select-glow))',
-      }
-    : undefined;
+  // Selection recolours the outline rather than adding a drop-shadow: a CSS
+  // filter is rasterised at the element's own size and then scaled by React
+  // Flow's zoom, which is what made these symbols look blurry.
+  const shown: EventTokens = selected ? { ...tokens, stroke: 'var(--dg-edge-selected)' } : tokens;
 
   return (
-    <div className="relative flex flex-col items-center transition-[filter]" style={selectedGlow}>
+    <div className="relative flex flex-col items-center">
       <Handle
         type="target"
         position={Position.Top}
         className="!h-2.5 !w-2.5 !border-2 !bg-white"
-        style={{ borderColor: tokens.stroke }}
+        style={{ borderColor: shown.stroke }}
       />
 
       {isBox ? (
@@ -117,7 +115,7 @@ function EventNodeComponent({ data, selected }: NodeProps) {
           )}
           style={{
             background: withAlpha(tokens.fill, tokens.fillOpacity ?? 1),
-            borderColor: tokens.stroke,
+            borderColor: shown.stroke,
           }}
         >
           <span
@@ -130,9 +128,9 @@ function EventNodeComponent({ data, selected }: NodeProps) {
       ) : (
         <>
           {eventType === 'undeveloped' ? (
-            <UndevelopedEventSvg tokens={tokens} />
+            <UndevelopedEventSvg tokens={shown} />
           ) : (
-            <BasicEventSvg tokens={tokens} />
+            <BasicEventSvg tokens={shown} />
           )}
           <span
             className="mt-0.5 max-w-[88px] truncate text-center text-[10px] font-semibold select-none"
@@ -156,7 +154,7 @@ function EventNodeComponent({ data, selected }: NodeProps) {
         type="source"
         position={Position.Bottom}
         className="!h-2.5 !w-2.5 !border-2 !bg-white"
-        style={{ borderColor: tokens.stroke }}
+        style={{ borderColor: shown.stroke }}
       />
     </div>
   );

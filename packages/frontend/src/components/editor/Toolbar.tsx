@@ -59,8 +59,6 @@ function isTextEntry(input: HTMLInputElement): boolean {
 interface ToolbarProps {
   onNavigateBack?: () => void;
   onSave?: () => void;
-  /** Wired by EditorPage; unused until the snapshot menu entry returns. */
-  onCreateSnapshot?: () => void;
   onValidate?: () => void;
   onAnalyze?: () => void;
   diagramName?: string;

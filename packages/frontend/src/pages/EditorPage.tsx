@@ -98,16 +98,6 @@ export function EditorPage() {
     }
   }, [projectId, diagramId, ds, isGuest, isTableBased, fmeaRows, nodes, edges]);
 
-  const handleCreateSnapshot = useCallback(async () => {
-    if (!projectId || !diagramId) return;
-    try {
-      await ds.diagrams.createSnapshot(projectId, diagramId);
-      window.alert('Snapshot created.');
-    } catch (err) {
-      window.alert(`Failed to create snapshot: ${err}`);
-    }
-  }, [projectId, diagramId, ds]);
-
   const handleRename = useCallback(
     async (newName: string) => {
       if (!projectId || !diagramId) return;
@@ -261,7 +251,6 @@ export function EditorPage() {
             onNavigateBack={handleBack}
             onSave={handleSave}
             onRename={handleRename}
-            onCreateSnapshot={handleCreateSnapshot}
             diagramName={diagramName}
             isSaving={saving}
             projectId={projectId}
