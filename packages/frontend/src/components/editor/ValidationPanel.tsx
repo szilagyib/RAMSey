@@ -61,7 +61,7 @@ export function ValidationPanel({ open, onClose }: ValidationPanelProps) {
         </button>
         <button
           onClick={onClose}
-          className="ml-2 rounded p-0.5 text-surface-300 hover:text-surface-600 transition-colors"
+          className="ml-2 rounded p-0.5 text-surface-500 hover:text-surface-600 transition-colors"
           title="Close"
         >
           <X className="h-3.5 w-3.5" />

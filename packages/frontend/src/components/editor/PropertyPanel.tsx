@@ -1,4 +1,5 @@
 import { useDiagramStore } from '../../stores/diagramStore';
+import { NUMERIC_FIELDS, validateNumericField } from '../../lib/fieldDomains';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import {
@@ -234,6 +235,10 @@ function GenericNodeProperties({ nodeId }: { nodeId: string }) {
           );
         }
 
+        // Reliability fields (probability, rates…) are stored as strings, so the
+        // type alone would render them as free text — NUMERIC_FIELDS says which
+        // are numeric and what range explains a bad value.
+        const domain = NUMERIC_FIELDS[key];
         return (
           <Input
             key={key}
@@ -248,7 +253,11 @@ function GenericNodeProperties({ nodeId }: { nodeId: string }) {
                   : e.target.value;
               updateNodeData(nodeId, { [key]: newValue });
             }}
-            type={typeof value === 'number' ? 'number' : 'text'}
+            type={domain || typeof value === 'number' ? 'number' : 'text'}
+            min={domain?.min}
+            max={domain?.max}
+            step="any"
+            error={validateNumericField(key, value) ?? undefined}
           />
         );
       })}
@@ -313,6 +322,7 @@ function GenericEdgeProperties({ edgeId }: { edgeId: string }) {
           );
         }
 
+        const domain = NUMERIC_FIELDS[key];
         return (
           <Input
             key={key}
@@ -327,7 +337,11 @@ function GenericEdgeProperties({ edgeId }: { edgeId: string }) {
                   : e.target.value;
               updateEdgeData(edgeId, { [key]: newValue });
             }}
-            type={typeof value === 'number' ? 'number' : 'text'}
+            type={domain || typeof value === 'number' ? 'number' : 'text'}
+            min={domain?.min}
+            max={domain?.max}
+            step="any"
+            error={validateNumericField(key, value) ?? undefined}
           />
         );
       })}

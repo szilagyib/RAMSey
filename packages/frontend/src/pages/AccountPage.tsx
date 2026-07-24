@@ -117,7 +117,7 @@ export function AccountPage() {
           )}
         </section>
 
-        <p className="mt-8 text-center text-xs text-surface-300">
+        <p className="mt-8 text-center text-xs text-surface-500">
           <Link to="/privacy" className="hover:text-surface-500 hover:underline">
             Privacy policy
           </Link>

@@ -221,7 +221,7 @@ export function VerifyEmailPage() {
           type="button"
           onClick={handleResend}
           disabled={!email || cooldown > 0 || resending}
-          className="font-medium text-primary-600 hover:underline disabled:cursor-not-allowed disabled:text-surface-300 disabled:no-underline"
+          className="font-medium text-primary-600 hover:underline disabled:cursor-not-allowed disabled:text-surface-500 disabled:no-underline"
         >
           {resending ? 'Sending…' : cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend code'}
         </button>
@@ -235,7 +235,7 @@ export function VerifyEmailPage() {
           Continue without an account →
         </Link>
       </p>
-      <p className="mt-3 text-center text-xs text-surface-300">
+      <p className="mt-3 text-center text-xs text-surface-500">
         <Link to="/login" className="hover:text-surface-500 hover:underline">
           Back to sign in
         </Link>

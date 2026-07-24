@@ -299,8 +299,21 @@ export function ChatPanel() {
               </div>
             )}
 
+            {/* A bare blinking caret didn't read as "working". Say so, and
+                distinguish waiting for the first token from writing the reply. */}
             {msg.isStreaming && (
-              <span className="inline-block h-4 w-1 animate-pulse bg-surface-400" />
+              <div className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-surface-500">
+                <span className="flex gap-0.5">
+                  {[-0.3, -0.15, 0].map((delay) => (
+                    <span
+                      key={delay}
+                      className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary-500"
+                      style={{ animationDelay: `${delay}s` }}
+                    />
+                  ))}
+                </span>
+                {msg.content ? 'Writing…' : 'Thinking…'}
+              </div>
             )}
           </div>
         ))}
@@ -382,7 +395,7 @@ export function ChatPanel() {
         {/* Names the real destination, which varies by deployment — see
             aiProviderLabel in /api/capabilities. */}
         {aiProviderLabel && !isGuest && (
-          <p className="mt-1.5 text-[10px] leading-snug text-surface-400">
+          <p className="mt-1.5 text-[11px] leading-snug text-surface-500">
             Messages and the open diagram are sent to {aiProviderLabel} to generate responses.
           </p>
         )}

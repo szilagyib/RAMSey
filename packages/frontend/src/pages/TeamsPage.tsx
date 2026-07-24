@@ -299,7 +299,7 @@ export function TeamsPage() {
                         {isAdmin && m.user.id !== user?.id && (
                           <button
                             onClick={() => handleRemoveMember(m.user.id)}
-                            className="rounded p-1 text-surface-300 hover:bg-surface-100 hover:text-red-500 transition-colors"
+                            className="rounded p-1 text-surface-500 hover:bg-surface-100 hover:text-red-500 transition-colors"
                             title="Remove member"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
