@@ -8,20 +8,45 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 // stack (React Flow, elkjs, yjs, engine) isn't in the initial bundle for
 // login/dashboard visitors.
 //
-// A failed dynamic import almost always means this tab holds chunk hashes from
-// before a deploy (the new build removed them). Reload once to pick up the fresh
-// index.html + chunks; the timestamp guard avoids a reload loop if a chunk is
-// genuinely broken.
-function retryChunkLoad<T>(factory: () => Promise<T>): Promise<T> {
+// A tab opened before a deploy holds chunk hashes the new build removed, so
+// navigating fails to fetch the module. Reloading picks up the fresh index.html
+// and chunks.
+//
+// Only NETWORK failures qualify. An error thrown while a module evaluates is a
+// real bug: reloading would hide it, cost the user their page, and still end at
+// the error boundary — so those propagate untouched (and reach Sentry).
+const CHUNK_LOAD_ERROR =
+  /dynamically imported module|importing a module script failed|failed to fetch|error loading/i;
+
+function isChunkLoadError(err: unknown): boolean {
+  return CHUNK_LOAD_ERROR.test(err instanceof Error ? err.message : String(err));
+}
+
+/** sessionStorage throws when storage is blocked; never let that mask the error. */
+function readReloadStamp(key: string): number | null {
+  try {
+    return Number(sessionStorage.getItem(key) ?? '0');
+  } catch {
+    return null;
+  }
+}
+
+export function retryChunkLoad<T>(factory: () => Promise<T>): Promise<T> {
   return factory().catch((err: unknown) => {
+    if (!isChunkLoadError(err)) throw err;
+
+    // One reload per 10s: a chunk that is genuinely gone must not loop.
     const key = 'chunkReloadAt';
-    const last = Number(sessionStorage.getItem(key) ?? '0');
-    if (Date.now() - last > 10_000) {
+    const last = readReloadStamp(key);
+    if (last === null || Date.now() - last <= 10_000) throw err;
+
+    try {
       sessionStorage.setItem(key, String(Date.now()));
-      window.location.reload();
-      return new Promise<T>(() => {}); // never resolves; the reload takes over
+    } catch {
+      throw err;
     }
-    throw err;
+    window.location.reload();
+    return new Promise<T>(() => {}); // never resolves; the reload takes over
   });
 }
 
