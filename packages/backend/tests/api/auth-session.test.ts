@@ -37,8 +37,7 @@ describe('auth session revocation', () => {
     prisma.user.findUnique.mockResolvedValue({ ...liveUser });
   });
 
-  const getMe = () =>
-    app.inject({ method: 'GET', url: '/api/auth/me', headers: authHeaders() });
+  const getMe = () => app.inject({ method: 'GET', url: '/api/auth/me', headers: authHeaders() });
 
   it('accepts a live user with a matching tokenVersion', async () => {
     const res = await getMe();

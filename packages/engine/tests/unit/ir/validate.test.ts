@@ -4,10 +4,7 @@ import {
   createDefaultMarkovIR,
   type ModelIR,
 } from '../../../src/ir/schema.js';
-import {
-  validateModelIR,
-  validateMarkovChain,
-} from '../../../src/ir/validate.js';
+import { validateModelIR, validateMarkovChain } from '../../../src/ir/validate.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -70,9 +67,9 @@ describe('validateModelIR', () => {
 
     // Should still be valid (orphan is a warning, not an error)
     expect(result.warnings.some((w) => w.code === 'ORPHAN_STATE')).toBe(true);
-    expect(
-      result.warnings.find((w) => w.code === 'ORPHAN_STATE')!.affectedIds,
-    ).toContain('S_orphan');
+    expect(result.warnings.find((w) => w.code === 'ORPHAN_STATE')!.affectedIds).toContain(
+      'S_orphan',
+    );
   });
 });
 
@@ -97,9 +94,7 @@ describe('validateMarkovChain', () => {
 
     const result = validateMarkovChain(ir);
     expect(result.valid).toBe(false);
-    expect(
-      result.errors.some((e) => e.code === 'MISSING_INITIAL_CONDITION'),
-    ).toBe(true);
+    expect(result.errors.some((e) => e.code === 'MISSING_INITIAL_CONDITION')).toBe(true);
   });
 
   it('detects transitions referencing invalid states', () => {
@@ -113,9 +108,7 @@ describe('validateMarkovChain', () => {
 
     const result = validateMarkovChain(ir);
     expect(result.valid).toBe(false);
-    const err = result.errors.find(
-      (e) => e.code === 'INVALID_TRANSITION_STATE',
-    );
+    const err = result.errors.find((e) => e.code === 'INVALID_TRANSITION_STATE');
     expect(err).toBeDefined();
     expect(err!.affectedIds).toContain('T_bad');
     expect(err!.affectedIds).toContain('NONEXISTENT');
@@ -132,9 +125,7 @@ describe('validateMarkovChain', () => {
 
     const result = validateMarkovChain(ir);
     expect(result.valid).toBe(false);
-    expect(
-      result.errors.some((e) => e.code === 'TRANSITION_MISSING_RATE'),
-    ).toBe(true);
+    expect(result.errors.some((e) => e.code === 'TRANSITION_MISSING_RATE')).toBe(true);
   });
 
   it('validates initial condition referencing a nonexistent state', () => {
@@ -143,9 +134,7 @@ describe('validateMarkovChain', () => {
 
     const result = validateMarkovChain(ir);
     expect(result.valid).toBe(false);
-    expect(
-      result.errors.some((e) => e.code === 'INVALID_INITIAL_STATE'),
-    ).toBe(true);
+    expect(result.errors.some((e) => e.code === 'INVALID_INITIAL_STATE')).toBe(true);
   });
 
   it('warns when initial distribution probabilities do not sum to 1', () => {
@@ -156,9 +145,7 @@ describe('validateMarkovChain', () => {
     };
 
     const result = validateMarkovChain(ir);
-    expect(
-      result.warnings.some((w) => w.code === 'INITIAL_DISTRIBUTION_SUM'),
-    ).toBe(true);
+    expect(result.warnings.some((w) => w.code === 'INITIAL_DISTRIBUTION_SUM')).toBe(true);
   });
 
   it('passes a properly formed Markov chain without errors', () => {

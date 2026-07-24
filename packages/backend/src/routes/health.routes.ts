@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { env } from '../config/env.js';
-import { getAnalysisQueue } from '../queue/analysisQueue.js';
+import { isServerAnalysisAvailable } from '../queue/analysisQueue.js';
 import { describeAiConfig } from '../services/llm/config.js';
 
 const healthRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
@@ -28,7 +28,7 @@ const healthRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
     return {
       aiChat: ai.configured,
       aiProviderLabel: ai.label,
-      serverAnalysis: getAnalysisQueue() !== null,
+      serverAnalysis: isServerAnalysisAvailable(),
       googleOAuth: Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET),
     };
   });

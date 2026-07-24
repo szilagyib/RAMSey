@@ -25,7 +25,12 @@ describe('Analysis job route', () => {
   let prisma: MockPrismaClient;
   const enqueued: AnalysisJobPayload[] = [];
 
+  // Injecting a queue stands in for a deployed solver-worker; the flag is what
+  // tells the API one is actually running (see isServerAnalysisAvailable).
+  const savedWorkerFlag = process.env.SOLVER_WORKER_ENABLED;
+
   beforeAll(async () => {
+    process.env.SOLVER_WORKER_ENABLED = 'true';
     const r = await createTestApp();
     app = r.app;
     prisma = r.prisma;
@@ -34,6 +39,8 @@ describe('Analysis job route', () => {
   afterAll(async () => {
     await app.close();
     setAnalysisQueue(null);
+    if (savedWorkerFlag === undefined) delete process.env.SOLVER_WORKER_ENABLED;
+    else process.env.SOLVER_WORKER_ENABLED = savedWorkerFlag;
   });
 
   beforeEach(() => {
@@ -51,7 +58,12 @@ describe('Analysis job route', () => {
   });
 
   it('creates a job and enqueues it (202)', async () => {
-    const res = await app.inject({ method: 'POST', url, headers: { ...authHeaders(), ...json }, payload: body });
+    const res = await app.inject({
+      method: 'POST',
+      url,
+      headers: { ...authHeaders(), ...json },
+      payload: body,
+    });
     expect(res.statusCode).toBe(202);
     expect(res.json().data.jobId).toBe('job-1');
     expect(prisma.analysisJob.create).toHaveBeenCalledOnce();
@@ -61,18 +73,50 @@ describe('Analysis job route', () => {
 
   it('returns 503 when the queue is unavailable', async () => {
     setAnalysisQueue(null);
-    const res = await app.inject({ method: 'POST', url, headers: { ...authHeaders(), ...json }, payload: body });
+    const res = await app.inject({
+      method: 'POST',
+      url,
+      headers: { ...authHeaders(), ...json },
+      payload: body,
+    });
     expect(res.statusCode).toBe(503);
   });
 
+  // A queue exists whenever pg-boss reaches Postgres, but with no worker
+  // deployed the job would sit QUEUED forever — refuse instead of accepting it.
+  it('returns 503 when no solver worker is declared, even with a queue', async () => {
+    process.env.SOLVER_WORKER_ENABLED = 'false';
+    try {
+      const res = await app.inject({
+        method: 'POST',
+        url,
+        headers: { ...authHeaders(), ...json },
+        payload: body,
+      });
+      expect(res.statusCode).toBe(503);
+    } finally {
+      process.env.SOLVER_WORKER_ENABLED = 'true';
+    }
+  });
+
   it('returns 400 for an invalid request body', async () => {
-    const res = await app.inject({ method: 'POST', url, headers: { ...authHeaders(), ...json }, payload: { method: '' } });
+    const res = await app.inject({
+      method: 'POST',
+      url,
+      headers: { ...authHeaders(), ...json },
+      payload: { method: '' },
+    });
     expect(res.statusCode).toBe(400);
   });
 
   it('returns 404 when the diagram does not exist', async () => {
     prisma.diagram.findUnique.mockResolvedValue(null);
-    const res = await app.inject({ method: 'POST', url, headers: { ...authHeaders(), ...json }, payload: body });
+    const res = await app.inject({
+      method: 'POST',
+      url,
+      headers: { ...authHeaders(), ...json },
+      payload: body,
+    });
     expect(res.statusCode).toBe(404);
   });
 
@@ -109,7 +153,14 @@ describe('Analysis job route', () => {
   });
 
   it('returns 404 when the job belongs to another diagram', async () => {
-    prisma.analysisJob.findUnique.mockResolvedValue({ id: 'job-1', diagramId: 'other', status: 'QUEUED', progress: 0, errorMessage: null, result: null });
+    prisma.analysisJob.findUnique.mockResolvedValue({
+      id: 'job-1',
+      diagramId: 'other',
+      status: 'QUEUED',
+      progress: 0,
+      errorMessage: null,
+      result: null,
+    });
     const res = await app.inject({ method: 'GET', url: `${url}/job-1`, headers: authHeaders() });
     expect(res.statusCode).toBe(404);
   });

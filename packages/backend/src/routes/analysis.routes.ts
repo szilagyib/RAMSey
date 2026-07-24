@@ -5,7 +5,7 @@ import { authenticate } from '../middleware/authenticate.js';
 import { requireProjectRole } from '../middleware/requireProjectRole.js';
 import { AnalysisJobService } from '../services/analysis-job.service.js';
 import { DiagramService } from '../services/diagram.service.js';
-import { getAnalysisQueue } from '../queue/analysisQueue.js';
+import { getAnalysisQueue, isServerAnalysisAvailable } from '../queue/analysisQueue.js';
 import { NotFoundError, ValidationError } from '../utils/errors.js';
 
 const analyzeSchema = z.object({
@@ -31,8 +31,10 @@ const analysisRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
         throw new ValidationError('Invalid analysis request', parsed.error.flatten());
       }
 
+      // Refuse when no worker is running, rather than queueing a job that
+      // nothing will ever pick up.
       const queue = getAnalysisQueue();
-      if (!queue) {
+      if (!queue || !isServerAnalysisAvailable()) {
         return reply.status(503).send({ message: 'Server-side analysis is not available' });
       }
 

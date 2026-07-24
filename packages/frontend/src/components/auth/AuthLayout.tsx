@@ -73,10 +73,10 @@ const NET_EDGES = [
 
 /** The notation's own colours, so the list reads the way the app does. */
 const DIAGRAM_TYPES = [
-  { label: 'Fault Trees', color: '#94a3b8' }, // graphite gates
   { label: 'Markov Chains', color: '#22c55e' }, // operational
+  { label: 'Fault Trees', color: '#94a3b8' }, // graphite gates
   { label: 'Event Trees', color: '#f59e0b' }, // degraded
-  { label: 'Reliability Block Diagram', color: '#728cf6' }, // primary-400
+  { label: 'RBD', color: '#728cf6' }, // primary-400
   { label: 'Bow-Tie', color: '#ef4444' }, // failed
   { label: 'FMEA', color: '#9fb2fb' }, // primary-300
 ];

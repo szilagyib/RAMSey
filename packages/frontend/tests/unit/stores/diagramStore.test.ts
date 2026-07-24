@@ -8,16 +8,18 @@ vi.mock('../../../src/diagram-types/markov-chain/validation', () => ({
 
 // Mock the defaults module
 vi.mock('../../../src/diagram-types/markov-chain/defaults', () => ({
-  createNewState: vi.fn((position: { x: number; y: number }, counter: number, stateType: string) => ({
-    id: `state-${counter}`,
-    type: 'stateNode',
-    position,
-    data: {
-      label: `S${counter}`,
-      stateType: stateType || 'operational',
-      isInitial: counter === 0,
-    },
-  })),
+  createNewState: vi.fn(
+    (position: { x: number; y: number }, counter: number, stateType: string) => ({
+      id: `state-${counter}`,
+      type: 'stateNode',
+      position,
+      data: {
+        label: `S${counter}`,
+        stateType: stateType || 'operational',
+        isInitial: counter === 0,
+      },
+    }),
+  ),
   createNewTransition: vi.fn((source: string, target: string, counter: number) => ({
     id: `transition-${counter}`,
     type: 'transitionEdge',

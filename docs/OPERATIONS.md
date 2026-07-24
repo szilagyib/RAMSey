@@ -20,6 +20,7 @@ place) — this document mirrors them.
 | `TRUST_PROXY`                                                       | no       | —                        | Comma-separated trusted proxy CIDRs/IPs used to resolve the real client IP                                        |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`                         | no       | —                        | Google OAuth; the login button is hidden when unset                                                               |
 | `ANTHROPIC_API_KEY`                                                 | no       | —                        | AI chat key, Anthropic only. Shorthand for `AI_API_KEY` — see "AI provider" below                                 |
+| `SOLVER_WORKER_ENABLED`                                            | no       | `false`                  | Set to `true` only where the solver worker actually runs. Off = server-side analysis is refused and its toggle hidden          |
 | `AI_CHAT_ENABLED`                                                   | no       | `true`                   | One-var kill-switch. Set to `false` (or `0`/`no`/`off`) to disable AI chat regardless of keys/model (hides the tab); anything else = on |
 | `AI_PROVIDER`                                                       | no       | `anthropic`              | `anthropic` or `openai`. An unrecognised value disables AI chat rather than blocking boot                          |
 | `AI_API_KEY`                                                        | no       | —                        | Key for the chosen provider; takes precedence over `ANTHROPIC_API_KEY`                                            |
@@ -41,10 +42,29 @@ there, in one place.
 
 **Dark-launch:** optional features hide themselves when unconfigured.
 `GET /api/capabilities` reports `{ aiChat, aiProviderLabel, serverAnalysis,
-googleOAuth }`; the UI drops the AI Chat tab when no AI provider resolves, and
-the "Run on server" toggle when the analysis queue isn't running (client-side
-analysis still works). A minimal cheap deployment is therefore: no API key, no
+googleOAuth }`; the UI drops the AI tab when no AI provider resolves, and the
+"Run on server" toggle unless a solver worker is declared (client-side analysis
+still works). A minimal cheap deployment is therefore: no API key, no
 solver-worker container.
+
+## Server-side analysis
+
+Analysis runs in the browser by default. Deployments that also run the solver
+worker can offload it: the API writes an `analysis_jobs` row, enqueues a pg-boss
+job, and the worker computes it and stores the result for the client to poll.
+
+**`SOLVER_WORKER_ENABLED` must be set to `true` only where that worker actually
+runs.** The API can construct the queue whenever it can reach Postgres, which
+says nothing about anyone consuming it — with no worker, a submitted job simply
+sits `QUEUED` until the client times out. The flag is what separates "a queue
+exists" from "something will run this", so it defaults to off, and while it is
+off `POST /api/projects/:id/diagrams/:id/analysis` returns 503 and the toggle is
+hidden rather than offering an analysis that cannot finish.
+
+The single-host production stack deliberately omits the worker (the solver is
+the memory-hungry part); the browser covers the model sizes it targets. To
+enable it, add the `solver-worker` service — see `docker/docker-compose.yml` for
+the definition — and set the flag on the API.
 
 ## AI provider
 
@@ -196,6 +216,6 @@ queue). Redis holds only transient rate-limit counters — safe to lose.
 
 | Command                                                | What it covers                                                  | Needs                                               |
 | ------------------------------------------------------ | --------------------------------------------------------------- | --------------------------------------------------- |
-| `npx vitest run`                                       | engine + backend unit/API + frontend unit (428 tests)           | DB only for the integration project                 |
+| `npx vitest run`                                       | engine + backend unit/API + frontend unit           | DB only for the integration project                 |
 | `npm run test:e2e`                                     | real-browser journeys (auth lifecycle, diagram DnD, guest mode) | dev Postgres running; boots backend+frontend itself |
 | `npm run lint` / `npm run typecheck` / `npm run build` | static gates                                                    | —                                                   |

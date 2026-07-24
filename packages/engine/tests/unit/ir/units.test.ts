@@ -72,7 +72,7 @@ describe('convertTime', () => {
   });
 
   it('converts days to years', () => {
-    expect(convertTime(365, 'days', 'years')).toBeCloseTo(365 * 24 / 8760);
+    expect(convertTime(365, 'days', 'years')).toBeCloseTo((365 * 24) / 8760);
   });
 
   it('handles zero values', () => {

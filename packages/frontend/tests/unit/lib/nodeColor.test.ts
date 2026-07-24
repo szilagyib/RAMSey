@@ -54,7 +54,9 @@ describe('nodeColorStyle (independent fill / border / text)', () => {
   });
 
   it('all three combine, explicit fill overriding the border tint', () => {
-    expect(nodeColorStyle({ color: '#ff8800', fillColor: '#111111', textColor: '#ffffff' })).toEqual({
+    expect(
+      nodeColorStyle({ color: '#ff8800', fillColor: '#111111', textColor: '#ffffff' }),
+    ).toEqual({
       borderColor: '#ff8800',
       background: '#111111',
       color: '#ffffff',

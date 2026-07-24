@@ -35,10 +35,7 @@ describe('Diagram Routes', () => {
 
   describe('GET /api/projects/:projectId/diagrams', () => {
     it('returns diagram list for a project', async () => {
-      const diagrams = [
-        createMockDiagram({ projectId }),
-        createMockDiagram({ projectId }),
-      ];
+      const diagrams = [createMockDiagram({ projectId }), createMockDiagram({ projectId })];
       prisma.diagram.findMany.mockResolvedValueOnce(diagrams);
 
       const response = await app.inject({

@@ -214,7 +214,7 @@ const registry: Record<string, DiagramTypeConfig> = {
 
   reliability_block_diagram: {
     id: 'reliability_block_diagram',
-    name: 'Reliability Block Diagram',
+    name: 'RBD',
     description: 'System reliability model using series/parallel blocks',
     nodeTypes: rbdNodeTypes,
     edgeTypes: rbdEdgeTypes,

@@ -72,7 +72,11 @@ describe('streamChat — configuration', () => {
     resolveMock.mockReturnValue({ ok: false, error: 'AI chat is not configured. Set AI_API_KEY.' });
     const events = await run();
     expect(events).toEqual([
-      { type: 'error', message: 'AI chat is not configured. Set AI_API_KEY.', code: 'not_configured' },
+      {
+        type: 'error',
+        message: 'AI chat is not configured. Set AI_API_KEY.',
+        code: 'not_configured',
+      },
     ]);
     expect(streamMessageMock).not.toHaveBeenCalled();
   });
@@ -116,11 +120,10 @@ describe('streamChat — prompt construction', () => {
 
 describe('streamChat — tool loop', () => {
   it('forwards text and tool calls to the client', async () => {
-    respondWith([
-      { type: 'text_delta', text: 'Adding a state' },
-      toolCall('c1'),
-      done('tool_use'),
-    ], [done('end')]);
+    respondWith(
+      [{ type: 'text_delta', text: 'Adding a state' }, toolCall('c1'), done('tool_use')],
+      [done('end')],
+    );
 
     const events = await run();
     expect(events.filter((e) => e.type === 'text_delta').map((e) => e.text)).toEqual([
@@ -133,10 +136,7 @@ describe('streamChat — tool loop', () => {
 
   // An unanswered tool call makes the next OpenAI request fail outright.
   it('answers every replayed call with a result', async () => {
-    respondWith(
-      [toolCall('c1'), toolCall('c2'), toolCall('c3'), done('tool_use')],
-      [done('end')],
-    );
+    respondWith([toolCall('c1'), toolCall('c2'), toolCall('c3'), done('tool_use')], [done('end')]);
     await run();
 
     const replayed = messagesOnRound(1);
@@ -151,9 +151,10 @@ describe('streamChat — tool loop', () => {
   });
 
   it('carries the assistant text into the replayed turn', async () => {
-    respondWith([{ type: 'text_delta', text: 'working' }, toolCall('c1'), done('tool_use')], [
-      done('end'),
-    ]);
+    respondWith(
+      [{ type: 'text_delta', text: 'working' }, toolCall('c1'), done('tool_use')],
+      [done('end')],
+    );
     await run();
     expect(messagesOnRound(1).find((m) => m.role === 'assistant')).toMatchObject({
       text: 'working',

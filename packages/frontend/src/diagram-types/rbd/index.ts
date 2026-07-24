@@ -14,7 +14,7 @@ export const edgeTypes: EdgeTypes = {
 
 export const config = {
   id: 'rbd' as const,
-  name: 'Reliability Block Diagram',
+  name: 'RBD',
   description: 'System reliability model using series/parallel block configurations',
   nodeTypes,
   edgeTypes,

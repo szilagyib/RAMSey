@@ -17,7 +17,7 @@ RAMSey replaces legacy desktop tools with a real-time collaborative environment 
 - **Event Tree Analysis (ETA)** — Branching outcome probability analysis
 - **Reliability Block Diagrams (RBD)** — Series / parallel / k-out-of-n and general (non-series-parallel) networks
 - **Bow-Tie Diagrams** — Combined FTA + ETA with barrier management
-- **FMEA** — Tabular failure mode analysis with RPN scoring
+- **FMEA** — Tabular failure mode analysis with RPN scoring, configurable risk bands, sort/filter by risk, and CSV export
 
 ### Integrated Analysis Engine
 Analysis is implemented for all five graph diagram types, in a shared engine package, with results that carry provenance (solver name/version, method, numeric metadata, assumptions, warnings):
@@ -26,23 +26,26 @@ Analysis is implemented for all five graph diagram types, in a shared engine pac
 - **RBD** — reliability/availability over any two-terminal network (minimal path sets + inclusion–exclusion), sensitivity, Monte Carlo
 - **Event tree** — consequence probabilities
 - **Bow-tie** — top-event and consequence probabilities via barrier propagation
-- **Hybrid execution** — small models run client-side in a Web Worker; analyses can also be queued and computed by a server-side solver worker, with results persisted
+- **Hybrid execution** — analyses run client-side in a Web Worker by default. Deployments that run the optional solver worker can queue them server-side instead, with results persisted; where it is not deployed the option is hidden
 
 ### Real-Time Collaboration
 - Multi-user simultaneous editing via Yjs (CRDT)
 - Live cursors and selection awareness
-- Server-persisted shared state; version history with named snapshots
+- Server-persisted shared state, with an audit log of account and project actions
 - Guest mode works locally (browser storage) without an account
 
 ### AI Assistance
-- Natural-language diagram editing via tool-calling (add/remove/update nodes and edges)
+- Natural-language diagram editing via tool calling — nodes and edges appear on the canvas as the reply streams
+- A whole AI turn is one undo step, and generation can be stopped mid-reply
 - Context-aware Q&A about the current model
-- Integrated chat panel
+- Token-denominated cost ceilings per session, per user and per deployment
+- Optional: the tab is hidden unless a provider is configured
 
 ### Export
 - **LaTeX/TikZ** — compilable standalone document, publication-ready
 - **SVG** — scalable vector graphics
 - **PNG / JPEG** — configurable resolution
+- **CSV** — FMEA worksheet, for spreadsheets
 - **JSON** — raw diagram data
 
 ### Projects & Teams
@@ -182,13 +185,29 @@ Architectural principle: **the API server doesn't perform heavy computation**. S
 
 ## Known limitations
 
-- **PDF export** is not implemented (LaTeX/TikZ, SVG, PNG, JPEG, JSON are).
+Stated plainly, because a half-built feature that looks finished is worse than a
+missing one:
+
+- **PDF export** is not implemented (LaTeX/TikZ, SVG, PNG, JPEG, JSON, CSV are).
+- **Version history** is not exposed. Snapshots can be created and listed through
+  the API, but there is no UI to browse or restore them, so the menu entry is
+  hidden until there is.
+- **Notifications are read-only** — the bell lists them; it does not link through
+  to what triggered them.
 - **OAuth** is Google only.
-- **FMEA** computes RPN but not criticality classification.
+- **FMEA** computes RPN but not criticality classification. RPN bands are a team
+  convention, not a standard (AIAG-VDA replaced them with Action Priority), which
+  is why the thresholds are configurable.
 - Guest mode is local-only (no offline-first sync).
-- Fault-tree probabilities use **MOCUS + inclusion–exclusion** (exact for typical sizes), not BDD.
-- Optional features (AI assistant, server-side analysis) hide themselves when the deployment doesn't configure them.
-- The AI assistant needs a provider key; quality of generated diagrams varies with the model chosen (see [`docs/OPERATIONS.md`](docs/OPERATIONS.md#ai-provider)).
+- Fault-tree probabilities use **MOCUS + inclusion–exclusion** (exact for typical
+  sizes), not BDD.
+- **Mobile** targets reviewing and building with the AI assistant. The canvas is
+  usable but drag-and-drop editing is a desktop gesture; the toolbar collapses
+  into an overflow menu on small screens.
+- Optional features (AI assistant, server-side analysis) hide themselves when the
+  deployment does not configure them — see
+  [`docs/OPERATIONS.md`](docs/OPERATIONS.md). The AI assistant needs a provider
+  key, and the quality of generated diagrams varies with the model chosen.
 
 ## Self-hosting
 

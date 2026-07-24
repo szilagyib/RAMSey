@@ -4,7 +4,7 @@ import { ChatPanel } from './ChatPanel';
 import { AnalysisPanel } from './AnalysisPanel';
 import { PanelResizer } from './PanelResizer';
 import { useCapabilities } from '../../lib/capabilities';
-import { useEditorPrefs, type RightTab } from '../../stores/editorPrefs';
+import { COMPACT_INSPECTOR_WIDTH, useEditorPrefs, type RightTab } from '../../stores/editorPrefs';
 import { cn } from '../../lib/utils';
 
 interface RightPanelProps {
@@ -20,6 +20,7 @@ export function RightPanel({ projectId, diagramId }: RightPanelProps) {
   const inspectorWidth = useEditorPrefs((s) => s.inspectorWidth);
   const setInspectorWidth = useEditorPrefs((s) => s.setInspectorWidth);
   const { aiChat } = useCapabilities();
+  const compact = inspectorWidth < COMPACT_INSPECTOR_WIDTH;
 
   // Collapsed: a rail wide enough to click, so the canvas gets the width back.
   if (!inspector) {
@@ -66,9 +67,10 @@ export function RightPanel({ projectId, diagramId }: RightPanelProps) {
             )}
           >
             <Icon className="h-3.5 w-3.5 shrink-0" />
-            {/* Icon-only on phones: three labelled tabs plus the collapse button
-                do not fit, and the icons already carry the meaning. */}
-            <span className="hidden truncate sm:inline">{label}</span>
+            {/* Driven by the panel's own width, not the viewport: three labelled
+                tabs plus the collapse button stop fitting once the user drags
+                the panel narrow, on any screen. */}
+            {!compact && <span className="truncate">{label}</span>}
           </button>
         ))}
         <button

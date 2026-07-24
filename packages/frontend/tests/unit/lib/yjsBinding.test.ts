@@ -45,12 +45,21 @@ describe('bindStore', () => {
 
     // Client B adds a node → both have n1 + n2.
     b.store.getState().setNodes([...b.vanilla.getState().nodes, node('n2')]);
-    expect(a.vanilla.getState().nodes.map((n) => n.id).sort()).toEqual(['n1', 'n2']);
+    expect(
+      a.vanilla
+        .getState()
+        .nodes.map((n) => n.id)
+        .sort(),
+    ).toEqual(['n1', 'n2']);
 
     // Client A updates n1's data → propagates to B.
-    a.store.getState().setNodes(
-      a.vanilla.getState().nodes.map((n) => (n.id === 'n1' ? { ...n, data: { label: 'A2' } } : n)),
-    );
+    a.store
+      .getState()
+      .setNodes(
+        a.vanilla
+          .getState()
+          .nodes.map((n) => (n.id === 'n1' ? { ...n, data: { label: 'A2' } } : n)),
+      );
     expect(b.vanilla.getState().nodes.find((n) => n.id === 'n1')?.data).toEqual({ label: 'A2' });
 
     // Deletion propagates.

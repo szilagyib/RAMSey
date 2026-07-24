@@ -1,11 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { PrismaClient } from '@prisma/client';
 import { DiagramService } from '../../../src/services/diagram.service.js';
-import {
-  mockPrismaClient,
-  createMockDiagram,
-  type MockPrismaClient,
-} from '../../helpers/setup.js';
+import { mockPrismaClient, createMockDiagram, type MockPrismaClient } from '../../helpers/setup.js';
 
 describe('DiagramService', () => {
   let prisma: MockPrismaClient;
@@ -20,10 +16,7 @@ describe('DiagramService', () => {
   describe('findByProject', () => {
     it('should return diagrams for a given project', async () => {
       const projectId = '00000000-0000-4000-8000-000000000001';
-      const mockDiagrams = [
-        createMockDiagram({ projectId }),
-        createMockDiagram({ projectId }),
-      ];
+      const mockDiagrams = [createMockDiagram({ projectId }), createMockDiagram({ projectId })];
 
       prisma.diagram.findMany.mockResolvedValue(mockDiagrams);
 

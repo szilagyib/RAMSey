@@ -30,12 +30,7 @@ vi.mock('@ramsey/engine', () => ({
 // Import after mock setup
 import { validateMarkovDiagram } from '../../../../src/diagram-types/markov-chain/validation';
 
-function makeNode(
-  id: string,
-  label: string,
-  stateType = 'operational',
-  isInitial = false,
-): Node {
+function makeNode(id: string, label: string, stateType = 'operational', isInitial = false): Node {
   return {
     id,
     type: 'stateNode',
@@ -71,10 +66,7 @@ describe('validateMarkovDiagram', () => {
   });
 
   it('passes for valid two-state diagram', () => {
-    const nodes = [
-      makeNode('s0', 'S0', 'operational', true),
-      makeNode('s1', 'S1', 'failed'),
-    ];
+    const nodes = [makeNode('s0', 'S0', 'operational', true), makeNode('s1', 'S1', 'failed')];
     const edges = [makeEdge('e0', 's0', 's1')];
 
     const result = validateMarkovDiagram(nodes, edges);
@@ -96,10 +88,7 @@ describe('validateMarkovDiagram', () => {
   });
 
   it('errors when a node has no label', () => {
-    const nodes = [
-      makeNode('s0', '', 'operational', true),
-      makeNode('s1', 'S1', 'failed'),
-    ];
+    const nodes = [makeNode('s0', '', 'operational', true), makeNode('s1', 'S1', 'failed')];
     const edges = [makeEdge('e0', 's0', 's1')];
 
     const result = validateMarkovDiagram(nodes, edges);
@@ -108,10 +97,7 @@ describe('validateMarkovDiagram', () => {
   });
 
   it('warns when no transitions exist between multiple states', () => {
-    const nodes = [
-      makeNode('s0', 'S0', 'operational', true),
-      makeNode('s1', 'S1', 'failed'),
-    ];
+    const nodes = [makeNode('s0', 'S0', 'operational', true), makeNode('s1', 'S1', 'failed')];
 
     const result = validateMarkovDiagram(nodes, []);
 

@@ -45,12 +45,10 @@ describe('Team Routes', () => {
 
   /** Resolve getUserRole() lookups from a userId -> role map. */
   function setRoles(map: Record<string, 'ADMIN' | 'MEMBER'>) {
-    prisma.teamMember.findFirst.mockImplementation(
-      async (args: { where: { userId: string } }) => {
-        const role = map[args.where.userId];
-        return role ? { role } : null;
-      },
-    );
+    prisma.teamMember.findFirst.mockImplementation(async (args: { where: { userId: string } }) => {
+      const role = map[args.where.userId];
+      return role ? { role } : null;
+    });
   }
 
   describe('GET /api/teams', () => {

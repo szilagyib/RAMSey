@@ -25,13 +25,25 @@ function isMobileViewport(): boolean {
  *  icon of width. The inspector does NOT shrink to match: it holds the property
  *  form and the AI chat, which are the reasons to open a panel on mobile at all
  *  — matching the palette's width would make both unusable. */
-const PALETTE_WIDTH = isMobileViewport()
-  ? { initial: 76, min: 64, max: 240 }
-  : { initial: 208, min: 160, max: 420 };
-const INSPECTOR_WIDTH = isMobileViewport()
-  ? { initial: 264, min: 200, max: 360 }
-  : { initial: 288, min: 240, max: 560 };
+const PALETTE_WIDTH = {
+  initial: isMobileViewport() ? 76 : 208,
+  // Down to a single icon: past COMPACT_PALETTE_WIDTH the labels drop out, so
+  // the palette stays usable all the way down instead of stopping at a width
+  // chosen for labels that are no longer rendered.
+  min: 56,
+  max: 420,
+};
+const INSPECTOR_WIDTH = {
+  initial: isMobileViewport() ? 264 : 288,
+  // Enough for three tab icons plus the collapse button.
+  min: 132,
+  max: 560,
+};
 type WidthBounds = typeof PALETTE_WIDTH;
+
+/** Below these widths the panels drop their labels and show icons only. */
+export const COMPACT_PALETTE_WIDTH = 130;
+export const COMPACT_INSPECTOR_WIDTH = 220;
 
 function clamp(value: number, { min, max }: WidthBounds): number {
   return Math.min(max, Math.max(min, Math.round(value)));

@@ -76,16 +76,18 @@ describe('resizable side panels', () => {
     expect(localStorage.getItem('ramsey-palette-width')).toBe('300');
   });
 
+  // The minimums are deliberately small: past COMPACT_*_WIDTH the panels drop
+  // their labels, so they stay usable down to icon width.
   it('clamps to the bounds, so a runaway drag cannot swallow the canvas', () => {
     state().setPaletteWidth(5000);
     expect(state().paletteWidth).toBe(420);
     state().setPaletteWidth(-100);
-    expect(state().paletteWidth).toBe(160);
+    expect(state().paletteWidth).toBe(56);
 
     state().setInspectorWidth(5000);
     expect(state().inspectorWidth).toBe(560);
     state().setInspectorWidth(0);
-    expect(state().inspectorWidth).toBe(240);
+    expect(state().inspectorWidth).toBe(132);
   });
 
   it('rounds sub-pixel drag deltas to whole pixels', () => {

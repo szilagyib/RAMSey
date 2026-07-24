@@ -466,7 +466,10 @@ export function Toolbar({
       {/* min-w-0 on the header and both halves is what actually stops the bar
           from overflowing: without it a flex child refuses to shrink below its
           content and pushes the right-hand controls off screen. */}
-      <header className="flex h-10 w-full min-w-0 shrink-0 items-center justify-between gap-1 overflow-hidden border-b border-surface-200 bg-white px-2 dark:bg-surface-100 sm:px-3">
+      {/* No overflow-hidden here: the dropdown panels are positioned inside this
+          header, so clipping it hides every menu. Overflow is prevented by
+          min-w-0 on the flex children (which lets them shrink) instead. */}
+      <header className="relative z-20 flex h-10 w-full min-w-0 shrink-0 items-center justify-between gap-1 border-b border-surface-200 bg-white px-2 dark:bg-surface-100 sm:px-3">
         <div className="flex min-w-0 items-center gap-2">
           {onNavigateBack && (
             <Button

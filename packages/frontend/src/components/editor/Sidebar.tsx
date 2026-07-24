@@ -1,7 +1,7 @@
 import { type DragEvent, useMemo, useRef } from 'react';
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useDiagramStore } from '../../stores/diagramStore';
-import { useEditorPrefs } from '../../stores/editorPrefs';
+import { COMPACT_PALETTE_WIDTH, useEditorPrefs } from '../../stores/editorPrefs';
 import { NODE_SUBTYPE_MIME, NODE_SIZE_MIME, formatNodeSize } from '../../lib/dragPayload';
 import { getDiagramTypeConfig, type SidebarItem } from '../../diagram-types/registry';
 import { PanelResizer } from './PanelResizer';
@@ -414,7 +414,15 @@ function SidebarItemIcon({
   );
 }
 
-function DraggableSidebarItem({ item, diagramType }: { item: SidebarItem; diagramType: string }) {
+function DraggableSidebarItem({
+  item,
+  diagramType,
+  compact,
+}: {
+  item: SidebarItem;
+  diagramType: string;
+  compact: boolean;
+}) {
   const ghostRef = useRef<HTMLDivElement>(null);
   const size = item.size;
 
@@ -438,16 +446,16 @@ function DraggableSidebarItem({ item, diagramType }: { item: SidebarItem; diagra
           'flex cursor-grab items-center gap-2.5 rounded-md border px-3 py-2',
           'border-surface-200 bg-white transition-colors hover:bg-surface-50 active:cursor-grabbing',
           'dark:border-surface-300 dark:bg-surface-100 dark:hover:bg-surface-200',
-          // Phones: the preview alone identifies the shape, so drop the name and
-          // let the border hug the icon instead of stretching the column.
-          'max-sm:w-fit max-sm:self-center max-sm:justify-center max-sm:p-2',
+          // Narrow palette: the preview alone identifies the shape, so drop the
+          // name and let the border hug the icon instead of stretching the column.
+          compact && 'w-fit self-center justify-center p-2',
         )}
         draggable
         onDragStart={onDragStart}
         title={item.label}
       >
         <SidebarItemIcon item={item} diagramType={diagramType} />
-        <span className="hidden text-sm font-medium text-surface-700 sm:inline">{item.label}</span>
+        {!compact && <span className="text-sm font-medium text-surface-700">{item.label}</span>}
       </div>
 
       {/* The drag image. setDragImage needs a rendered element, so it is parked
@@ -492,6 +500,7 @@ export function Sidebar() {
   const palette = useEditorPrefs((s) => s.palette);
   const togglePalette = useEditorPrefs((s) => s.togglePalette);
   const paletteWidth = useEditorPrefs((s) => s.paletteWidth);
+  const compact = paletteWidth < COMPACT_PALETTE_WIDTH;
   const setPaletteWidth = useEditorPrefs((s) => s.setPaletteWidth);
 
   const config = getDiagramTypeConfig(diagramType);
@@ -542,7 +551,12 @@ export function Sidebar() {
             </h3>
             <div className="flex flex-col gap-1.5">
               {items.map((item) => (
-                <DraggableSidebarItem key={item.type} item={item} diagramType={diagramType} />
+                <DraggableSidebarItem
+                  key={item.type}
+                  item={item}
+                  diagramType={diagramType}
+                  compact={compact}
+                />
               ))}
             </div>
           </div>

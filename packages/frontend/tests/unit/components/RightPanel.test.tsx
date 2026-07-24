@@ -35,6 +35,8 @@ interface PrefsState {
   setInspectorWidth: () => void;
 }
 vi.mock('../../../src/stores/editorPrefs', () => ({
+  // Real value: the panel reads it to decide whether to drop the tab labels.
+  COMPACT_INSPECTOR_WIDTH: 220,
   useEditorPrefs: (selector: (s: PrefsState) => unknown) =>
     selector({
       rightTab: mocks.rightTab,

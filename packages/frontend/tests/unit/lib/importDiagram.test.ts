@@ -3,10 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parseDiagramJson } from '../../../src/lib/importDiagram';
 
-const examplePath = resolve(
-  __dirname,
-  '../../../../../examples/markov-redundant-power.json',
-);
+const examplePath = resolve(__dirname, '../../../../../examples/markov-redundant-power.json');
 
 describe('parseDiagramJson', () => {
   it('accepts the shipped example file (validates the artifact)', () => {
@@ -20,12 +17,10 @@ describe('parseDiagramJson', () => {
     // All four Markov state types are showcased, with exactly one initial
     // and one absorbing state (required for MTTF).
     const types = result.nodes.map((n) => (n.data as { stateType: string }).stateType);
-    expect(new Set(types)).toEqual(
-      new Set(['operational', 'degraded', 'failed', 'absorbing']),
+    expect(new Set(types)).toEqual(new Set(['operational', 'degraded', 'failed', 'absorbing']));
+    expect(result.nodes.filter((n) => (n.data as { isInitial?: boolean }).isInitial)).toHaveLength(
+      1,
     );
-    expect(
-      result.nodes.filter((n) => (n.data as { isInitial?: boolean }).isInitial),
-    ).toHaveLength(1);
     // Every transition carries a numeric rate.
     for (const e of result.edges) {
       const rate = Number((e.data as { rate: string }).rate);

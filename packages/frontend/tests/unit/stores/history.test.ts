@@ -8,12 +8,18 @@ vi.mock('../../../src/diagram-types/markov-chain/validation', () => ({
 }));
 
 vi.mock('../../../src/diagram-types/markov-chain/defaults', () => ({
-  createNewState: vi.fn((position: { x: number; y: number }, counter: number, stateType: string) => ({
-    id: `state-${counter}`,
-    type: 'stateNode',
-    position,
-    data: { label: `S${counter}`, stateType: stateType || 'operational', isInitial: counter === 0 },
-  })),
+  createNewState: vi.fn(
+    (position: { x: number; y: number }, counter: number, stateType: string) => ({
+      id: `state-${counter}`,
+      type: 'stateNode',
+      position,
+      data: {
+        label: `S${counter}`,
+        stateType: stateType || 'operational',
+        isInitial: counter === 0,
+      },
+    }),
+  ),
   createNewTransition: vi.fn((source: string, target: string, counter: number) => ({
     id: `transition-${counter}`,
     type: 'transitionEdge',
@@ -87,9 +93,7 @@ describe('diagram undo/redo', () => {
   it('treats a whole drag as one entry and ends it on dragging:false', () => {
     state().addNode({ x: 0, y: 0 });
     const drag = (x: number, dragging: boolean) =>
-      state().onNodesChange([
-        { id: 'state-0', type: 'position', position: { x, y: 0 }, dragging },
-      ]);
+      state().onNodesChange([{ id: 'state-0', type: 'position', position: { x, y: 0 }, dragging }]);
     drag(10, true);
     drag(20, true);
     drag(30, false);
@@ -116,7 +120,12 @@ describe('diagram undo/redo', () => {
   it('undoing a delete restores the node together with its edges', () => {
     state().addNode({ x: 0, y: 0 });
     state().addNode({ x: 100, y: 0 });
-    state().onConnect({ source: 'state-0', target: 'state-1', sourceHandle: null, targetHandle: null });
+    state().onConnect({
+      source: 'state-0',
+      target: 'state-1',
+      sourceHandle: null,
+      targetHandle: null,
+    });
     state().selectNode('state-0');
     state().deleteSelected();
     expect(state().nodes).toHaveLength(1);
