@@ -27,6 +27,7 @@ import { getDiagramTypeConfig } from '../../diagram-types/registry';
 import { useAutoLayout, routeEdgesAfterLayout } from '../../hooks/useAutoLayout';
 import { useEditorPrefs, type BackgroundMode } from '../../stores/editorPrefs';
 import { parseDiagramJson } from '../../lib/importDiagram';
+import { pickJsonFile } from '../../lib/exportUtils';
 import { cn } from '../../lib/utils';
 import { MenuBar, type MenuDefinition } from './MenuBar';
 import { DiagramTitle } from './DiagramTitle';
@@ -123,11 +124,8 @@ export function Toolbar({
   const [showExport, setShowExport] = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
 
-  const handleImportFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = ''; // allow re-importing the same file
-    if (!file) return;
-    const result = parseDiagramJson(await file.text());
+  const applyImportedJson = useCallback((text: string) => {
+    const result = parseDiagramJson(text);
     if ('error' in result) {
       window.alert(`Import failed: ${result.error}`);
       return;
@@ -149,6 +147,23 @@ export function Toolbar({
     }
     useDiagramStore.getState().loadDiagram(result.nodes, result.edges, currentType);
   }, []);
+
+  // Hidden-input fallback (Firefox/Safari have no file picker API).
+  const handleImportFile = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      e.target.value = ''; // allow re-importing the same file
+      if (!file) return;
+      applyImportedJson(await file.text());
+    },
+    [applyImportedJson],
+  );
+
+  const handleImportClick = useCallback(async () => {
+    const picked = await pickJsonFile();
+    if (picked.status === 'ok') applyImportedJson(picked.text);
+    else if (picked.status === 'unsupported') importInputRef.current?.click();
+  }, [applyImportedJson]);
 
   const config = getDiagramTypeConfig(diagramType);
   const typeName = config?.name ?? 'Diagram';
@@ -260,7 +275,7 @@ export function Toolbar({
         { divider: true },
         {
           label: 'Import JSON...',
-          onClick: () => importInputRef.current?.click(),
+          onClick: handleImportClick,
         },
         {
           label: 'Export...',

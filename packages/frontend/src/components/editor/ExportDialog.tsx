@@ -43,10 +43,10 @@ export function ExportDialog({ open, onClose, diagramName }: ExportDialogProps) 
           await exportJpeg({ format: 'jpeg', scale });
           break;
         case 'json':
-          exportJson(nodes, edges, diagramType, diagramName);
+          await exportJson(nodes, edges, diagramType, diagramName);
           break;
         case 'latex':
-          exportLatex(nodes, edges, diagramType, diagramName, fmeaRows);
+          await exportLatex(nodes, edges, diagramType, diagramName, fmeaRows);
           break;
       }
       onClose();
