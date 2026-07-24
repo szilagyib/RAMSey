@@ -30,6 +30,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           id={inputId}
           className={cn(
             'h-9 w-full rounded-md border border-surface-300 dark:border-surface-400 bg-white dark:bg-surface-100/60 px-3 text-sm',
+            // >=16px on phones: iOS zooms into any smaller field on focus and
+            // never zooms back out.
+            'max-sm:text-base',
             'text-surface-900 dark:text-surface-900 placeholder:text-surface-400',
             'transition-colors duration-150',
             'focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500/50',

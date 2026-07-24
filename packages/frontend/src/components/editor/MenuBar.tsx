@@ -48,14 +48,11 @@ function DropdownMenu({
   isOpen,
   onToggle,
   onHover,
-  align = 'left',
 }: {
   menu: MenuDefinition;
   isOpen: boolean;
   onToggle: () => void;
   onHover: () => void;
-  /** Anchor the panel to the button's right edge when it sits near the screen edge. */
-  align?: 'left' | 'right';
 }) {
   const ref = useRef<HTMLDivElement>(null);
   // Reserve a check column for every item once any item in the menu is a toggle,
@@ -85,8 +82,7 @@ function DropdownMenu({
             'absolute top-full z-50 mt-0.5 min-w-48 rounded-md border border-surface-200 bg-white py-1 shadow-lg dark:border-surface-300 dark:bg-surface-100',
             // Never taller than the viewport allows, and never wider than it:
             // the combined "…" menu is long enough to run off a phone screen.
-            'max-h-[70vh] max-w-[calc(100vw-1rem)] overflow-y-auto overscroll-contain',
-            align === 'right' ? 'right-0' : 'left-0',
+            'left-0 max-h-[70vh] max-w-[calc(100vw-1rem)] overflow-y-auto overscroll-contain',
           )}
         >
           {menu.items.map((entry, i) => {
@@ -239,7 +235,6 @@ export function MenuBar({ menus, mobileVisible = 1 }: MenuBarProps) {
         <div className="sm:hidden">
           <DropdownMenu
             menu={overflowMenu}
-            align="right"
             isOpen={openIndex === overflowIndex}
             onToggle={() => setOpenIndex(openIndex === overflowIndex ? null : overflowIndex)}
             onHover={() => {

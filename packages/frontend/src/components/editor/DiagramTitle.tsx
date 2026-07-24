@@ -32,7 +32,9 @@ export function DiagramTitle({ name, onRename }: DiagramTitleProps) {
         }}
         onCancel={() => setEditing(false)}
         className={cn(
-          'mr-2 w-40 rounded border border-primary-500 px-1 text-xs outline-none',
+          'relative z-10 mr-2 w-40 min-w-0 max-w-[45vw] rounded border border-primary-500 px-1',
+          // >=16px on phones: iOS zooms into anything smaller and never returns.
+          'text-xs outline-none max-sm:text-base',
           'bg-white text-surface-900 dark:bg-surface-100',
         )}
       />

@@ -351,6 +351,7 @@ export function ChatPanel() {
             rows={3}
             className={cn(
               'flex-1 resize-none rounded-md border border-surface-300 px-3 py-2 text-sm',
+              'max-sm:text-base', // avoid iOS focus zoom (see Input)
               'placeholder-surface-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500',
               'disabled:opacity-50',
             )}
