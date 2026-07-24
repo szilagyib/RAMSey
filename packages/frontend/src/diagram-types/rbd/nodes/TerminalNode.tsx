@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { cn } from '../../../lib/utils';
-import { nodeColorStyle } from '../../../lib/nodeColor';
+import { nodeColorStyle, nodeLabelStyle } from '../../../lib/nodeColor';
 import type { RBDNodeData } from '../../../types/diagram';
 
 // ---------------------------------------------------------------------------
@@ -55,7 +55,7 @@ function TerminalNodeComponent({ data, selected }: NodeProps) {
       >
         <span
           className="text-xs font-semibold select-none"
-          style={{ color: custom?.color ?? tokens.text }}
+          style={nodeLabelStyle(data, tokens.text)}
         >
           {nodeData.label}
         </span>

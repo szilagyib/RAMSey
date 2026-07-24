@@ -8,6 +8,9 @@ import {
   getNodeText,
   getEdgeColor,
   getNodeOpacity,
+  getNodeFontSize,
+  MIN_FONT_SIZE,
+  MAX_FONT_SIZE,
   NODE_COLOR_PRESETS,
 } from '../../lib/nodeColor';
 import {
@@ -110,6 +113,14 @@ function NodeColorControls({ nodeId, data }: { nodeId: string; data: Record<stri
         onSet={(c) => setDiscrete({ textColor: c })}
         onPick={(c) => updateNodeData(nodeId, { textColor: c })}
       />
+      {/* Under Text, and styled as its sub-control: it sizes the label only. */}
+      <FontSizeControl
+        value={getNodeFontSize(data) ?? DEFAULT_LABEL_SIZE}
+        isDefault={getNodeFontSize(data) === null}
+        onDrag={(v) => updateNodeData(nodeId, { fontSize: v })}
+        onCommit={(v) => setDiscrete({ fontSize: v })}
+        onReset={() => setDiscrete({ fontSize: null })}
+      />
     </div>
   );
 }
@@ -156,6 +167,58 @@ function OpacityControl({
         onChange={(e) => onDrag(Number(e.target.value) / 100)}
         onPointerUp={(e) => onCommit(Number((e.target as HTMLInputElement).value) / 100)}
         onKeyUp={(e) => onCommit(Number((e.target as HTMLInputElement).value) / 100)}
+        className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-surface-200 accent-primary-600"
+      />
+    </div>
+  );
+}
+
+/** Shown on the slider when no size has been chosen — the notation's own size. */
+const DEFAULT_LABEL_SIZE = 14;
+
+/** Label size in px. A sub-control of Text, as Opacity is of Fill. */
+function FontSizeControl({
+  value,
+  isDefault,
+  onDrag,
+  onCommit,
+  onReset,
+}: {
+  value: number;
+  isDefault: boolean;
+  onDrag: (v: number) => void;
+  onCommit: (v: number) => void;
+  onReset: () => void;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-surface-500">Text size</span>
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-[11px] text-surface-400">
+            {isDefault ? 'auto' : `${value}px`}
+          </span>
+          {!isDefault && (
+            <button
+              onClick={onReset}
+              className="text-[11px] text-surface-400 hover:text-surface-700"
+              title="Reset text size"
+            >
+              Reset
+            </button>
+          )}
+        </div>
+      </div>
+      <input
+        type="range"
+        min={MIN_FONT_SIZE}
+        max={MAX_FONT_SIZE}
+        step={1}
+        value={value}
+        aria-label="Text size"
+        onChange={(e) => onDrag(Number(e.target.value))}
+        onPointerUp={(e) => onCommit(Number((e.target as HTMLInputElement).value))}
+        onKeyUp={(e) => onCommit(Number((e.target as HTMLInputElement).value))}
         className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-surface-200 accent-primary-600"
       />
     </div>

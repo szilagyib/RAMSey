@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { cn } from '../../../lib/utils';
-import { nodeColorStyle } from '../../../lib/nodeColor';
+import { nodeColorStyle, nodeLabelStyle } from '../../../lib/nodeColor';
 import type { BowTieNodeData } from '../../../types/diagram';
 
 // ---------------------------------------------------------------------------
@@ -35,7 +35,10 @@ function ConsequenceNodeComponent({ data, selected }: NodeProps) {
           ...nodeColorStyle(data, 'var(--dg-consequence-fill)'),
         }}
       >
-        <span className="line-clamp-2 w-full text-center text-sm leading-tight font-semibold select-none">
+        <span
+          className="line-clamp-2 w-full text-center text-sm leading-tight font-semibold select-none"
+          style={nodeLabelStyle(data)}
+        >
           {nodeData.label}
         </span>
       </div>

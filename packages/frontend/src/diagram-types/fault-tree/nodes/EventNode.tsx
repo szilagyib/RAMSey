@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { cn } from '../../../lib/utils';
-import { resolveTokenColors, withAlpha } from '../../../lib/nodeColor';
+import { resolveTokenColors, withAlpha, nodeLabelStyle } from '../../../lib/nodeColor';
 import type { FaultTreeNodeData } from '../../../types/diagram';
 
 // ---------------------------------------------------------------------------
@@ -122,7 +122,7 @@ function EventNodeComponent({ data, selected }: NodeProps) {
         >
           <span
             className="line-clamp-2 text-xs font-semibold leading-tight select-none"
-            style={{ color: tokens.text }}
+            style={nodeLabelStyle(data, tokens.text)}
           >
             {nodeData.label}
           </span>
@@ -136,7 +136,7 @@ function EventNodeComponent({ data, selected }: NodeProps) {
           )}
           <span
             className="mt-0.5 max-w-[88px] truncate text-center text-[10px] font-semibold select-none"
-            style={{ color: tokens.text }}
+            style={nodeLabelStyle(data, tokens.text)}
           >
             {nodeData.label}
           </span>

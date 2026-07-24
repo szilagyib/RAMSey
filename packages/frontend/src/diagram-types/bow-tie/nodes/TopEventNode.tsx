@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { cn } from '../../../lib/utils';
-import { resolveTokenColors, withAlpha } from '../../../lib/nodeColor';
+import { resolveTokenColors, withAlpha, nodeLabelStyle } from '../../../lib/nodeColor';
 import type { BowTieNodeData } from '../../../types/diagram';
 
 // ---------------------------------------------------------------------------
@@ -42,7 +42,7 @@ function TopEventNodeComponent({ data, selected }: NodeProps) {
       {/* Label — not rotated, sits on top of the diamond */}
       <span
         className="relative z-10 line-clamp-3 max-w-[52px] text-center text-[10px] font-semibold leading-tight select-none"
-        style={{ color: tokens.text }}
+        style={nodeLabelStyle(data, tokens.text)}
       >
         {nodeData.label}
       </span>

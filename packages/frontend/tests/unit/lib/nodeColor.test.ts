@@ -8,6 +8,7 @@ import {
   nodeColorStyle,
   resolveTokenColors,
   getNodeOpacity,
+  nodeLabelStyle,
 } from '../../../src/lib/nodeColor';
 
 describe('per-channel getters', () => {
@@ -112,6 +113,30 @@ describe('opacity applies to the fill only', () => {
 
   it('leaves a fully opaque node untouched', () => {
     expect(nodeColorStyle({}, 'var(--dg-basic-fill)')).toBeUndefined();
+  });
+});
+
+describe('nodeLabelStyle (label colour + size)', () => {
+  it('is empty when nothing is set', () => {
+    expect(nodeLabelStyle({})).toEqual({});
+  });
+
+  it('falls back to the notation colour and omits size', () => {
+    expect(nodeLabelStyle({}, 'var(--dg-basic-text)')).toEqual({ color: 'var(--dg-basic-text)' });
+  });
+
+  it('prefers the chosen colour and applies the chosen size', () => {
+    expect(nodeLabelStyle({ textColor: '#123456', fontSize: 20 }, 'X')).toEqual({
+      color: '#123456',
+      fontSize: '20px',
+    });
+  });
+
+  // The slider is bounded, so anything outside it is data we did not write.
+  it('ignores an out-of-range or non-numeric size', () => {
+    expect(nodeLabelStyle({ fontSize: 200 })).toEqual({});
+    expect(nodeLabelStyle({ fontSize: 2 })).toEqual({});
+    expect(nodeLabelStyle({ fontSize: '16' })).toEqual({});
   });
 });
 

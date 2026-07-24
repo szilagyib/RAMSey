@@ -39,6 +39,7 @@ export const HIDDEN_FIELDS: ReadonlySet<string> = new Set([
   'fillColor',
   'textColor',
   'opacity',
+  'fontSize',
   'cpX',
   'cpY',
 ]);

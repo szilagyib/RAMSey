@@ -38,6 +38,35 @@ export function tintFill(color: string): string {
   return `${color}26`;
 }
 
+/** Label size in px (node.data.fontSize). Null/absent means the notation default. */
+export function getNodeFontSize(data: unknown): number | null {
+  const value = (data as { fontSize?: unknown } | null | undefined)?.fontSize;
+  return typeof value === 'number' && value >= MIN_FONT_SIZE && value <= MAX_FONT_SIZE
+    ? value
+    : null;
+}
+
+/** Bounds for the label-size control; below 8px a label is unreadable anyway. */
+export const MIN_FONT_SIZE = 8;
+export const MAX_FONT_SIZE = 32;
+
+/**
+ * Style for a node's label: its colour and its size.
+ *
+ * Labels set their size with a Tailwind class, which an inherited font-size
+ * cannot override — so the size has to land on the label element itself rather
+ * than on the node container. Colour rides along because every caller was
+ * already writing `style={{ color: … }}` by hand.
+ */
+export function nodeLabelStyle(data: unknown, defaultColor?: string): React.CSSProperties {
+  const style: React.CSSProperties = {};
+  const color = getNodeText(data) ?? defaultColor;
+  if (color !== undefined) style.color = color;
+  const fontSize = getNodeFontSize(data);
+  if (fontSize !== null) style.fontSize = `${fontSize}px`;
+  return style;
+}
+
 /**
  * Fade a colour to `alpha` without needing to know its notation — these fills
  * are variously `#rrggbb`, `#rrggbbaa` (see tintFill) and `var(--dg-*)`, so

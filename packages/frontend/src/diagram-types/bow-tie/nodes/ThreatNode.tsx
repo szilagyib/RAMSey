@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { cn } from '../../../lib/utils';
-import { nodeColorStyle } from '../../../lib/nodeColor';
+import { nodeColorStyle, nodeLabelStyle } from '../../../lib/nodeColor';
 import type { BowTieNodeData } from '../../../types/diagram';
 
 // ---------------------------------------------------------------------------
@@ -28,7 +28,7 @@ function ThreatNodeComponent({ data, selected }: NodeProps) {
       >
         <span
           className="line-clamp-2 w-full text-center text-sm leading-tight font-semibold select-none"
-          style={{ color: custom?.color ?? 'var(--dg-top-text)' }}
+          style={nodeLabelStyle(data, 'var(--dg-top-text)')}
         >
           {nodeData.label}
         </span>

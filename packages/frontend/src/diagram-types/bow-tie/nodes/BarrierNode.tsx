@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { cn } from '../../../lib/utils';
-import { nodeColorStyle } from '../../../lib/nodeColor';
+import { nodeColorStyle, nodeLabelStyle } from '../../../lib/nodeColor';
 import type { BowTieNodeData } from '../../../types/diagram';
 
 // ---------------------------------------------------------------------------
@@ -57,7 +57,7 @@ function BarrierNodeComponent({ data, selected }: NodeProps) {
           style={{
             writingMode: 'vertical-rl',
             textOrientation: 'mixed',
-            color: custom?.color ?? tokens.text,
+            ...nodeLabelStyle(data, tokens.text),
           }}
         >
           {nodeData.label}
