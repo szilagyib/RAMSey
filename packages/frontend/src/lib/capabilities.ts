@@ -32,7 +32,11 @@ export const NO_CAPABILITIES: Capabilities = {
  */
 async function probe(): Promise<Capabilities | null> {
   try {
-    const res = await fetch(apiUrl('/api/capabilities'), { credentials: 'include' });
+    // No credentials: the endpoint reads only deployment env, never the session,
+    // so sending the cookie is pointless — and a credentialed cross-origin
+    // request is what WebKit (every iOS browser) blocks, hiding every optional
+    // feature. A plain cross-origin GET is far more widely allowed.
+    const res = await fetch(apiUrl('/api/capabilities'), { credentials: 'omit' });
     if (!res.ok) return null;
     const body = (await res.json()) as Partial<Capabilities>;
     return {
