@@ -57,17 +57,17 @@ beforeEach(() => {
 // When AI is disabled (AI_CHAT_ENABLED=false or no provider), the capability is
 // off and NOTHING about AI mode may appear.
 describe('RightPanel — AI gating', () => {
-  it('hides the AI Chat tab and panel when aiChat is off', () => {
+  it('hides the AI tab and panel when aiChat is off', () => {
     mocks.aiChat = false;
     render(<RightPanel />);
-    expect(screen.queryByText('AI Chat')).toBeNull();
+    expect(screen.queryByText('AI')).toBeNull();
     expect(screen.queryByText('CHATPANEL')).toBeNull();
   });
 
-  it('shows the AI Chat tab when aiChat is on', () => {
+  it('shows the AI tab when aiChat is on', () => {
     mocks.aiChat = true;
     render(<RightPanel />);
-    expect(screen.getByText('AI Chat')).toBeTruthy();
+    expect(screen.getByText('AI')).toBeTruthy();
   });
 
   // A stale 'chat' selection must not leave a blank panel once AI is disabled.

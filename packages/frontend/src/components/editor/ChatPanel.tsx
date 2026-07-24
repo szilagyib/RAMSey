@@ -256,9 +256,9 @@ export function ChatPanel() {
             </div>
           ) : (
             <div className="flex h-full flex-col items-center justify-center text-center">
-              <p className="text-sm text-surface-400">Ask the AI to help with your diagram.</p>
-              <p className="mt-2 text-xs text-surface-300">
-                Try: &quot;Create a Markov chain for a redundant pump system&quot;
+              <p className="text-sm text-surface-500">Ask AI to help with your diagram.</p>
+              <p className="mt-2 text-xs text-surface-400">
+                Try: &quot;Model a redundant pump system with a standby unit&quot;
               </p>
             </div>
           ))}
@@ -326,14 +326,16 @@ export function ChatPanel() {
 
       {/* Input */}
       <div className="border-t border-surface-200 p-3">
-        <div className="flex gap-2">
+        {/* items-end keeps the send/stop button at the bottom rather than
+            stretching it to the full height of the multi-row input. */}
+        <div className="flex items-end gap-2">
           <textarea
             ref={inputRef}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isGuest ? 'Sign in to use the AI assistant' : 'Ask the AI...'}
-            rows={1}
+            placeholder={isGuest ? 'Sign in to use the AI assistant' : 'Ask AI...'}
+            rows={3}
             className={cn(
               'flex-1 resize-none rounded-md border border-surface-300 px-3 py-2 text-sm',
               'placeholder-surface-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500',
@@ -380,7 +382,7 @@ export function ChatPanel() {
         {/* Names the real destination, which varies by deployment — see
             aiProviderLabel in /api/capabilities. */}
         {aiProviderLabel && !isGuest && (
-          <p className="mt-1.5 text-[10px] leading-snug text-surface-300">
+          <p className="mt-1.5 text-[10px] leading-snug text-surface-400">
             Messages and the open diagram are sent to {aiProviderLabel} to generate responses.
           </p>
         )}

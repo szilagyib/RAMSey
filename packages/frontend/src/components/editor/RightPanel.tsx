@@ -37,11 +37,11 @@ export function RightPanel({ projectId, diagramId }: RightPanelProps) {
     );
   }
 
-  // No dead "AI Chat" tab when the deployment has no AI configured.
+  // No dead "AI" tab when the deployment has no AI configured.
   const tabs: Array<{ id: RightTab; label: string; icon: typeof Settings2 }> = [
     { id: 'properties', label: 'Properties', icon: Settings2 },
     { id: 'analysis', label: 'Analysis', icon: BarChart3 },
-    ...(aiChat ? [{ id: 'chat' as const, label: 'AI Chat', icon: Sparkles }] : []),
+    ...(aiChat ? [{ id: 'chat' as const, label: 'AI', icon: Sparkles }] : []),
   ];
   const tab: RightTab = tabs.some((t) => t.id === activeTab) ? activeTab : 'properties';
 
