@@ -55,15 +55,18 @@ export function RightPanel({ projectId, diagramId }: RightPanelProps) {
           <button
             key={id}
             onClick={() => setRightTab(id)}
+            title={label}
+            // min-w-0 + truncate let a narrow panel shorten the labels instead
+            // of overflowing the row and pushing the collapse button out of view.
             className={cn(
-              'flex flex-1 items-center justify-center gap-1.5 px-2 py-2 text-xs font-medium transition-colors',
+              'flex min-w-0 flex-1 items-center justify-center gap-1.5 px-2 py-2 text-xs font-medium transition-colors',
               tab === id
                 ? 'border-b-2 border-primary-500 text-primary-600'
                 : 'text-surface-400 hover:text-surface-600',
             )}
           >
-            <Icon className="h-3.5 w-3.5" />
-            {label}
+            <Icon className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">{label}</span>
           </button>
         ))}
         <button

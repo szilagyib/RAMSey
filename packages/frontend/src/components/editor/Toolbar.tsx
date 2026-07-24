@@ -603,7 +603,19 @@ export function Toolbar({
           )}
 
           {validationResult && (
-            <div className="mr-1 flex items-center gap-1">
+            // The badge is the obvious thing to click when it reports errors, so
+            // it opens the same results panel as Analysis > Validate Diagram.
+            <button
+              type="button"
+              onClick={handleValidate}
+              disabled={!onValidate}
+              title="Show validation results"
+              aria-label="Show validation results"
+              className={cn(
+                'mr-1 flex items-center gap-1 rounded px-1.5 py-1 transition-colors',
+                onValidate ? 'hover:bg-surface-100' : 'cursor-default',
+              )}
+            >
               {validationResult.valid ? (
                 <CheckCircle className="h-3.5 w-3.5 text-state-operational-500" />
               ) : (
@@ -612,7 +624,7 @@ export function Toolbar({
               <span className="text-[10px] text-surface-500">
                 {validationResult.errors.length}E / {validationResult.warnings.length}W
               </span>
-            </div>
+            </button>
           )}
 
           <Button
