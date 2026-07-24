@@ -25,10 +25,15 @@ export const NO_CAPABILITIES: Capabilities = {
   googleOAuth: false,
 };
 
-export async function fetchCapabilities(): Promise<Capabilities> {
+/**
+ * One probe. Returns null when the probe ITSELF failed, which is different from
+ * a deployment that simply has nothing enabled — the caller must not treat a
+ * dead request as "these features are off".
+ */
+async function probe(): Promise<Capabilities | null> {
   try {
     const res = await fetch(apiUrl('/api/capabilities'), { credentials: 'include' });
-    if (!res.ok) return NO_CAPABILITIES;
+    if (!res.ok) return null;
     const body = (await res.json()) as Partial<Capabilities>;
     return {
       aiChat: body.aiChat === true,
@@ -37,19 +42,40 @@ export async function fetchCapabilities(): Promise<Capabilities> {
       googleOAuth: body.googleOAuth === true,
     };
   } catch {
-    return NO_CAPABILITIES;
+    // Includes a non-JSON body: a stale bundle can address the wrong origin and
+    // get index.html back, which must read as "probe failed", not "all off".
+    return null;
   }
+}
+
+/** Probe, retrying once — a single blip must not disable a feature. */
+export async function fetchCapabilities(): Promise<Capabilities> {
+  return (await probe()) ?? (await probe()) ?? NO_CAPABILITIES;
 }
 
 // One fetch per page load, shared by every consumer.
 let cached: Promise<Capabilities> | null = null;
 
+function loadCapabilities(): Promise<Capabilities> {
+  cached ??= (async () => {
+    const caps = (await probe()) ?? (await probe());
+    // Never remember a failure: cached forever meant one dead request hid every
+    // optional feature for the rest of the page load, even once the API was
+    // back. Clearing it lets the next mount try again.
+    if (caps === null) {
+      cached = null;
+      return NO_CAPABILITIES;
+    }
+    return caps;
+  })();
+  return cached;
+}
+
 export function useCapabilities(): Capabilities {
   const [caps, setCaps] = useState<Capabilities>(NO_CAPABILITIES);
   useEffect(() => {
     let alive = true;
-    cached ??= fetchCapabilities();
-    cached.then((c) => {
+    loadCapabilities().then((c) => {
       if (alive) setCaps(c);
     });
     return () => {
