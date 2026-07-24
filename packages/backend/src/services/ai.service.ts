@@ -194,16 +194,13 @@ const TOOLS: LlmToolSpec[] = [
       required: [],
     },
   },
-  {
-    name: 'validate_diagram',
-    description: 'Run validation on the current diagram and return any errors or warnings.',
-    parameters: {
-      type: 'object' as const,
-      properties: {},
-      required: [],
-    },
-  },
 ];
+// A `validate_diagram` tool used to sit here. It promised to "return any errors
+// or warnings", but every tool result replayed to the model is a generic
+// {success:true} (see the replay loop below), so the model could never see them
+// — and the validators live in the frontend, which the server cannot call.
+// Removed rather than left lying; the model already receives the full diagram
+// state each round and can reason about structure directly.
 
 // ---------------------------------------------------------------------------
 // System prompt builder

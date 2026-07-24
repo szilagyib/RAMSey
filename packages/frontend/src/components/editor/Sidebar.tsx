@@ -439,8 +439,8 @@ function DraggableSidebarItem({ item, diagramType }: { item: SidebarItem; diagra
           'border-surface-200 bg-white transition-colors hover:bg-surface-50 active:cursor-grabbing',
           'dark:border-surface-300 dark:bg-surface-100 dark:hover:bg-surface-200',
           // Phones: the preview alone identifies the shape, so drop the name and
-          // centre the icon to keep the palette narrow.
-          'max-sm:justify-center max-sm:px-2',
+          // let the border hug the icon instead of stretching the column.
+          'max-sm:w-fit max-sm:self-center max-sm:justify-center max-sm:p-2',
         )}
         draggable
         onDragStart={onDragStart}

@@ -136,11 +136,6 @@ function applyToolCall(
       });
       break;
     }
-
-    case 'validate_diagram': {
-      // Validation results are shown via the existing validation panel
-      break;
-    }
   }
 }
 

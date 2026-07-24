@@ -88,6 +88,7 @@ AWS_DEPLOY_NOTES.md
 CLAUDE.md
 .claude/
 docs/superpowers/
+AI_VALIDATION_NOTES.md
 
 # Local-only ops diagnostic (kept on disk if we ever need it; not for the repo)
 packages/backend/scripts/check-openai.cjs

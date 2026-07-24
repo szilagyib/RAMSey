@@ -463,23 +463,33 @@ export function Toolbar({
 
   return (
     <>
-      <header className="flex h-10 shrink-0 items-center justify-between border-b border-surface-200 bg-white dark:bg-surface-100 px-3">
-        <div className="flex items-center gap-2">
+      {/* min-w-0 on the header and both halves is what actually stops the bar
+          from overflowing: without it a flex child refuses to shrink below its
+          content and pushes the right-hand controls off screen. */}
+      <header className="flex h-10 w-full min-w-0 shrink-0 items-center justify-between gap-1 overflow-hidden border-b border-surface-200 bg-white px-2 dark:bg-surface-100 sm:px-3">
+        <div className="flex min-w-0 items-center gap-2">
           {onNavigateBack && (
-            <Button variant="ghost" size="sm" onClick={onNavigateBack} className="h-7 w-7 p-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onNavigateBack}
+              className="h-7 w-7 shrink-0 p-0"
+            >
               <ArrowLeft className="h-3.5 w-3.5" />
             </Button>
           )}
-          <img src="/favicon.svg" alt="RAMSey" className="h-5 w-5" />
-          <h1 className="text-sm font-bold text-primary-600">RAMSey</h1>
-          <span className="text-[10px] text-surface-400">{typeName}</span>
-          <div className="ml-1 h-4 w-px bg-surface-200" />
+          <img src="/favicon.svg" alt="RAMSey" className="h-5 w-5 shrink-0" />
+          {/* The mark carries the brand on a phone; the word and the diagram
+              type are the cheapest things to drop for menu room. */}
+          <h1 className="hidden text-sm font-bold text-primary-600 sm:block">RAMSey</h1>
+          <span className="hidden text-[10px] text-surface-400 md:block">{typeName}</span>
+          <div className="ml-1 hidden h-4 w-px bg-surface-200 sm:block" />
           <MenuBar menus={menus} />
 
           {/* Editing action group — the common operations mirrored from the
               Edit menu so they're one click away. */}
-          <div className="ml-1 h-4 w-px bg-surface-200" />
-          <div className="flex items-center gap-0.5">
+          <div className="ml-1 hidden h-4 w-px bg-surface-200 sm:block" />
+          <div className="flex shrink-0 items-center gap-0.5">
             <Button
               variant="ghost"
               size="sm"
@@ -500,13 +510,16 @@ export function Toolbar({
             >
               <Redo2 className="h-3.5 w-3.5" />
             </Button>
-            <span className="mx-0.5 h-4 w-px bg-surface-200" />
+            {/* Copy/paste/duplicate need a selection and a keyboard; on a phone
+                they are the next thing to go after align/distribute. Delete
+                stays — it is the one destructive fix you need at a glance. */}
+            <span className="mx-0.5 hidden h-4 w-px bg-surface-200 sm:block" />
             <Button
               variant="ghost"
               size="sm"
               onClick={() => copySelection()}
               disabled={!hasNodeSelection}
-              className="h-7 w-7 p-0"
+              className="hidden h-7 w-7 p-0 sm:inline-flex"
               title="Copy (Ctrl+C)"
             >
               <Copy className="h-3.5 w-3.5" />
@@ -516,7 +529,7 @@ export function Toolbar({
               size="sm"
               onClick={() => paste()}
               disabled={!canPaste}
-              className="h-7 w-7 p-0"
+              className="hidden h-7 w-7 p-0 sm:inline-flex"
               title="Paste (Ctrl+V)"
             >
               <ClipboardPaste className="h-3.5 w-3.5" />
@@ -526,7 +539,7 @@ export function Toolbar({
               size="sm"
               onClick={() => duplicateSelection()}
               disabled={!hasNodeSelection}
-              className="h-7 w-7 p-0"
+              className="hidden h-7 w-7 p-0 sm:inline-flex"
               title="Duplicate (Ctrl+D)"
             >
               <CopyPlus className="h-3.5 w-3.5" />
@@ -592,11 +605,11 @@ export function Toolbar({
           </div>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex min-w-0 shrink items-center gap-1">
           <DiagramTitle name={diagramName} onRename={onRename} />
 
           {collaborators.length > 0 && (
-            <div className="mr-2 flex items-center gap-1">
+            <div className="mr-2 hidden items-center gap-1 sm:flex">
               {collaborators.slice(0, 4).map((user) => {
                 const initials = (user.name ?? 'U')
                   .split(' ')
@@ -640,67 +653,72 @@ export function Toolbar({
               ) : (
                 <AlertTriangle className="h-3.5 w-3.5 text-state-degraded-500" />
               )}
-              <span className="text-[10px] text-surface-500">
+              <span className="hidden text-[10px] text-surface-500 sm:inline">
                 {validationResult.errors.length}E / {validationResult.warnings.length}W
               </span>
             </button>
           )}
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleAutoLayout}
-            className="h-7 w-7 p-0"
-            title="Auto Layout"
-          >
-            <LayoutGrid className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={cycleBackground}
-            className={cn('h-7 w-7 p-0', background !== 'none' && 'text-primary-600')}
-            title={`Background: ${background} (click to cycle)`}
-          >
-            <Grid3x3 className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={toggleMinimap}
-            className={cn('h-7 w-7 p-0', minimap && 'text-primary-600')}
-            title={minimap ? 'Hide minimap' : 'Show minimap'}
-          >
-            <Map className="h-3.5 w-3.5" />
-          </Button>
-          <span className="mx-0.5 h-4 w-px bg-surface-200" />
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => reactFlow.zoomIn()}
-            className="h-7 w-7 p-0"
-            title="Zoom In"
-          >
-            <ZoomIn className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => reactFlow.zoomOut()}
-            className="h-7 w-7 p-0"
-            title="Zoom Out"
-          >
-            <ZoomOut className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => reactFlow.fitView(FIT_VIEW_OPTIONS)}
-            className="h-7 w-7 p-0"
-            title="Fit to Screen"
-          >
-            <Maximize2 className="h-3.5 w-3.5" />
-          </Button>
+          {/* Canvas-view controls: every one of these is also in the View menu,
+              and pinch-zoom replaces the zoom buttons on touch — so the whole
+              group folds away on a phone rather than overflowing the bar. */}
+          <div className="hidden items-center gap-1 sm:flex">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleAutoLayout}
+              className="h-7 w-7 p-0"
+              title="Auto Layout"
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={cycleBackground}
+              className={cn('h-7 w-7 p-0', background !== 'none' && 'text-primary-600')}
+              title={`Background: ${background} (click to cycle)`}
+            >
+              <Grid3x3 className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleMinimap}
+              className={cn('h-7 w-7 p-0', minimap && 'text-primary-600')}
+              title={minimap ? 'Hide minimap' : 'Show minimap'}
+            >
+              <Map className="h-3.5 w-3.5" />
+            </Button>
+            <span className="mx-0.5 h-4 w-px bg-surface-200" />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => reactFlow.zoomIn()}
+              className="h-7 w-7 p-0"
+              title="Zoom In"
+            >
+              <ZoomIn className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => reactFlow.zoomOut()}
+              className="h-7 w-7 p-0"
+              title="Zoom Out"
+            >
+              <ZoomOut className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => reactFlow.fitView(FIT_VIEW_OPTIONS)}
+              className="h-7 w-7 p-0"
+              title="Fit to Screen"
+            >
+              <Maximize2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
           {authUser && !authUser.id.startsWith('local:') && <NotificationBell />}
           {authUser && (
             <div
