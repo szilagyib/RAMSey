@@ -91,10 +91,10 @@ export function PrivacyPage() {
 
         <Section title="Cookies and local storage">
           <p>
-            We use a single, strictly necessary cookie — <code>ramsey_token</code> — to keep you
-            signed in (HttpOnly, expires after 7 days). Because it is essential for the service and
-            we use no advertising or analytics cookies, no cookie consent banner is required; this
-            notice serves as disclosure.
+            We use a single, strictly necessary cookie to keep you signed in (HttpOnly, expires
+            after 7 days). Because it is essential for the service and we use no advertising or
+            analytics cookies, no cookie consent banner is required; this notice serves as
+            disclosure.
           </p>
           <p>
             Your browser&apos;s local storage holds convenience data that never leaves your device

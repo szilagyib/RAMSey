@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/auth';
 import { api } from '../services/api';
 
 export function AccountPage() {
-  const { user, logout } = useAuth();
+  const { user, logout, isGuest } = useAuth();
   const navigate = useNavigate();
   const [busy, setBusy] = useState<'export' | 'delete' | null>(null);
   const [confirming, setConfirming] = useState(false);
@@ -44,6 +44,42 @@ export function AccountPage() {
     }
   }
 
+  // Guests have no server-side account, so every action here (export, delete)
+  // would fail against a local-only identity. Say what's needed instead.
+  if (isGuest) {
+    return (
+      <div className="flex min-h-screen flex-col bg-surface-50">
+        <header className="border-b border-surface-200 bg-white dark:bg-surface-100">
+          <div className="mx-auto flex max-w-3xl items-center gap-3 px-6 py-4">
+            <Link
+              to="/"
+              className="text-surface-400 hover:text-surface-600"
+              title="Back to dashboard"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+            <h1 className="text-lg font-semibold text-surface-900">Account</h1>
+          </div>
+        </header>
+        <main className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+          <p className="text-sm font-medium text-surface-700">
+            The Account page requires an account.
+          </p>
+          <p className="mt-1.5 max-w-sm text-sm text-surface-500">
+            You&apos;re using RAMSey as a guest, so there is no profile, export, or deletion to
+            manage — your diagrams live in this browser only.
+          </p>
+          <Link
+            to="/login"
+            className="mt-4 inline-flex items-center rounded-md bg-primary-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-primary-700"
+          >
+            Log in or sign up
+          </Link>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-surface-50">
       <header className="border-b border-surface-200 bg-white dark:bg-surface-100">
@@ -59,8 +95,10 @@ export function AccountPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl px-6 py-8">
-        <section className="mb-8 rounded-lg border border-surface-200 bg-white dark:bg-surface-100 p-6">
+      {/* Compact spacing (and tighter still on short viewports) so the page fits
+          without scrolling, as the auth screens do. */}
+      <main className="mx-auto max-w-3xl px-6 py-6 [@media(max-height:700px)]:py-4">
+        <section className="mb-4 rounded-lg border border-surface-200 bg-white dark:bg-surface-100 p-5">
           <h2 className="mb-3 text-sm font-semibold text-surface-700">Profile</h2>
           <dl className="space-y-1 text-sm">
             <div className="flex gap-2">
@@ -74,7 +112,7 @@ export function AccountPage() {
           </dl>
         </section>
 
-        <section className="mb-8 rounded-lg border border-surface-200 bg-white dark:bg-surface-100 p-6">
+        <section className="mb-4 rounded-lg border border-surface-200 bg-white dark:bg-surface-100 p-5">
           <h2 className="mb-1 text-sm font-semibold text-surface-700">Export your data</h2>
           <p className="mb-4 text-sm text-surface-400">
             Download a JSON copy of your profile, projects, diagrams, team memberships, and
@@ -85,7 +123,7 @@ export function AccountPage() {
           </Button>
         </section>
 
-        <section className="rounded-lg border border-red-300 bg-white dark:bg-surface-100 p-6">
+        <section className="rounded-lg border border-red-300 bg-white dark:bg-surface-100 p-5">
           <h2 className="mb-1 text-sm font-semibold text-red-600">Delete account</h2>
           <p className="mb-4 text-sm text-surface-400">
             Your personal details are erased and you&apos;re signed out. Projects and diagrams you
@@ -117,7 +155,7 @@ export function AccountPage() {
           )}
         </section>
 
-        <p className="mt-8 text-center text-xs text-surface-500">
+        <p className="mt-5 text-center text-xs text-surface-500">
           <Link to="/privacy" className="hover:text-surface-500 hover:underline">
             Privacy policy
           </Link>

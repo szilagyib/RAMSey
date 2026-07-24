@@ -68,6 +68,8 @@ export function DashboardPage() {
   const navigate = useNavigate();
   const { user, logout, isGuest } = useAuth();
   const [entries, setEntries] = useState<DiagramEntry[]>([]);
+  /** Diagram whose title is being edited inline on its card. */
+  const [renamingId, setRenamingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [newName, setNewName] = useState('');
@@ -167,13 +169,26 @@ export function DashboardPage() {
     }
   }
 
-  async function handleRename(entry: DiagramEntry) {
-    const name = window.prompt('Rename diagram', entry.diagramName)?.trim();
+  /**
+   * Commit an inline rename. The card updates immediately and the request goes
+   * out behind it — reloading every project just to show one new title made the
+   * rename feel broken. A failure puts the old name back and says so.
+   */
+  async function commitRename(entry: DiagramEntry, rawName: string) {
+    const name = rawName.trim();
+    setRenamingId(null);
     if (!name || name === entry.diagramName) return;
+
+    const previous = entry.diagramName;
+    setEntries((prev) =>
+      prev.map((e) => (e.diagramId === entry.diagramId ? { ...e, diagramName: name } : e)),
+    );
     try {
       await ds.diagrams.update(entry.projectId, entry.diagramId, { name });
-      await loadEntries();
     } catch (err) {
+      setEntries((prev) =>
+        prev.map((e) => (e.diagramId === entry.diagramId ? { ...e, diagramName: previous } : e)),
+      );
       window.alert(`Failed to rename: ${err}`);
     }
   }
@@ -302,11 +317,32 @@ export function DashboardPage() {
           <button
             type="button"
             onClick={() => navigate(`/projects/${entry.projectId}/diagrams/${entry.diagramId}`)}
-            className="flex-1 text-left"
+            className="min-w-0 flex-1 text-left"
+            disabled={renamingId === entry.diagramId}
           >
-            <h3 className="font-medium text-surface-800 transition-colors group-hover:text-primary-600">
-              {entry.diagramName}
-            </h3>
+            {renamingId === entry.diagramId ? (
+              <input
+                autoFocus
+                defaultValue={entry.diagramName}
+                onClick={(e) => e.stopPropagation()}
+                onBlur={(e) => commitRename(entry, e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    commitRename(entry, e.currentTarget.value);
+                  } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    setRenamingId(null);
+                  }
+                }}
+                className="w-full rounded border border-primary-500 bg-white px-1.5 py-0.5 font-medium text-surface-900 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:bg-surface-100"
+                aria-label="Diagram name"
+              />
+            ) : (
+              <h3 className="truncate font-medium text-surface-800 transition-colors group-hover:text-primary-600">
+                {entry.diagramName}
+              </h3>
+            )}
             <span
               className="mt-1.5 inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 font-mono text-[10px] font-medium"
               style={{
@@ -329,7 +365,7 @@ export function DashboardPage() {
               invisible on the dark card. */}
           <div className="mt-0.5 ml-2 flex shrink-0 items-center gap-0.5">
             <button
-              onClick={() => handleRename(entry)}
+              onClick={() => setRenamingId(entry.diagramId)}
               className="rounded p-1 text-surface-400 transition-colors hover:bg-surface-100 hover:text-primary-600"
               title="Rename"
               aria-label={`Rename ${entry.diagramName}`}
