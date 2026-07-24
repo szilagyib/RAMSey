@@ -405,7 +405,7 @@ export function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-surface-50">
-      <header className="border-b border-surface-200 bg-white dark:bg-surface-100 px-6">
+      <header className="border-b border-surface-200 bg-white px-4 dark:bg-surface-100 sm:px-6">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between">
           <div className="flex items-center gap-3">
             <img src="/favicon.svg" alt="RAMSey" className="h-7 w-7" />
@@ -432,19 +432,21 @@ export function DashboardPage() {
                   to="/teams"
                   className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-surface-500 hover:bg-surface-50 hover:text-surface-700 transition-colors"
                 >
-                  <Users className="h-4 w-4" />
-                  Teams
+                  <Users className="h-4 w-4 shrink-0" />
+                  <span className="hidden sm:inline">Teams</span>
                 </Link>
                 <NotificationBell />
                 <Link
                   to="/account"
                   className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-surface-500 hover:bg-surface-50 hover:text-surface-700 transition-colors"
                 >
-                  <Settings className="h-4 w-4" />
-                  Account
+                  <Settings className="h-4 w-4 shrink-0" />
+                  <span className="hidden sm:inline">Account</span>
                 </Link>
                 <span className="mx-1 h-4 w-px bg-surface-200" />
-                <span className="px-2 text-sm text-surface-500">{user?.name ?? user?.email}</span>
+                <span className="hidden max-w-[12rem] truncate px-2 text-sm text-surface-500 md:inline">
+                  {user?.name ?? user?.email}
+                </span>
                 <button
                   onClick={handleLogout}
                   className="rounded-md p-1.5 text-surface-400 hover:bg-surface-50 hover:text-surface-600 transition-colors"
@@ -459,7 +461,7 @@ export function DashboardPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-6 py-8">
+      <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
         {loading && <p className="text-sm text-surface-400">Loading…</p>}
 
         {/* Empty state */}

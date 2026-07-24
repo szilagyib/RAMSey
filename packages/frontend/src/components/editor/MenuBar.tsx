@@ -19,7 +19,12 @@ export interface MenuDivider {
   divider: true;
 }
 
-export type MenuEntry = MenuItem | MenuDivider;
+/** Non-interactive label, used to name each group inside the overflow menu. */
+export interface MenuHeading {
+  heading: string;
+}
+
+export type MenuEntry = MenuItem | MenuDivider | MenuHeading;
 
 export interface MenuDefinition {
   label: string;
@@ -28,6 +33,10 @@ export interface MenuDefinition {
 
 function isDivider(entry: MenuEntry): entry is MenuDivider {
   return 'divider' in entry;
+}
+
+function isHeading(entry: MenuEntry): entry is MenuHeading {
+  return 'heading' in entry;
 }
 
 // ---------------------------------------------------------------------------
@@ -48,7 +57,9 @@ function DropdownMenu({
   const ref = useRef<HTMLDivElement>(null);
   // Reserve a check column for every item once any item in the menu is a toggle,
   // so labels line up in a 2-column grid and don't shift when checked/unchecked.
-  const hasCheckable = menu.items.some((e) => !isDivider(e) && e.checked !== undefined);
+  const hasCheckable = menu.items.some(
+    (e) => !isDivider(e) && !isHeading(e) && e.checked !== undefined,
+  );
 
   return (
     <div className="relative" ref={ref}>
@@ -70,6 +81,17 @@ function DropdownMenu({
           {menu.items.map((entry, i) => {
             if (isDivider(entry)) {
               return <div key={`div-${i}`} className="my-1 border-t border-surface-100" />;
+            }
+
+            if (isHeading(entry)) {
+              return (
+                <div
+                  key={`head-${entry.heading}`}
+                  className="px-3 pb-0.5 pt-1.5 text-[10px] font-semibold uppercase tracking-wider text-surface-400"
+                >
+                  {entry.heading}
+                </div>
+              );
             }
 
             return (
@@ -126,9 +148,15 @@ function DropdownMenu({
 
 interface MenuBarProps {
   menus: MenuDefinition[];
+  /**
+   * How many menus stay on the bar on a phone; the rest move into a "…" menu.
+   * All of them are shown from `sm` up. Both variants render — which one is
+   * visible is decided in CSS, so there is no resize listener or layout thrash.
+   */
+  mobileVisible?: number;
 }
 
-export function MenuBar({ menus }: MenuBarProps) {
+export function MenuBar({ menus, mobileVisible = 1 }: MenuBarProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const barRef = useRef<HTMLDivElement>(null);
 
@@ -150,7 +178,7 @@ export function MenuBar({ menus }: MenuBarProps) {
   const wrappedMenus = menus.map((menu) => ({
     ...menu,
     items: menu.items.map((entry) => {
-      if (isDivider(entry)) return entry;
+      if (isDivider(entry) || isHeading(entry)) return entry;
       return {
         ...entry,
         onClick: () => {
@@ -161,6 +189,20 @@ export function MenuBar({ menus }: MenuBarProps) {
     }),
   }));
 
+  // The phone-only "…" menu: every menu that doesn't fit, each under its own
+  // heading so File/Edit/View stay distinguishable in one list.
+  const overflowMenu: MenuDefinition = {
+    label: '…',
+    items: wrappedMenus
+      .slice(mobileVisible)
+      .flatMap((menu, i) => [
+        ...(i > 0 ? [{ divider: true as const }] : []),
+        { heading: menu.label },
+        ...menu.items,
+      ]),
+  };
+  const overflowIndex = wrappedMenus.length;
+
   // Close on Escape
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Escape') setOpenIndex(null);
@@ -169,17 +211,31 @@ export function MenuBar({ menus }: MenuBarProps) {
   return (
     <div ref={barRef} className="flex items-center gap-0.5" onKeyDown={handleKeyDown}>
       {wrappedMenus.map((menu, i) => (
-        <DropdownMenu
-          key={menu.label}
-          menu={menu}
-          isOpen={openIndex === i}
-          onToggle={() => setOpenIndex(openIndex === i ? null : i)}
-          onHover={() => {
-            // If any menu is open, hovering switches to this one
-            if (openIndex !== null) setOpenIndex(i);
-          }}
-        />
+        <div key={menu.label} className={i < mobileVisible ? undefined : 'hidden sm:block'}>
+          <DropdownMenu
+            menu={menu}
+            isOpen={openIndex === i}
+            onToggle={() => setOpenIndex(openIndex === i ? null : i)}
+            onHover={() => {
+              // If any menu is open, hovering switches to this one
+              if (openIndex !== null) setOpenIndex(i);
+            }}
+          />
+        </div>
       ))}
+
+      {overflowMenu.items.length > 0 && (
+        <div className="sm:hidden">
+          <DropdownMenu
+            menu={overflowMenu}
+            isOpen={openIndex === overflowIndex}
+            onToggle={() => setOpenIndex(openIndex === overflowIndex ? null : overflowIndex)}
+            onHover={() => {
+              if (openIndex !== null) setOpenIndex(overflowIndex);
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -66,7 +66,9 @@ export function RightPanel({ projectId, diagramId }: RightPanelProps) {
             )}
           >
             <Icon className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">{label}</span>
+            {/* Icon-only on phones: three labelled tabs plus the collapse button
+                do not fit, and the icons already carry the meaning. */}
+            <span className="hidden truncate sm:inline">{label}</span>
           </button>
         ))}
         <button

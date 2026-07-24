@@ -542,48 +542,53 @@ export function Toolbar({
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
 
-            {/* Align / distribute — enabled once a multi-selection exists. */}
-            <span className="mx-0.5 h-4 w-px bg-surface-200" />
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => alignSelection('center-y')}
-              disabled={selectedCount < 2}
-              className="h-7 w-7 p-0"
-              title="Align middle (horizontal row)"
-            >
-              <AlignHorizontalJustifyCenter className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => alignSelection('center-x')}
-              disabled={selectedCount < 2}
-              className="h-7 w-7 p-0"
-              title="Align center (vertical column)"
-            >
-              <AlignVerticalJustifyCenter className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => distributeSelection('horizontal')}
-              disabled={selectedCount < 3}
-              className="h-7 w-7 p-0"
-              title="Distribute horizontally"
-            >
-              <AlignHorizontalDistributeCenter className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => distributeSelection('vertical')}
-              disabled={selectedCount < 3}
-              className="h-7 w-7 p-0"
-              title="Distribute vertically"
-            >
-              <AlignVerticalDistributeCenter className="h-3.5 w-3.5" />
-            </Button>
+            {/* Align / distribute — enabled once a multi-selection exists.
+                Hidden below md: they need a multi-selection, which is a
+                desktop-editing gesture, and they are the first thing worth
+                dropping when the bar runs out of room. Still in the Edit menu. */}
+            <div className="hidden items-center gap-0.5 md:flex">
+              <span className="mx-0.5 h-4 w-px bg-surface-200" />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => alignSelection('center-y')}
+                disabled={selectedCount < 2}
+                className="h-7 w-7 p-0"
+                title="Align middle (horizontal row)"
+              >
+                <AlignHorizontalJustifyCenter className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => alignSelection('center-x')}
+                disabled={selectedCount < 2}
+                className="h-7 w-7 p-0"
+                title="Align center (vertical column)"
+              >
+                <AlignVerticalJustifyCenter className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => distributeSelection('horizontal')}
+                disabled={selectedCount < 3}
+                className="h-7 w-7 p-0"
+                title="Distribute horizontally"
+              >
+                <AlignHorizontalDistributeCenter className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => distributeSelection('vertical')}
+                disabled={selectedCount < 3}
+                className="h-7 w-7 p-0"
+                title="Distribute vertically"
+              >
+                <AlignVerticalDistributeCenter className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           </div>
         </div>
 

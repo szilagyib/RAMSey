@@ -33,7 +33,7 @@ export function PrivacyPage() {
   return (
     <div className="min-h-screen bg-surface-50">
       <header className="border-b border-surface-200 bg-white dark:bg-surface-100">
-        <div className="mx-auto flex max-w-3xl items-center gap-3 px-6 py-4">
+        <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-4 sm:px-6">
           <Link to="/" className="text-surface-500 hover:text-surface-700" title="Back">
             <ArrowLeft className="h-5 w-5" />
           </Link>
@@ -41,7 +41,7 @@ export function PrivacyPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl px-6 py-8">
+      <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
         <p className="mb-8 text-xs text-surface-500">
           Last updated: 22 July 2026. RAMSey (&quot;the service&quot;) is a free, independent
           project maintained by a solo developer based in Hungary. It stores your data only to run

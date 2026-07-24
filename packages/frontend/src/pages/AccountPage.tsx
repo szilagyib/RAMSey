@@ -50,7 +50,7 @@ export function AccountPage() {
     return (
       <div className="flex min-h-screen flex-col bg-surface-50">
         <header className="border-b border-surface-200 bg-white dark:bg-surface-100">
-          <div className="mx-auto flex max-w-3xl items-center gap-3 px-6 py-4">
+          <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-4 sm:px-6">
             <Link
               to="/"
               className="text-surface-400 hover:text-surface-600"
@@ -61,7 +61,7 @@ export function AccountPage() {
             <h1 className="text-lg font-semibold text-surface-900">Account</h1>
           </div>
         </header>
-        <main className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+        <main className="flex flex-1 flex-col items-center justify-center px-4 text-center sm:px-6">
           <p className="text-sm font-medium text-surface-700">
             The Account page requires an account.
           </p>
@@ -83,7 +83,7 @@ export function AccountPage() {
   return (
     <div className="min-h-screen bg-surface-50">
       <header className="border-b border-surface-200 bg-white dark:bg-surface-100">
-        <div className="mx-auto flex max-w-3xl items-center gap-3 px-6 py-4">
+        <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-4 sm:px-6">
           <Link
             to="/"
             className="text-surface-400 hover:text-surface-600"
@@ -97,7 +97,7 @@ export function AccountPage() {
 
       {/* Compact spacing (and tighter still on short viewports) so the page fits
           without scrolling, as the auth screens do. */}
-      <main className="mx-auto max-w-3xl px-6 py-6 [@media(max-height:700px)]:py-4">
+      <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6 [@media(max-height:700px)]:py-4">
         <section className="mb-4 rounded-lg border border-surface-200 bg-white dark:bg-surface-100 p-5">
           <h2 className="mb-3 text-sm font-semibold text-surface-700">Profile</h2>
           <dl className="space-y-1 text-sm">
