@@ -54,19 +54,53 @@ function TransitionEdgeComponent({
   let edgePath: string;
   let labelX: number;
   let labelY: number;
+  // Where the self-loop's control point sits when the user hasn't dragged it.
+  let loopApexX = 0;
+  let loopApexY = 0;
   if (isSelfLoop) {
     // A self-loop through the normal bezier collapses under the node (source ≈
-    // target). Draw a fixed loop arcing above the node instead, with the
-    // arrowhead returning to the top rim.
+    // target). Draw a loop instead, symmetric about the axis from the node
+    // centre to its apex — which is the draggable control point, so the loop can
+    // be resized and swung to any side just like a normal edge's curve.
     const cx = targetDisc?.cx ?? sourceX;
     const cy = targetDisc?.cy ?? sourceY;
     const r = targetDisc?.r ?? 24;
-    const rimY = cy - r * 0.83;
-    edgePath =
-      `M ${cx - r * 0.55},${rimY} ` +
-      `C ${cx - r * 1.9},${cy - r * 2.7} ${cx + r * 1.9},${cy - r * 2.7} ${cx + r * 0.55},${rimY}`;
-    labelX = cx;
-    labelY = cy - r * 2.6;
+
+    loopApexX = cx;
+    loopApexY = cy - r * 2.7; // default: straight above the node
+    const apexX = cp?.x ?? loopApexX;
+    const apexY = cp?.y ?? loopApexY;
+
+    // Axis (centre → apex) and its perpendicular. Degenerate drags (apex on the
+    // centre) fall back to "up" so the loop never collapses into the node.
+    let dx = apexX - cx;
+    let dy = apexY - cy;
+    let len = Math.hypot(dx, dy);
+    if (len < 1) {
+      dx = 0;
+      dy = -1;
+      len = 1;
+    }
+    const ux = dx / len;
+    const uy = dy / len;
+    const px = -uy;
+    const py = ux;
+
+    // Both ends sit on the node's rim, spread either side of the axis; the two
+    // bezier controls flare out at the apex distance to form the loop.
+    const sx = cx + ux * r * 0.83 - px * r * 0.55;
+    const sy = cy + uy * r * 0.83 - py * r * 0.55;
+    const ex = cx + ux * r * 0.83 + px * r * 0.55;
+    const ey = cy + uy * r * 0.83 + py * r * 0.55;
+    const c1x = cx + ux * len - px * r * 1.9;
+    const c1y = cy + uy * len - py * r * 1.9;
+    const c2x = cx + ux * len + px * r * 1.9;
+    const c2y = cy + uy * len + py * r * 1.9;
+
+    edgePath = `M ${sx},${sy} C ${c1x},${c1y} ${c2x},${c2y} ${ex},${ey}`;
+    // Cubic midpoint (t=0.5), so the label rides the loop as it is dragged.
+    labelX = (sx + 3 * c1x + 3 * c2x + ex) / 8;
+    labelY = (sy + 3 * c1y + 3 * c2y + ey) / 8;
   } else if (cp) {
     // Label stays on the full curve's midpoint; only the drawn path is trimmed.
     [edgePath, labelX, labelY] = quadraticPath(sourceX, sourceY, cp.x, cp.y, targetX, targetY);
@@ -124,8 +158,13 @@ function TransitionEdgeComponent({
       >
         {displayLabel}
       </EdgeLabel>
-      {selected && !isSelfLoop && (
-        <EdgeControlPoint edgeId={id} x={cp?.x ?? labelX} y={cp?.y ?? labelY - 26} active={!!cp} />
+      {selected && (
+        <EdgeControlPoint
+          edgeId={id}
+          x={cp?.x ?? (isSelfLoop ? loopApexX : labelX)}
+          y={cp?.y ?? (isSelfLoop ? loopApexY : labelY - 26)}
+          active={!!cp}
+        />
       )}
     </>
   );
