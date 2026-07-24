@@ -3,11 +3,7 @@ import * as Y from 'yjs';
 import * as syncProtocol from 'y-protocols/sync';
 import * as encoding from 'lib0/encoding';
 import * as decoding from 'lib0/decoding';
-import {
-  handleConnection,
-  setCollabPersistence,
-  type WSConn,
-} from '../../../src/collab/yjsServer.js';
+import { handleConnection, setCollabPersistence, type WSConn } from '../../../src/collab/yjsServer.js';
 
 const MESSAGE_SYNC = 0;
 

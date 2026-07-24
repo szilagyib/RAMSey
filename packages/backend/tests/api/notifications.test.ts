@@ -29,29 +29,13 @@ describe('notification routes', () => {
 
   it('GET /api/notifications returns the user’s items newest-first plus unread count', async () => {
     const rows = [
-      {
-        id: 'n2',
-        type: 'ANALYSIS_COMPLETE',
-        payload: { method: 'mttf' },
-        read: false,
-        createdAt: '2026-07-11T10:00:00Z',
-      },
-      {
-        id: 'n1',
-        type: 'PROJECT_SHARED',
-        payload: {},
-        read: true,
-        createdAt: '2026-07-10T10:00:00Z',
-      },
+      { id: 'n2', type: 'ANALYSIS_COMPLETE', payload: { method: 'mttf' }, read: false, createdAt: '2026-07-11T10:00:00Z' },
+      { id: 'n1', type: 'PROJECT_SHARED', payload: {}, read: true, createdAt: '2026-07-10T10:00:00Z' },
     ];
     prisma.notification.findMany.mockResolvedValue(rows);
     prisma.notification.count.mockResolvedValue(1);
 
-    const res = await app.inject({
-      method: 'GET',
-      url: '/api/notifications',
-      headers: authHeaders(),
-    });
+    const res = await app.inject({ method: 'GET', url: '/api/notifications', headers: authHeaders() });
 
     expect(res.statusCode).toBe(200);
     expect(res.json().data).toEqual({ items: rows, unread: 1 });

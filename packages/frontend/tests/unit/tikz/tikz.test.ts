@@ -15,12 +15,7 @@ import type { FMEARow } from '../../../src/types/diagram';
 function node(id: string, x: number, y: number, data: Record<string, unknown>): Node {
   return { id, type: 't', position: { x, y }, data } as Node;
 }
-function edge(
-  id: string,
-  source: string,
-  target: string,
-  data: Record<string, unknown> = {},
-): Edge {
+function edge(id: string, source: string, target: string, data: Record<string, unknown> = {}): Edge {
   return { id, source, target, data } as Edge;
 }
 
@@ -190,11 +185,7 @@ describe('fmeaToTable', () => {
 
 describe('generateLatex', () => {
   it('dispatches graph types to TikZ', () => {
-    const out = generateLatex(
-      'markov_chain',
-      [node('s', 0, 0, { label: 'S', stateType: 'operational', isInitial: false })],
-      [],
-    );
+    const out = generateLatex('markov_chain', [node('s', 0, 0, { label: 'S', stateType: 'operational', isInitial: false })], []);
     expect(out).toContain('\\documentclass[border=10pt]{standalone}');
     expect(out).toContain('\\begin{tikzpicture}');
   });

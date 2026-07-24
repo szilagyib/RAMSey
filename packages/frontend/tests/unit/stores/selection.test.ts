@@ -8,18 +8,12 @@ vi.mock('../../../src/diagram-types/markov-chain/validation', () => ({
 }));
 
 vi.mock('../../../src/diagram-types/markov-chain/defaults', () => ({
-  createNewState: vi.fn(
-    (position: { x: number; y: number }, counter: number, stateType: string) => ({
-      id: `state-${counter}`,
-      type: 'stateNode',
-      position,
-      data: {
-        label: `S${counter}`,
-        stateType: stateType || 'operational',
-        isInitial: counter === 0,
-      },
-    }),
-  ),
+  createNewState: vi.fn((position: { x: number; y: number }, counter: number, stateType: string) => ({
+    id: `state-${counter}`,
+    type: 'stateNode',
+    position,
+    data: { label: `S${counter}`, stateType: stateType || 'operational', isInitial: counter === 0 },
+  })),
   createNewTransition: vi.fn((source: string, target: string, counter: number) => ({
     id: `transition-${counter}`,
     type: 'transitionEdge',
@@ -52,12 +46,7 @@ describe('selection model', () => {
   it('selectAll flags every node and edge', () => {
     state().addNode({ x: 0, y: 0 });
     state().addNode({ x: 100, y: 0 });
-    state().onConnect({
-      source: 'state-0',
-      target: 'state-1',
-      sourceHandle: null,
-      targetHandle: null,
-    });
+    state().onConnect({ source: 'state-0', target: 'state-1', sourceHandle: null, targetHandle: null });
 
     state().selectAll();
     expect(state().nodes.every((n) => n.selected)).toBe(true);
@@ -79,12 +68,7 @@ describe('selection model', () => {
     state().addNode({ x: 0, y: 0 });
     state().addNode({ x: 100, y: 0 });
     state().addNode({ x: 200, y: 0 });
-    state().onConnect({
-      source: 'state-0',
-      target: 'state-1',
-      sourceHandle: null,
-      targetHandle: null,
-    });
+    state().onConnect({ source: 'state-0', target: 'state-1', sourceHandle: null, targetHandle: null });
 
     // Rubber-band style: two nodes flagged by React Flow.
     useDiagramStore.setState((s) => ({
@@ -105,12 +89,7 @@ describe('selection model', () => {
   it('deleteSelected also honors a flagged edge-only selection', () => {
     state().addNode({ x: 0, y: 0 });
     state().addNode({ x: 100, y: 0 });
-    state().onConnect({
-      source: 'state-0',
-      target: 'state-1',
-      sourceHandle: null,
-      targetHandle: null,
-    });
+    state().onConnect({ source: 'state-0', target: 'state-1', sourceHandle: null, targetHandle: null });
     useDiagramStore.setState((s) => ({
       edges: s.edges.map((e) => ({ ...e, selected: true })),
     }));

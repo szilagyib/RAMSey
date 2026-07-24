@@ -8,18 +8,12 @@ vi.mock('../../../src/diagram-types/markov-chain/validation', () => ({
 }));
 
 vi.mock('../../../src/diagram-types/markov-chain/defaults', () => ({
-  createNewState: vi.fn(
-    (position: { x: number; y: number }, counter: number, stateType: string) => ({
-      id: `state-${counter}`,
-      type: 'stateNode',
-      position,
-      data: {
-        label: `S${counter}`,
-        stateType: stateType || 'operational',
-        isInitial: counter === 0,
-      },
-    }),
-  ),
+  createNewState: vi.fn((position: { x: number; y: number }, counter: number, stateType: string) => ({
+    id: `state-${counter}`,
+    type: 'stateNode',
+    position,
+    data: { label: `S${counter}`, stateType: stateType || 'operational', isInitial: counter === 0 },
+  })),
   createNewTransition: vi.fn((source: string, target: string, counter: number) => ({
     id: `transition-${counter}`,
     type: 'transitionEdge',
@@ -69,18 +63,8 @@ describe('diagram clipboard', () => {
     state().addNode({ x: 0, y: 0 });
     state().addNode({ x: 200, y: 0 });
     state().addNode({ x: 400, y: 0 });
-    state().onConnect({
-      source: 'state-0',
-      target: 'state-1',
-      sourceHandle: null,
-      targetHandle: null,
-    });
-    state().onConnect({
-      source: 'state-1',
-      target: 'state-2',
-      sourceHandle: null,
-      targetHandle: null,
-    });
+    state().onConnect({ source: 'state-0', target: 'state-1', sourceHandle: null, targetHandle: null });
+    state().onConnect({ source: 'state-1', target: 'state-2', sourceHandle: null, targetHandle: null });
 
     // Multi-select the first two nodes (React Flow style .selected flags).
     useDiagramStore.setState((s) => ({

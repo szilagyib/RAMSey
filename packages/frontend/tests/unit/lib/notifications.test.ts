@@ -7,17 +7,14 @@ describe('formatNotification', () => {
       formatNotification({ type: 'ANALYSIS_COMPLETE', payload: { method: 'steady_state' } }),
     ).toBe('Analysis finished: steady state');
     expect(
-      formatNotification({
-        type: 'ANALYSIS_FAILED',
-        payload: { method: 'mttf', error: 'no absorbing state' },
-      }),
+      formatNotification({ type: 'ANALYSIS_FAILED', payload: { method: 'mttf', error: 'no absorbing state' } }),
     ).toBe('Analysis failed: mttf — no absorbing state');
   });
 
   it('renders shares and falls back gracefully for unknown types', () => {
-    expect(formatNotification({ type: 'PROJECT_SHARED', payload: { projectName: 'Pumps' } })).toBe(
-      'A project was shared with you: Pumps',
-    );
+    expect(
+      formatNotification({ type: 'PROJECT_SHARED', payload: { projectName: 'Pumps' } }),
+    ).toBe('A project was shared with you: Pumps');
     expect(formatNotification({ type: 'PROJECT_SHARED', payload: {} })).toBe(
       'A project was shared with you',
     );

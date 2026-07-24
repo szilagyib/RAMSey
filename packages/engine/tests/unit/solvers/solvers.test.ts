@@ -17,22 +17,13 @@ const close = (a: number, b: number, eps = 1e-6) => expect(Math.abs(a - b)).toBe
 // ───────────────────────── linalg ─────────────────────────
 describe('linalg', () => {
   it('solves a linear system', () => {
-    const x = solveLinear(
-      [
-        [2, 1],
-        [1, 3],
-      ],
-      [3, 5],
-    );
+    const x = solveLinear([[2, 1], [1, 3]], [3, 5]);
     close(x[0], 0.8);
     close(x[1], 1.4);
   });
 
   it('inverts a matrix (A·A⁻¹ = I)', () => {
-    const A = [
-      [4, 7],
-      [2, 6],
-    ];
+    const A = [[4, 7], [2, 6]];
     const I = multiply(A, invert(A));
     close(I[0][0], 1);
     close(I[1][1], 1);
@@ -41,13 +32,7 @@ describe('linalg', () => {
 
   it('matrix exponential matches the analytic 2-state result', () => {
     // Q: state0 →1 at rate 1; state1 absorbing.  P00(t)=e^{-t}, P01(t)=1-e^{-t}.
-    const P = matExp(
-      [
-        [-1, 1],
-        [0, 0],
-      ],
-      1,
-    );
+    const P = matExp([[-1, 1], [0, 0]], 1);
     close(P[0][0], Math.exp(-1), 1e-9);
     close(P[0][1], 1 - Math.exp(-1), 1e-9);
     close(P[1][1], 1);
@@ -122,12 +107,7 @@ describe('Markov solver', () => {
 });
 
 // ───────────────────────── RBD ─────────────────────────
-function rbd(
-  structure: 'series' | 'parallel' | 'k_of_n',
-  n: number,
-  lambda: number,
-  k?: number,
-): ModelIR {
+function rbd(structure: 'series' | 'parallel' | 'k_of_n', n: number, lambda: number, k?: number): ModelIR {
   const ir = createDefaultModelIR('reliability_block_diagram');
   ir.missionTime = 1;
   ir.components = Array.from({ length: n }, (_, i) => ({
@@ -136,9 +116,7 @@ function rbd(
     failureRate: lambda,
     metadata: {},
   }));
-  ir.blocks = [
-    { id: 'sys', name: 'System', type: structure, k, children: ir.components.map((c) => c.id) },
-  ];
+  ir.blocks = [{ id: 'sys', name: 'System', type: structure, k, children: ir.components.map((c) => c.id) }];
   return ir;
 }
 
@@ -171,12 +149,7 @@ function rbdNet(
 ): ModelIR {
   const ir = createDefaultModelIR('reliability_block_diagram');
   ir.missionTime = 1;
-  ir.components = components.map((c) => ({
-    id: c.id,
-    name: c.id,
-    failureRate: c.lambda,
-    metadata: {},
-  }));
+  ir.components = components.map((c) => ({ id: c.id, name: c.id, failureRate: c.lambda, metadata: {} }));
   ir.rbdNetwork = {
     source: 'IN',
     sink: 'OUT',
@@ -190,15 +163,8 @@ describe('RBD network solver', () => {
 
   it('series network reliability = 0.81', async () => {
     const ir = rbdNet(
-      [
-        { id: 'a', lambda },
-        { id: 'b', lambda },
-      ],
-      [
-        ['IN', 'a'],
-        ['a', 'b'],
-        ['b', 'OUT'],
-      ],
+      [{ id: 'a', lambda }, { id: 'b', lambda }],
+      [['IN', 'a'], ['a', 'b'], ['b', 'OUT']],
     );
     const r = await analyze(req(ir, 'reliability'));
     close(r.metrics.reliability as number, 0.81, 1e-6);
@@ -206,16 +172,8 @@ describe('RBD network solver', () => {
 
   it('parallel network reliability = 0.99', async () => {
     const ir = rbdNet(
-      [
-        { id: 'a', lambda },
-        { id: 'b', lambda },
-      ],
-      [
-        ['IN', 'a'],
-        ['IN', 'b'],
-        ['a', 'OUT'],
-        ['b', 'OUT'],
-      ],
+      [{ id: 'a', lambda }, { id: 'b', lambda }],
+      [['IN', 'a'], ['IN', 'b'], ['a', 'OUT'], ['b', 'OUT']],
     );
     const r = await analyze(req(ir, 'reliability'));
     close(r.metrics.reliability as number, 0.99, 1e-6);
@@ -232,21 +190,13 @@ describe('RBD network solver', () => {
         { id: 'bt', lambda }, // b→OUT leg
       ],
       [
-        ['IN', 'sa'],
-        ['sa', 'A'],
-        ['IN', 'sb'],
-        ['sb', 'B'],
-        ['A', 'ab'],
-        ['ab', 'B'],
-        ['A', 'at'],
-        ['at', 'OUT'],
-        ['B', 'bt'],
-        ['bt', 'OUT'],
+        ['IN', 'sa'], ['sa', 'A'], ['IN', 'sb'], ['sb', 'B'],
+        ['A', 'ab'], ['ab', 'B'],
+        ['A', 'at'], ['at', 'OUT'],
+        ['B', 'bt'], ['bt', 'OUT'],
       ],
     );
-    const paths = minimalPathSets(ir.rbdNetwork!, (id) =>
-      ['sa', 'sb', 'ab', 'at', 'bt'].includes(id),
-    );
+    const paths = minimalPathSets(ir.rbdNetwork!, (id) => ['sa', 'sb', 'ab', 'at', 'bt'].includes(id));
     expect(paths).toHaveLength(3); // {sa,at}, {sb,bt}, {sa,ab,bt}
     const r = await analyze(req(ir, 'reliability'));
     const p = 0.9;
@@ -254,20 +204,8 @@ describe('RBD network solver', () => {
   });
 
   it('Monte Carlo converges to the series result', async () => {
-    const ir = rbdNet(
-      [
-        { id: 'a', lambda },
-        { id: 'b', lambda },
-      ],
-      [
-        ['IN', 'a'],
-        ['a', 'b'],
-        ['b', 'OUT'],
-      ],
-    );
-    const r = await analyze(
-      req(ir, 'monte_carlo_simulation', { monteCarloSamples: 40000, seed: 7 }),
-    );
+    const ir = rbdNet([{ id: 'a', lambda }, { id: 'b', lambda }], [['IN', 'a'], ['a', 'b'], ['b', 'OUT']]);
+    const r = await analyze(req(ir, 'monte_carlo_simulation', { monteCarloSamples: 40000, seed: 7 }));
     close(r.metrics.reliability as number, 0.81, 0.01);
   });
 });
@@ -377,14 +315,7 @@ describe('Bow-tie solver', () => {
     // Threat → PB(eff 0.9) → Top → MB(eff 0.8) → escalated consequence; + direct minor consequence.
     ir.bowTie = {
       topEventId: 'top',
-      labels: {
-        T: 'Corrosion',
-        PB: 'Coating',
-        top: 'Leak',
-        MB: 'Bund',
-        Cmajor: 'Spill',
-        Cminor: 'Contained',
-      },
+      labels: { T: 'Corrosion', PB: 'Coating', top: 'Leak', MB: 'Bund', Cmajor: 'Spill', Cminor: 'Contained' },
       nodes: [
         { id: 'T', kind: 'threat' },
         { id: 'PB', kind: 'preventive_barrier', effectiveness: 0.9 },
@@ -464,21 +395,14 @@ describe('sensitivity', () => {
 
 describe('Monte Carlo converges to the exact result', () => {
   it('RBD series MC ≈ 0.81', async () => {
-    const r = await analyze(
-      req(rbd('series', 2, -Math.log(0.9)), 'monte_carlo_simulation', {
-        monteCarloSamples: 40000,
-        seed: 7,
-      }),
-    );
+    const r = await analyze(req(rbd('series', 2, -Math.log(0.9)), 'monte_carlo_simulation', { monteCarloSamples: 40000, seed: 7 }));
     close(r.metrics.reliability as number, 0.81, 0.01);
     expect(r.errorBounds.reliability.lower).toBeLessThan(0.81);
     expect(r.errorBounds.reliability.upper).toBeGreaterThan(0.81);
   });
 
   it('FTA OR-gate MC ≈ 0.19', async () => {
-    const r = await analyze(
-      req(ft('OR', 0.1), 'monte_carlo_simulation', { monteCarloSamples: 40000, seed: 7 }),
-    );
+    const r = await analyze(req(ft('OR', 0.1), 'monte_carlo_simulation', { monteCarloSamples: 40000, seed: 7 }));
     close(r.metrics.probability as number, 0.19, 0.01);
   });
 });
@@ -488,9 +412,7 @@ describe('RBD uncertainty propagation', () => {
     const lambda = -Math.log(0.9);
     const ir = createDefaultModelIR('reliability_block_diagram');
     ir.missionTime = 1;
-    ir.components = [
-      { id: 'c0', name: 'C0', failureRate: lambda, distribution: 'd1', metadata: {} },
-    ];
+    ir.components = [{ id: 'c0', name: 'C0', failureRate: lambda, distribution: 'd1', metadata: {} }];
     ir.distributions = [{ id: 'd1', type: 'constant', params: { value: lambda } }];
     ir.blocks = [{ id: 'sys', name: 'S', type: 'series', children: ['c0'] }];
     const r = await analyze(req(ir, 'uncertainty_propagation', { monteCarloSamples: 500 }));
@@ -511,14 +433,7 @@ describe('Fault tree common-cause failure (beta-factor)', () => {
     ];
     ir.gates = [{ id: 'g1', type: 'AND', inputs: ['a', 'b'], output: 'top' }];
     ir.dependencies = [
-      {
-        kind: 'common_cause_failure',
-        id: 'ccf1',
-        name: 'Shared',
-        affectedComponents: ['a', 'b'],
-        beta,
-        model: 'beta_factor',
-      },
+      { kind: 'common_cause_failure', id: 'ccf1', name: 'Shared', affectedComponents: ['a', 'b'], beta, model: 'beta_factor' },
     ];
     const r = await analyze(req(ir, 'common_cause_failure'));
     const ind = (1 - beta) * p;

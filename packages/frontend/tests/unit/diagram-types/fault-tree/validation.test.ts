@@ -73,12 +73,7 @@ describe('fault-tree structure validation', () => {
   });
 
   it('rejects a gate with no output', () => {
-    const nodes = [
-      event('TOP', 'top'),
-      gate('OR', 'OR'),
-      event('BE1', 'basic'),
-      event('BE2', 'basic'),
-    ];
+    const nodes = [event('TOP', 'top'), gate('OR', 'OR'), event('BE1', 'basic'), event('BE2', 'basic')];
     const edges = [edge('BE1', 'OR'), edge('BE2', 'OR')];
     expect(codes(nodes, edges)).toContain('GATE_NO_OUTPUT');
   });

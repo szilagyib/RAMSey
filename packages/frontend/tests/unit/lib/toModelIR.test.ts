@@ -1,13 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { Node, Edge } from '@xyflow/react';
 import { analyze, minimalCutSets } from '@ramsey/engine';
-import {
-  markovToModelIR,
-  faultTreeToModelIR,
-  rbdToModelIR,
-  eventTreeToModelIR,
-  bowTieToModelIR,
-} from '../../../src/lib/toModelIR';
+import { markovToModelIR, faultTreeToModelIR, rbdToModelIR, eventTreeToModelIR, bowTieToModelIR } from '../../../src/lib/toModelIR';
 
 const node = (id: string, data: Record<string, unknown>): Node =>
   ({ id, type: 'stateNode', position: { x: 0, y: 0 }, data }) as Node;
@@ -18,7 +12,10 @@ const nodes = [
   node('S0', { label: 'Up', stateType: 'operational', isInitial: true }),
   node('S1', { label: 'Down', stateType: 'failed', isInitial: false }),
 ];
-const edges = [edge('t0', 'S0', 'S1', { rate: '0.001' }), edge('t1', 'S1', 'S0', { rate: '0.01' })];
+const edges = [
+  edge('t0', 'S0', 'S1', { rate: '0.001' }),
+  edge('t1', 'S1', 'S0', { rate: '0.01' }),
+];
 
 describe('markovToModelIR', () => {
   it('maps nodes to states and edges to transitions', () => {
@@ -33,22 +30,13 @@ describe('markovToModelIR', () => {
   });
 
   it('omits unparseable/blank rates', () => {
-    const ir = markovToModelIR(
-      [node('A', { stateType: 'operational' })],
-      [edge('e', 'A', 'A', { rate: '' })],
-      1,
-    );
+    const ir = markovToModelIR([node('A', { stateType: 'operational' })], [edge('e', 'A', 'A', { rate: '' })], 1);
     expect('rate' in ir.transitions[0]).toBe(false);
   });
 
   it('end-to-end: converted diagram analyzes to the closed-form availability', async () => {
     const ir = markovToModelIR(nodes, edges, 1000);
-    const res = await analyze({
-      modelIR: ir,
-      method: 'availability',
-      options: {},
-      executionTarget: 'browser',
-    });
+    const res = await analyze({ modelIR: ir, method: 'availability', options: {}, executionTarget: 'browser' });
     expect(res.status).toBe('success');
     // μ/(λ+μ) = 0.01/0.011
     expect(Math.abs((res.metrics.availability as number) - 0.01 / 0.011)).toBeLessThan(1e-6);
@@ -76,23 +64,13 @@ describe('faultTreeToModelIR', () => {
     expect(cuts).toHaveLength(1);
     expect(cuts[0].sort()).toEqual(['a', 'b']);
 
-    const res = await analyze({
-      modelIR: ir,
-      method: 'reliability',
-      options: {},
-      executionTarget: 'browser',
-    });
+    const res = await analyze({ modelIR: ir, method: 'reliability', options: {}, executionTarget: 'browser' });
     expect(Math.abs((res.metrics.probability as number) - 0.01)).toBeLessThan(1e-9);
   });
 });
 
 const rbdNode = (id: string, kind: string, extra: Record<string, unknown> = {}): Node =>
-  ({
-    id,
-    type: 't',
-    position: { x: 0, y: 0 },
-    data: { nodeKind: kind, label: id, ...extra },
-  }) as Node;
+  ({ id, type: 't', position: { x: 0, y: 0 }, data: { nodeKind: kind, label: id, ...extra } }) as Node;
 
 describe('rbdToModelIR', () => {
   const lambda = -Math.log(0.9); // R = 0.9 at t=1
@@ -107,12 +85,7 @@ describe('rbdToModelIR', () => {
     const e = [link('e1', 'IN', 'b1'), link('e2', 'b1', 'b2'), link('e3', 'b2', 'OUT')];
     const ir = rbdToModelIR(n, e, 1)!;
     expect(ir).not.toBeNull();
-    const res = await analyze({
-      modelIR: ir,
-      method: 'reliability',
-      options: {},
-      executionTarget: 'browser',
-    });
+    const res = await analyze({ modelIR: ir, method: 'reliability', options: {}, executionTarget: 'browser' });
     expect(Math.abs((res.metrics.reliability as number) - 0.81)).toBeLessThan(1e-6);
   });
 
@@ -130,12 +103,7 @@ describe('rbdToModelIR', () => {
       link('e4', 'b2', 'OUT'),
     ];
     const ir = rbdToModelIR(n, e, 1)!;
-    const res = await analyze({
-      modelIR: ir,
-      method: 'reliability',
-      options: {},
-      executionTarget: 'browser',
-    });
+    const res = await analyze({ modelIR: ir, method: 'reliability', options: {}, executionTarget: 'browser' });
     expect(Math.abs((res.metrics.reliability as number) - 0.99)).toBeLessThan(1e-6);
   });
 
@@ -168,12 +136,7 @@ describe('rbdToModelIR', () => {
     expect(ir!.rbdNetwork!.source).toBe('IN');
     expect(ir!.rbdNetwork!.connections).toHaveLength(10);
     // It now computes a finite reliability in (0,1) instead of being rejected.
-    const r = await analyze({
-      modelIR: ir!,
-      method: 'reliability',
-      options: {},
-      executionTarget: 'browser',
-    });
+    const r = await analyze({ modelIR: ir!, method: 'reliability', options: {}, executionTarget: 'browser' });
     expect(r.status).toBe('success');
     expect(r.metrics.reliability as number).toBeGreaterThan(0);
     expect(r.metrics.reliability as number).toBeLessThan(1);
@@ -198,12 +161,7 @@ describe('eventTreeToModelIR', () => {
     const ir = eventTreeToModelIR(nodes, edges);
     expect(ir).not.toBeNull();
     expect(ir!.eventTree?.initiatingId).toBe('IE');
-    const r = await analyze({
-      modelIR: ir!,
-      method: 'frequency',
-      options: {},
-      executionTarget: 'browser',
-    });
+    const r = await analyze({ modelIR: ir!, method: 'frequency', options: {}, executionTarget: 'browser' });
     expect(r.status).toBe('success');
     expect(Math.abs(r.contributions.consequence.OK - 0.95)).toBeLessThan(1e-9);
     expect(Math.abs(r.contributions.consequence.Fail - 0.05)).toBeLessThan(1e-9);
@@ -232,12 +190,7 @@ describe('bowTieToModelIR', () => {
     const ir = bowTieToModelIR(nodes, edges);
     expect(ir).not.toBeNull();
     expect(ir!.bowTie?.topEventId).toBe('top');
-    const r = await analyze({
-      modelIR: ir!,
-      method: 'frequency',
-      options: {},
-      executionTarget: 'browser',
-    });
+    const r = await analyze({ modelIR: ir!, method: 'frequency', options: {}, executionTarget: 'browser' });
     expect(r.status).toBe('success');
     expect(Math.abs((r.metrics.top_event_probability as number) - 0.1)).toBeLessThan(1e-9);
     expect(Math.abs(r.contributions.consequence.Spill - 0.02)).toBeLessThan(1e-9);

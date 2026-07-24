@@ -36,24 +36,14 @@ describe('AI chat route — availability guard', () => {
   });
 
   it('returns 503 when AI is not configured', async () => {
-    const res = await app.inject({
-      method: 'POST',
-      url,
-      headers: { ...authHeaders(), ...json },
-      payload: body,
-    });
+    const res = await app.inject({ method: 'POST', url, headers: { ...authHeaders(), ...json }, payload: body });
     expect(res.statusCode).toBe(503);
   });
 
   it('returns 503 when disabled by AI_CHAT_ENABLED=false, even with a key', async () => {
     process.env.ANTHROPIC_API_KEY = 'sk-ant-test';
     process.env.AI_CHAT_ENABLED = 'false';
-    const res = await app.inject({
-      method: 'POST',
-      url,
-      headers: { ...authHeaders(), ...json },
-      payload: body,
-    });
+    const res = await app.inject({ method: 'POST', url, headers: { ...authHeaders(), ...json }, payload: body });
     expect(res.statusCode).toBe(503);
   });
 
@@ -61,12 +51,7 @@ describe('AI chat route — availability guard', () => {
   // than being short-circuited — and without any call to the provider.
   it('passes the guard when configured — invalid body is a 400, not a 503', async () => {
     process.env.ANTHROPIC_API_KEY = 'sk-ant-test';
-    const res = await app.inject({
-      method: 'POST',
-      url,
-      headers: { ...authHeaders(), ...json },
-      payload: { messages: [], context: {} },
-    });
+    const res = await app.inject({ method: 'POST', url, headers: { ...authHeaders(), ...json }, payload: { messages: [], context: {} } });
     expect(res.statusCode).toBe(400);
   });
 

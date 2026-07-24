@@ -39,9 +39,9 @@ describe('resolveLlmConfig — AI_CHAT_ENABLED kill-switch', () => {
   it('disables AI even with a valid key when set to "false"', () => {
     const result = resolveLlmConfig(env({ ANTHROPIC_API_KEY: 'sk-ant', AI_CHAT_ENABLED: 'false' }));
     expect(result).toEqual({ ok: false, error: expect.stringContaining('disabled') });
-    expect(
-      describeAiConfig(env({ ANTHROPIC_API_KEY: 'sk-ant', AI_CHAT_ENABLED: 'false' })),
-    ).toEqual({ configured: false, label: null });
+    expect(describeAiConfig(env({ ANTHROPIC_API_KEY: 'sk-ant', AI_CHAT_ENABLED: 'false' }))).toEqual(
+      { configured: false, label: null },
+    );
   });
 
   it('treats common off spellings as disabled (case-insensitive, trimmed)', () => {
@@ -117,9 +117,7 @@ describe('resolveLlmConfig — privacy label', () => {
     );
     expect(
       expectOk(
-        resolveLlmConfig(
-          env({ AI_PROVIDER: 'openai', AI_API_KEY: 'sk', AI_MODEL: 'gpt-4.1-mini' }),
-        ),
+        resolveLlmConfig(env({ AI_PROVIDER: 'openai', AI_API_KEY: 'sk', AI_MODEL: 'gpt-4.1-mini' })),
       ).label,
     ).toBe('OpenAI');
   });

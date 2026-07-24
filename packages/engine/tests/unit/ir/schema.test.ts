@@ -21,26 +21,29 @@ describe('createDefaultModelIR', () => {
     'fmea',
   ];
 
-  it.each(diagramTypes)('creates a valid ModelIR for diagram type "%s"', (type) => {
-    const ir: ModelIR = createDefaultModelIR(type);
+  it.each(diagramTypes)(
+    'creates a valid ModelIR for diagram type "%s"',
+    (type) => {
+      const ir: ModelIR = createDefaultModelIR(type);
 
-    expect(ir.version).toBe('1.0.0');
-    expect(ir.type).toBe(type);
-    expect(ir.unitConfig).toEqual({ timeBase: 'hours', rateBase: '1/h' });
-    expect(ir.components).toEqual([]);
-    expect(ir.events).toEqual([]);
-    expect(ir.gates).toEqual([]);
-    expect(ir.states).toEqual([]);
-    expect(ir.transitions).toEqual([]);
-    expect(ir.blocks).toEqual([]);
-    expect(ir.barriers).toEqual([]);
-    expect(ir.dependencies).toEqual([]);
-    expect(ir.parameters).toEqual([]);
-    expect(ir.distributions).toEqual([]);
-    expect(ir.initialCondition).toBeNull();
-    expect(ir.missionTime).toBe(8760);
-    expect(ir.repairPolicy).toBeNull();
-  });
+      expect(ir.version).toBe('1.0.0');
+      expect(ir.type).toBe(type);
+      expect(ir.unitConfig).toEqual({ timeBase: 'hours', rateBase: '1/h' });
+      expect(ir.components).toEqual([]);
+      expect(ir.events).toEqual([]);
+      expect(ir.gates).toEqual([]);
+      expect(ir.states).toEqual([]);
+      expect(ir.transitions).toEqual([]);
+      expect(ir.blocks).toEqual([]);
+      expect(ir.barriers).toEqual([]);
+      expect(ir.dependencies).toEqual([]);
+      expect(ir.parameters).toEqual([]);
+      expect(ir.distributions).toEqual([]);
+      expect(ir.initialCondition).toBeNull();
+      expect(ir.missionTime).toBe(8760);
+      expect(ir.repairPolicy).toBeNull();
+    },
+  );
 
   it('returns independent instances (no shared references)', () => {
     const a = createDefaultModelIR('markov_chain');
