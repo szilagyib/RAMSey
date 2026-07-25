@@ -1,0 +1,16 @@
+{
+  "name": "ramsey-edge-proxy",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cloudflare Worker that serves the API and collab WebSocket same-origin as the SPA.",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250701.0",
+    "typescript": "^5.6.0",
+    "wrangler": "^3.114.0"
+  }
+}

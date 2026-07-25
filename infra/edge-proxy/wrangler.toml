@@ -1,0 +1,27 @@
+# Same-origin edge proxy — see src/worker.ts.
+#
+# Deploy (Phase 2, workers.dev only — no domain impact):
+#   cd infra/edge-proxy && npx wrangler deploy
+# then test https://<name>.<subdomain>.workers.dev/api/capabilities
+#
+# Attach to the domain (Phase 4) by uncommenting [[routes]] below and deploying,
+# OR by adding the two routes in the Cloudflare dashboard. Routes take
+# precedence over Pages for matching paths; everything else stays on Pages.
+
+name = "ramsey-edge-proxy"
+main = "src/worker.ts"
+compatibility_date = "2025-07-01"
+
+# The backend the proxy forwards to. Kept as the existing subdomain so Phase 2
+# proves the proxy with zero change to the live backend.
+[vars]
+BACKEND_ORIGIN = "https://api.ramseytools.com"
+
+# Phase 4 — uncomment to serve the API/collab same-origin from the apex.
+# [[routes]]
+# pattern = "ramseytools.com/api/*"
+# zone_name = "ramseytools.com"
+#
+# [[routes]]
+# pattern = "ramseytools.com/yjs/*"
+# zone_name = "ramseytools.com"
