@@ -4,7 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
-    <link rel="apple-touch-icon" href="/favicon.svg?v=2" />
+    <!-- Fallback for anything that doesn't take the SVG: search-engine crawlers
+         in particular check /favicon.ico at the site root as a signal independent
+         of this <link>, and an SPA with no such file returns its catch-all
+         index.html there (a 200 that looks like a broken icon) instead of a clean
+         404 — which can be why a favicon fails to show up in search results. -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2" sizes="48x48" />
+    <!-- apple-touch-icon must be a raster PNG — iOS ignores SVG here. -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2" />
     <!-- primary-600: the browser chrome matches the buttons and the mark. -->
     <meta name="theme-color" content="#4f46e5" />
 
