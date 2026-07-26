@@ -44,6 +44,12 @@ export default {
     // backend sets its auth cookie with no Domain, so the browser scopes it to
     // the origin it actually called (ramseytools.com); Set-Cookie passes through
     // untouched, which is exactly what makes login same-origin.
-    return fetch(new Request(url.toString(), request));
+    //
+    // redirect: 'manual' is essential: a proxy must hand a 3xx back to the
+    // browser, not follow it itself. The Google OAuth login is a chain of
+    // redirects (backend → Google → callback); if the Worker followed them it
+    // would swallow the redirect and the state cookie, and login would fail
+    // even though plain GETs work.
+    return fetch(new Request(url.toString(), request), { redirect: 'manual' });
   },
 };
