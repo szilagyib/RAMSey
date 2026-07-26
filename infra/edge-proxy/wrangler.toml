@@ -17,11 +17,13 @@ compatibility_date = "2025-07-01"
 [vars]
 BACKEND_ORIGIN = "https://api.ramseytools.com"
 
-# Phase 4 — uncomment to serve the API/collab same-origin from the apex.
-# [[routes]]
-# pattern = "ramseytools.com/api/*"
-# zone_name = "ramseytools.com"
-#
-# [[routes]]
-# pattern = "ramseytools.com/yjs/*"
-# zone_name = "ramseytools.com"
+# Attached to the apex for /api and /yjs only; every other path stays on Pages.
+# Routes take precedence over Pages for matching paths. Remove these two blocks
+# and redeploy to roll back instantly.
+[[routes]]
+pattern = "ramseytools.com/api/*"
+zone_name = "ramseytools.com"
+
+[[routes]]
+pattern = "ramseytools.com/yjs/*"
+zone_name = "ramseytools.com"
