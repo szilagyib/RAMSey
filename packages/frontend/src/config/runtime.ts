@@ -1,20 +1,16 @@
-const apiOrigin = (import.meta.env.VITE_API_ORIGIN ?? '').replace(/\/$/, '');
-const websocketOrigin = (import.meta.env.VITE_WS_ORIGIN ?? '').replace(/\/$/, '');
-
-/** Resolve API paths against the deployed backend; local development stays same-origin. */
+/**
+ * Every deployment serves the API and the collab WebSocket same-origin as the
+ * app — the Vite dev proxy, the nginx container, and the Cloudflare edge proxy
+ * in production all forward /api and /yjs to the backend. Paths therefore
+ * resolve against the page's own origin; there is deliberately no configurable
+ * API origin any more (a second origin is what broke cookies and Safari).
+ */
 export function apiUrl(path: string): string {
-  return `${apiOrigin}${path}`;
+  return path;
 }
 
-/**
- * Resolve WebSocket paths independently when requested, otherwise derive them
- * from the API origin. This keeps preview deployments configurable without
- * baking production hostnames into the bundle.
- */
+/** ws(s):// equivalent of the page origin, for the Yjs collaboration socket. */
 export function websocketUrl(path: string): string {
-  if (websocketOrigin) return `${websocketOrigin}${path}`;
-  if (apiOrigin) return `${apiOrigin.replace(/^http/, 'ws')}${path}`;
-
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   return `${protocol}//${window.location.host}${path}`;
 }

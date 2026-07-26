@@ -6,7 +6,6 @@ import helmet from '@fastify/helmet';
 import { loggerOptions } from './config/logger.js';
 import { limits } from './config/limits.js';
 import cookiePlugin from './plugins/cookie.js';
-import corsPlugin from './plugins/cors.js';
 import prismaPlugin from './plugins/prisma.js';
 import websocketPlugin from './plugins/websocket.js';
 import analysisRoutes from './routes/analysis.routes.js';
@@ -72,15 +71,14 @@ export async function buildApp(opts: BuildAppOptions = {}): Promise<FastifyInsta
     allowList: (req) => req.url.startsWith('/api/health'),
   });
   // Security headers (HSTS, X-Frame-Options, X-Content-Type-Options, etc.).
-  // This is a JSON/WebSocket API consumed by a separate-origin SPA, so CSP is
-  // left to the frontend (nginx) layer, and CORP is cross-origin so the SPA
-  // can read API responses.
+  // This is a JSON/WebSocket API; CSP is left to the frontend (nginx) layer.
+  // The browser only ever reaches this API through the edge proxy, same-origin
+  // with the SPA (see infra/edge-proxy/) — so helmet's default same-origin CORP
+  // is correct as-is; no browser should load these responses cross-origin.
   await app.register(helmet, {
     contentSecurityPolicy: false,
-    crossOriginResourcePolicy: { policy: 'cross-origin' },
   });
   await app.register(cookiePlugin);
-  await app.register(corsPlugin);
   await app.register(websocketPlugin);
 
   if (prismaOverride) {

@@ -154,6 +154,7 @@ RAMSey/
 │   ├── frontend/          # Vite + React SPA
 │   ├── backend/           # Fastify API + Yjs collab server + solver worker + auth
 │   └── engine/            # Shared analysis engine (ModelIR, solvers)
+├── infra/edge-proxy/      # Cloudflare Worker: same-origin proxy for /api, /yjs
 ├── docker/                # Dockerfiles + compose (incl. solver-worker service)
 ├── docs/                  # Deployment guide (OPERATIONS.md)
 ├── examples/              # Importable example diagrams
@@ -163,16 +164,21 @@ RAMSey/
 ## Architecture
 
 ```
-Browser (Vite SPA)
+Browser (Vite SPA, served from ramseytools.com)
   ├── React Flow canvas (diagram editing)
   ├── Zustand (state management)
   ├── Yjs (CRDT real-time sync) + awareness (cursors/selection)
   ├── AI Chat Panel (streaming, tool calling — draws on the canvas live)
   └── Client analysis (Web Worker, @ramsey/engine)
           │
-          │ WebSocket + REST
+          │ WebSocket + REST — same origin (ramseytools.com/api, /yjs)
           ▼
-Server
+Edge proxy (Cloudflare Worker, infra/edge-proxy/)
+  forwards /api/* and /yjs/* to the backend; every other path is Cloudflare
+  Pages. One browser-facing origin — no CORS, no cross-subdomain cookie.
+          │
+          ▼
+Server (api.ramseytools.com, private — only the edge proxy calls it)
   ├── Fastify API (orchestrator, rate-limited)
   ├── Yjs WebSocket sync server (collaboration + persistence)
   ├── JWT sessions + Google OAuth, teams & project sharing
@@ -181,7 +187,11 @@ Server
   └── Redis (shared rate-limit counters; fails open when down)
 ```
 
-Architectural principle: **the API server doesn't perform heavy computation**. Server-side analysis runs in an isolated solver-worker process via the job queue.
+Architectural principles: **the browser only ever talks to one origin** — the edge
+proxy makes the API and collaboration socket same-origin with the app, which is
+what makes cookies and CORS a non-issue. **The API server doesn't perform heavy
+computation**: server-side analysis runs in an isolated solver-worker process via
+the job queue.
 
 ## Known limitations
 

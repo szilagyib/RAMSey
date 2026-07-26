@@ -15,7 +15,6 @@ services:
     environment:
       DATABASE_URL: postgresql://ramsey:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ramsey?schema=public
       REDIS_URL: redis://redis:6379
-      CORS_ORIGIN: ${CORS_ORIGIN:?CORS_ORIGIN is required (e.g. https://ramsey.example.com)}
       FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required (e.g. https://ramsey.example.com)}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required (min 32 chars)}
       NODE_ENV: production

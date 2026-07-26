@@ -14,7 +14,6 @@ place) — this document mirrors them.
 | `PORT`                                                              | no       | `3000`                   | API port                                                                                                          |
 | `NODE_ENV`                                                          | no       | `development`            | `development` / `production` / `test`                                                                             |
 | `REDIS_URL`                                                         | no       | `redis://localhost:6379` | Shared rate-limit counters across replicas. The limiter **fails open** if Redis is unreachable                    |
-| `CORS_ORIGIN`                                                       | no       | `http://localhost:5173`  | Allowed browser origin                                                                                            |
 | `FRONTEND_URL`                                                      | no       | `http://localhost:5173`  | Base URL in emailed links + OAuth redirects                                                                       |
 | `PUBLIC_API_URL`                                                    | no       | `http://localhost:3000`  | Public API base URL used for OAuth callbacks                                                                      |
 | `TRUST_PROXY`                                                       | no       | —                        | Comma-separated trusted proxy CIDRs/IPs used to resolve the real client IP                                        |
@@ -33,8 +32,6 @@ place) — this document mirrors them.
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` | no       | port `587`               | Verification/reset emails. When `SMTP_HOST` is unset, links are **logged** instead of sent — set it in production |
 | `SENTRY_DSN`                                                        | no       | —                        | Backend error tracking (no-op when unset)                                                                         |
 | `VITE_SENTRY_DSN`                                                   | no       | —                        | Frontend error tracking (build-time, Vite)                                                                        |
-| `VITE_API_ORIGIN`                                                   | no       | same origin              | Backend HTTP origin embedded in the frontend build                                                                |
-| `VITE_WS_ORIGIN`                                                    | no       | derived                  | Optional WebSocket origin override                                                                                |
 
 Code-constant limits (rate limits, chat bounds, tool-call cap, token TTLs,
 worker retry, `chat_usage` retention) live in `config/limits.ts` — change them
@@ -145,17 +142,27 @@ ignores `stream_options.include_usage`.
 
 ## Deploy
 
-Production uses two deliberately small pieces:
+Production is one origin, `ramseytools.com`, assembled from three pieces:
 
 - **Frontend:** Cloudflare Pages builds `npm run build:frontend` from `main`
-  and serves `ramseytools.com`.
+  and serves the static SPA.
+- **Edge proxy:** a Cloudflare Worker (`infra/edge-proxy/`) routes
+  `ramseytools.com/api/*` and `/yjs/*` to the backend, so the browser only ever
+  talks to one origin — no CORS, no cross-subdomain cookie, and no Safari/WebKit
+  cross-site blocking to reason about. See `infra/edge-proxy/README.md` for
+  deploy/rollback. `www.ramseytools.com` redirects to the apex at the Cloudflare
+  level (Rules → Redirect Rules): the proxy only covers the apex, so a request
+  arriving on `www` would otherwise silently bypass it.
 - **Backend:** a free-tier EC2 instance in `eu-central-1` runs
   `docker/docker-compose.host.yml` (Postgres, Redis, API, backups, and a
-  Cloudflare Tunnel connector). No application ports are exposed publicly;
+  Cloudflare Tunnel connector) on the private `api.ramseytools.com` hostname,
+  which only the edge proxy calls. No application ports are exposed publicly;
   TLS and ingress terminate at Cloudflare.
 
 Cloudflare Pages deploys frontend changes automatically after a push to
-`main`. Backend changes are deployed on the host:
+`main`. The edge proxy is deployed manually (`cd infra/edge-proxy && npx
+wrangler deploy`) — it changes rarely, so this isn't automated. Backend changes
+are deployed on the host:
 
 ```bash
 cd ~/RAMSey

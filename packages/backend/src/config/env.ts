@@ -11,8 +11,6 @@ const envSchema = z.object({
 
   REDIS_URL: z.string().default('redis://localhost:6379'),
 
-  CORS_ORIGIN: z.string().default('http://localhost:5173'),
-
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 
   JWT_SECRET: z.string().min(32),
@@ -86,7 +84,6 @@ function loadEnv(): Env {
         PORT: 3000,
         DATABASE_URL: 'postgresql://test:test@localhost:5432/ramsey_test',
         REDIS_URL: 'redis://localhost:6379',
-        CORS_ORIGIN: 'http://localhost:5173',
         NODE_ENV: 'test',
         JWT_SECRET: 'test-secret-key-for-testing-purposes-only-32chars',
         GOOGLE_CLIENT_ID: undefined,

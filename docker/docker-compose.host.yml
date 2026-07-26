@@ -110,9 +110,8 @@ services:
       DATABASE_URL: postgresql://ramsey:${POSTGRES_PASSWORD:?}@postgres:5432/ramsey?schema=public
       REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
-      CORS_ORIGIN: https://ramseytools.com
       FRONTEND_URL: https://ramseytools.com
-      PUBLIC_API_URL: https://api.ramseytools.com
+      PUBLIC_API_URL: https://ramseytools.com
       # Ingress arrives from the cloudflared container on the docker bridge; trust
       # it so per-client rate limits key on Cloudflare's forwarded visitor IP.
       TRUST_PROXY: 172.16.0.0/12

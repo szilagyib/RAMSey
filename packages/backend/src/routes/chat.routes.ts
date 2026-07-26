@@ -54,11 +54,9 @@ const chatRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
       const decision = await budget.check(userId, sessionId);
 
       // Streaming to the raw socket bypasses Fastify's reply, which would drop
-      // every header its onRequest hooks set — CORS (@fastify/cors) and the
-      // security headers (@fastify/helmet). Missing CORS makes a cross-origin
-      // browser reject the stream ("Failed to fetch"); missing helmet headers
-      // silently weakens the response. Re-apply everything Fastify accumulated,
-      // then set the SSE-specific headers (setHeader overwrites any same-named).
+      // every header its onRequest hooks set — notably @fastify/helmet's
+      // security headers. Re-apply everything Fastify accumulated, then set the
+      // SSE-specific headers (setHeader overwrites any same-named).
       for (const [name, value] of Object.entries(reply.getHeaders())) {
         if (value !== undefined) reply.raw.setHeader(name, value);
       }

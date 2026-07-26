@@ -35,7 +35,6 @@ services:
     environment:
       DATABASE_URL: postgresql://ramsey:ramsey@postgres:5432/ramsey?schema=public
       REDIS_URL: redis://redis:6379
-      CORS_ORIGIN: http://localhost:8080
       NODE_ENV: development
       JWT_SECRET: dev-jwt-secret-change-in-production
       # Dev email → Mailpit (see the mailpit service). Real sending in prod uses

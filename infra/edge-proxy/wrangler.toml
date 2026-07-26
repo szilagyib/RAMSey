@@ -12,6 +12,11 @@ name = "ramsey-edge-proxy"
 main = "src/worker.ts"
 compatibility_date = "2025-07-01"
 
+# No workers.dev preview URL: the proxy exists only on the production routes
+# below. The dev URL was needed once, for the pre-route smoke test (Phase 2),
+# and leaving it up would be an unused public entry point to the backend.
+workers_dev = false
+
 # The backend the proxy forwards to. Kept as the existing subdomain so Phase 2
 # proves the proxy with zero change to the live backend.
 [vars]
