@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Play, ChevronDown, ChevronRight } from 'lucide-react';
 import { contentHash, type AnalysisMethod, type AnalyzeResponse } from '@ramsey/engine';
 import { useDiagramStore } from '../../stores/diagramStore';
@@ -66,7 +66,14 @@ export function AnalysisPanel({ projectId, diagramId }: AnalysisPanelProps) {
   const diagramType = useDiagramStore((s) => s.diagramType);
 
   const methods = METHODS_BY_TYPE[diagramType];
-  const [method, setMethod] = useState<AnalysisMethod>(methods?.[0]?.[0] ?? 'availability');
+  const [selectedMethod, setMethod] = useState<AnalysisMethod>(methods?.[0]?.[0] ?? 'availability');
+  // Navigating to a diagram of a different type does not remount this panel, so
+  // the selection can outlive its option list. A <select> whose value matches no
+  // option silently displays the first one — fall back explicitly instead, or the
+  // dropdown would show one method while run() submitted another.
+  const method = methods?.some(([m]) => m === selectedMethod)
+    ? selectedMethod
+    : (methods?.[0]?.[0] ?? 'availability');
   const [missionTime, setMissionTime] = useState(8760);
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
   const [cached, setCached] = useState(false);
@@ -80,18 +87,22 @@ export function AnalysisPanel({ projectId, diagramId }: AnalysisPanelProps) {
   const { serverAnalysis } = useCapabilities();
   const canRunOnServer = Boolean(projectId && diagramId) && serverAnalysis;
 
-  // Restore the most recent stored result for this diagram.
+  // Show the most recent stored result for this diagram — once per diagram.
+  // Must NOT depend on `result`: run() clears it, and re-running this mid-run
+  // would overwrite the method the user just picked with the previous run's.
+  // Navigating to another diagram keeps this panel mounted, so the previous
+  // diagram's output has to be cleared even when the new one has nothing stored.
+  const restoredFor = useRef<string | null>(null);
   useEffect(() => {
-    if (!result && diagramId) {
-      const latest = getLatestResult(diagramId);
-      if (latest) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- restore the persisted result when the tab mounts
-        setResult(latest.response);
-        setMethod(latest.method);
-        setCached(true);
-      }
-    }
-  }, [diagramId, result]);
+    if (!diagramId || restoredFor.current === diagramId) return;
+    restoredFor.current = diagramId;
+    const latest = getLatestResult(diagramId);
+    setResult(latest?.response ?? null);
+    setCached(Boolean(latest));
+    setGuard(null);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- restore the persisted result's method when the tab mounts
+    if (latest) setMethod(latest.method);
+  }, [diagramId]);
 
   const showMissionTime = diagramType !== 'fault_tree';
 
