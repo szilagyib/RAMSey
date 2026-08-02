@@ -226,10 +226,11 @@ export function Toolbar({
     // left-to-right flow.
     const direction = diagramType === 'fault_tree' ? 'DOWN' : 'RIGHT';
     const layoutedNodes = await autoLayout(nodes, edges, { direction });
-    // Re-route edges for the new positions: hand-placed control points would
-    // point at stale coordinates, and bidirectional pairs need fresh arcs so
-    // they don't collapse onto one another.
-    const routedEdges = routeEdgesAfterLayout(layoutedNodes, edges);
+    // Re-route edges for the new positions: hand-placed control points move
+    // with the endpoints they were drawn against (hence the pre-layout nodes),
+    // and bidirectional pairs need fresh arcs so they don't collapse onto one
+    // another.
+    const routedEdges = routeEdgesAfterLayout(layoutedNodes, edges, nodes);
 
     // One undo entry for the whole layout (positions + edge routing).
     useDiagramStore.getState().runInHistoryEntry(() => {
