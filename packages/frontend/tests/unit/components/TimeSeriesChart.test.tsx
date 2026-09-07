@@ -117,21 +117,39 @@ describe('TimeSeriesChart', () => {
       const { container } = chart({ ...series([0.6, 0.8, 1]) });
       expect(labelY(container)).toBeLessThan(lastPointY(container));
     });
+
+    it('names the metric and the time unit while idle', () => {
+      chart();
+      expect(screen.getByText(/availability/)).toBeTruthy();
+      expect(screen.getByText(/t in h/)).toBeTruthy();
+    });
+
+    // A constant curve is a real result — a system that never leaves its initial
+    // state. It must draw a line, not divide by a zero-height domain.
+    it('renders a flat series without degenerate coordinates', () => {
+      const { container } = chart({ ...series([0.5, 0.5, 0.5]) });
+      const d = container.querySelector('.chart-line')?.getAttribute('d') ?? '';
+      expect(d).not.toContain('NaN');
+      expect(d.length).toBeGreaterThan(0);
+    });
+
+    // At 61 samples the final step is a difference between two plateau values,
+    // which solver round-off can flip either way. The side has to come from the
+    // curve's overall direction, or the label jumps between runs of the same
+    // model and can land on the stroke it is meant to dodge.
+    it('does not flip side when the final step is round-off', () => {
+      const { container } = chart({ ...series([1, 0.9, 0.8, 0.8 + 1e-12]) });
+      // Falling overall, even though the last step ticks up.
+      expect(labelY(container)).toBeGreaterThan(lastPointY(container));
+    });
   });
 
-  it('names the metric and the time unit while idle', () => {
-    chart();
-    expect(screen.getByText(/availability/)).toBeTruthy();
-    expect(screen.getByText(/t in h/)).toBeTruthy();
-  });
-
-  // A constant curve is a real result — a system that never leaves its initial
-  // state. It must draw a line, not divide by a zero-height domain.
-  it('renders a flat series without degenerate coordinates', () => {
-    const { container } = chart({ ...series([0.5, 0.5, 0.5]) });
-    const d = container.querySelector('.chart-line')?.getAttribute('d') ?? '';
-    expect(d).not.toContain('NaN');
-    expect(d.length).toBeGreaterThan(0);
+  // An empty series is not a curve. It reached here as a TypeError, because the
+  // accessible label read time[0] before anything checked the length.
+  it('renders nothing for an empty series', () => {
+    const { container } = chart({ time: [], values: [] });
+    expect(container.querySelector('.chart-line')).toBeNull();
+    expect(container.querySelector('svg')).toBeNull();
   });
 
   it('renders a single sample without crashing', () => {

@@ -34,6 +34,12 @@ function exact(value: number, decimals: number): string {
 export function TimeSeriesChart({ time, values, valueLabel, timeUnit }: TimeSeriesChartProps) {
   const [active, setActive] = useState<number | null>(null);
 
+  // Nothing to plot, and nothing to fake: an empty series used to reach the
+  // scales as Math.min() of nothing (Infinity, so a NaN domain) and the
+  // accessible label as time[0].toFixed of undefined. A length disagreement
+  // has the same effect one index in.
+  if (values.length === 0 || time.length !== values.length) return null;
+
   const y = valueScale(Math.min(...values), Math.max(...values));
   const x = timeScale(time[0], time[time.length - 1]);
 
@@ -50,7 +56,12 @@ export function TimeSeriesChart({ time, values, valueLabel, timeUnit }: TimeSeri
   // curve arrives from: a falling curve comes in from above-left, so the space
   // above the last point is already occupied. Flat and rising curves leave it
   // free.
-  const endpointFalling = values.length > 1 && values[last] < values[last - 1];
+  //
+  // Judged against the curve's overall direction, not its final step: across 61
+  // samples that last step is the gap between two plateau values, which solver
+  // round-off can flip either way, so the label would change sides between runs
+  // of the same model.
+  const endpointFalling = values.length > 1 && values[last] < values[0];
 
   const step = (delta: number) =>
     setActive((current) => {
@@ -125,7 +136,7 @@ export function TimeSeriesChart({ time, values, valueLabel, timeUnit }: TimeSeri
                 dominantBaseline="middle"
                 className="fill-surface-400 text-[8px] tabular-nums"
               >
-                {tick.toFixed(y.decimals)}
+                {y.format(tick)}
               </text>
             </g>
           ))}
@@ -138,7 +149,7 @@ export function TimeSeriesChart({ time, values, valueLabel, timeUnit }: TimeSeri
               textAnchor="middle"
               className="fill-surface-400 text-[8px] tabular-nums"
             >
-              {tick.toFixed(x.decimals)}
+              {x.format(tick)}
             </text>
           ))}
         </g>
@@ -156,16 +167,14 @@ export function TimeSeriesChart({ time, values, valueLabel, timeUnit }: TimeSeri
 
         {/* Direct label on the last point, at tick precision: the headline
             value is readable without hovering anything. */}
-        {values.length > 0 && (
-          <text
-            className="chart-endpoint fill-surface-600 text-[8px] font-medium tabular-nums"
-            x={px(time[last])}
-            y={py(values[last]) + (endpointFalling ? 11 : -6)}
-            textAnchor="end"
-          >
-            {values[last].toFixed(y.decimals)}
-          </text>
-        )}
+        <text
+          className="chart-endpoint fill-surface-600 text-[8px] font-medium tabular-nums"
+          x={px(time[last])}
+          y={py(values[last]) + (endpointFalling ? 11 : -6)}
+          textAnchor="end"
+        >
+          {y.format(values[last])}
+        </text>
 
         {active !== null && (
           <g>

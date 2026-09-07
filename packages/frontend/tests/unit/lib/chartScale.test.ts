@@ -30,7 +30,7 @@ describe('valueScale', () => {
 
   it('gives ticks enough decimals to read differently from each other', () => {
     const s = valueScale(0.99996825, 1);
-    const labels = s.ticks.map((t) => t.toFixed(s.decimals));
+    const labels = s.ticks.map(s.format);
     expect(new Set(labels).size).toBe(labels.length);
   });
 
@@ -43,6 +43,76 @@ describe('valueScale', () => {
     expect(s.max).toBeGreaterThan(s.min);
     expect(s.min).toBeLessThanOrEqual(1);
     expect(s.max).toBeGreaterThanOrEqual(1);
+  });
+
+  // Solver round-off is not a trend. A Markov chain with no absorbing state
+  // cannot fail, so availability is exactly 1 at every point — but the matrix
+  // exponential returns 1 give or take ~1e-12. Scaling an axis to that span
+  // draws the round-off as a decay filling the whole plot, complete with
+  // 12-decimal tick labels. Below a relative floor the series is flat, and has
+  // to render as flat.
+  describe('a span that is only round-off', () => {
+    it('is treated as flat rather than magnified', () => {
+      const s = valueScale(1 - 1e-12, 1);
+      expect(s.max - s.min).toBeGreaterThan(1e-6);
+      expect(s.decimals).toBeLessThanOrEqual(6);
+    });
+
+    it('is flat at the smallest representable span too', () => {
+      const s = valueScale(1 - 2.2e-16, 1);
+      // Rounding a domain this narrow used to put `max` *below* the data, which
+      // pushed the top of the curve off the top of the plot.
+      expect(s.max).toBeGreaterThanOrEqual(1);
+      expect(s.min).toBeLessThanOrEqual(1 - 2.2e-16);
+    });
+
+    it('still resolves a spread that is small but real', () => {
+      // 3.2e-5 on a near-1 metric is the repairable-system case: genuine, and
+      // it must stay resolved rather than be rounded away as noise.
+      const s = valueScale(0.99996825, 1);
+      expect(s.max - s.min).toBeLessThan(0.001);
+    });
+  });
+
+  it('never asks for more tick decimals than toFixed accepts', () => {
+    // decimalsFor is unbounded, and toFixed throws past 100 digits — which
+    // crashed the whole panel from inside the tick map.
+    for (const [lo, hi] of [
+      [1e-200, 2e-200],
+      [1e-300, 1.5e-300],
+      [Number.MIN_VALUE, Number.MIN_VALUE * 4],
+    ]) {
+      const s = valueScale(lo, hi);
+      expect(s.decimals).toBeLessThanOrEqual(100);
+      expect(() => s.ticks.map(s.format)).not.toThrow();
+    }
+  });
+
+  it('gives every tick a distinct label', () => {
+    for (const [lo, hi] of [
+      [0.99996825, 1],
+      [1 - 2.2e-16, 1],
+      [0, 100],
+      [1, 1],
+    ]) {
+      const s = valueScale(lo, hi);
+      const labels = s.ticks.map(s.format);
+      expect(new Set(labels).size).toBe(labels.length);
+    }
+  });
+
+  it('brackets the data even after rounding the bounds', () => {
+    for (const [lo, hi] of [
+      [0.12, 0.87],
+      [0.99996825, 1],
+      [1 - 2.2e-16, 1],
+      [0, 0],
+      [-5.5, 12.3],
+    ]) {
+      const s = valueScale(lo, hi);
+      expect(s.min).toBeLessThanOrEqual(lo);
+      expect(s.max).toBeGreaterThanOrEqual(hi);
+    }
   });
 
   it('handles an all-zero series', () => {

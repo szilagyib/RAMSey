@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { AnalyzeResponse } from '@ramsey/engine';
 import { getCachedResult, setCachedResult, getLatestResult } from '../../../src/lib/analysisCache';
 
@@ -10,8 +10,22 @@ function resp(value: number): AnalyzeResponse {
     contentHash: 'h',
     metrics: { availability: value },
     contributions: {},
-    numericMetadata: { method: 'x', tolerance: 0, iterations: 0, residualNorm: 0, truncation: 0, stiffnessDetected: false, methodAutoSelected: false },
-    trace: { assumptions: [], normalizations: [], unitConversions: [], simplifications: [], methodDetails: '' },
+    numericMetadata: {
+      method: 'x',
+      tolerance: 0,
+      iterations: 0,
+      residualNorm: 0,
+      truncation: 0,
+      stiffnessDetected: false,
+      methodAutoSelected: false,
+    },
+    trace: {
+      assumptions: [],
+      normalizations: [],
+      unitConversions: [],
+      simplifications: [],
+      methodDetails: '',
+    },
     warnings: [],
     errorBounds: {},
     computeTimeMs: 1,
@@ -71,6 +85,41 @@ describe('analysisCache', () => {
       localStorage.setItem('ramsey.analysisCache.v1', legacyEntry());
       getCachedResult('d1', 'transient', 'hashA');
       expect(localStorage.getItem('ramsey.analysisCache.v1')).toBeNull();
+    });
+
+    // Naming a single predecessor only works for the store that came just
+    // before. A browser that skipped a version keeps its entries forever, which
+    // is the leak the cleanup exists to prevent.
+    it('are cleared however many versions back they are', () => {
+      localStorage.setItem('ramsey.analysisCache.v1', legacyEntry());
+      localStorage.setItem('ramsey.analysisCache', legacyEntry());
+      localStorage.setItem('ramsey.analysisCache.v0', legacyEntry());
+
+      getCachedResult('d1', 'transient', 'hashA');
+
+      expect(localStorage.getItem('ramsey.analysisCache.v1')).toBeNull();
+      expect(localStorage.getItem('ramsey.analysisCache')).toBeNull();
+      expect(localStorage.getItem('ramsey.analysisCache.v0')).toBeNull();
+    });
+
+    it('leaves unrelated keys alone', () => {
+      localStorage.setItem('ramsey-inspector-width', '320');
+      getCachedResult('d1', 'transient', 'hashA');
+      expect(localStorage.getItem('ramsey-inspector-width')).toBe('320');
+    });
+
+    // Reading the cache should not write to it. The cleanup ran unconditionally
+    // on every load, so every panel mount and every analysis issued a
+    // removeItem for a key that had been gone for months.
+    it('does not write to storage once there is nothing to clean', () => {
+      setCachedResult('d1', 'availability', 'hashA', resp(0.9));
+      const removeItem = vi.spyOn(Storage.prototype, 'removeItem');
+
+      getCachedResult('d1', 'availability', 'hashA');
+      getLatestResult('d1');
+
+      expect(removeItem).not.toHaveBeenCalled();
+      removeItem.mockRestore();
     });
   });
 });

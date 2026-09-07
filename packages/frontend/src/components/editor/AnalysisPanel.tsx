@@ -57,13 +57,26 @@ function fmt(n: number): string {
 }
 
 /**
+ * Mission time as the solver will accept it: finite and non-negative.
+ *
+ * `min={0}` on a number input validates on submit; it does not clamp the value,
+ * and there is no form submit here. matExp now rejects a negative or non-finite
+ * t rather than quietly returning zeros, so an unclamped typo turned into a
+ * failed analysis instead of a wrong one — better, but avoidable at the source.
+ */
+function cleanMissionTime(raw: string): number {
+  const value = Number(raw);
+  return Number.isFinite(value) && value > 0 ? value : 0;
+}
+
+/**
  * Time points a transient run is evaluated at.
  *
  * Eleven was enough while the result was a column of numbers. As a curve it has
  * to carry a shape, and the panel is only a couple of hundred pixels wide, so
  * ~60 is the point past which more samples stop being visible. The cost is
- * small and off the main thread — the fixed matrix exponential runs this in
- * ~27 ms in the analysis worker.
+ * small and off the main thread — measured at ~11 ms warm and ~27 ms cold in
+ * the analysis worker, after the matrix exponential fix.
  */
 const TRANSIENT_SAMPLES = 61;
 
@@ -227,7 +240,7 @@ export function AnalysisPanel({ projectId, diagramId }: AnalysisPanelProps) {
                 type="number"
                 value={missionTime}
                 min={0}
-                onChange={(e) => setMissionTime(Number(e.target.value))}
+                onChange={(e) => setMissionTime(cleanMissionTime(e.target.value))}
                 className="w-full rounded border border-surface-300 bg-white dark:bg-surface-200 px-2 py-1 text-xs"
               />
             </div>
@@ -349,12 +362,17 @@ function Results({ result }: { result: AnalyzeResponse }) {
     string,
     number,
   ][];
+  // Both arrays, non-empty, and the same length. `Array.isArray` alone let an
+  // empty or ragged series through — [] is truthy, and a short `availability`
+  // yields undefined values — which the chart cannot scale or label.
+  const time = result.metrics.time;
+  const availability = result.metrics.availability;
   const timeSeries =
-    Array.isArray(result.metrics.time) && Array.isArray(result.metrics.availability)
-      ? (result.metrics.time as number[]).map((t, i) => [
-          t,
-          (result.metrics.availability as number[])[i],
-        ])
+    Array.isArray(time) &&
+    Array.isArray(availability) &&
+    time.length > 0 &&
+    time.length === availability.length
+      ? time.map((t, i) => [t, availability[i]])
       : null;
 
   return (

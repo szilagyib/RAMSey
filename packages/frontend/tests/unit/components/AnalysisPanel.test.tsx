@@ -259,6 +259,30 @@ describe('AnalysisPanel — transient results', () => {
     expect((options.timePoints as number[]).length).toBeGreaterThan(11);
   });
 
+  // `Array.isArray` was the only gate, and [] passes it. An empty or ragged
+  // series then reached the chart as a NaN domain or a TypeError, where the
+  // table it replaced had rendered harmlessly.
+  it('ignores a time series with no samples', async () => {
+    await runTransient({ time: [], availability: [] });
+    expect(screen.queryByRole('img')).toBeNull();
+  });
+
+  it('ignores a time series whose arrays disagree in length', async () => {
+    await runTransient({ time: [0, 100, 200], availability: [1, 0.99] });
+    expect(screen.queryByRole('img')).toBeNull();
+  });
+
+  // matExp rejects a negative t outright now, so an unclamped input turned a
+  // typo into a failed analysis. `min={0}` on a number input only validates.
+  it('does not let the mission time go negative', () => {
+    mocks.diagramType = 'markov_chain';
+    render(<AnalysisPanel projectId="p1" diagramId="d1" />);
+    const missionTime = screen.getByRole('spinbutton') as HTMLInputElement;
+
+    fireEvent.change(missionTime, { target: { value: '-100' } });
+    expect(Number(missionTime.value)).toBeGreaterThanOrEqual(0);
+  });
+
   it('leaves a scalar-only result as a plain metric table', async () => {
     mocks.runAnalysis.mockResolvedValue(response('availability', { availability: 0.98 }));
     render(<AnalysisPanel projectId="p1" diagramId="d1" />);

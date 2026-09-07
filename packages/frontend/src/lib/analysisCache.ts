@@ -10,17 +10,21 @@ const STORE_KEY = 'ramsey.analysisCache.v2';
 const MAX_ENTRIES = 50;
 
 /**
- * The previous store, dropped on first read.
+ * Prefix shared by this store and every version of it that came before.
  *
  * Entries are keyed by the model's content hash, which says nothing about the
  * solver that produced the numbers — so a solver correctness fix cannot reach
  * anyone holding a cached result: the model is unchanged, the key still matches,
  * and the panel keeps serving the old numbers labelled "model unchanged". Bump
  * STORE_KEY when solver numerics change (v2: the Markov matrix exponential
- * returned zeros past Λ·t > 745) and name the old one here so it is cleared
- * instead of sitting in every user's browser forever.
+ * returned zeros past Λ·t > 745); anything else under this prefix is a
+ * superseded store and gets cleared.
+ *
+ * Matching on the prefix rather than naming the predecessor covers a browser
+ * that skipped a version — naming only v1 would strand v0 entries forever,
+ * which is the leak this exists to prevent.
  */
-const SUPERSEDED_STORE_KEY = 'ramsey.analysisCache.v1';
+const STORE_KEY_PREFIX = 'ramsey.analysisCache';
 
 export interface CacheEntry {
   key: string;
@@ -30,9 +34,25 @@ export interface CacheEntry {
   at: number;
 }
 
+/**
+ * Drop any superseded store.
+ *
+ * Reads the key list first and only writes when there is something to remove,
+ * so this costs a scan of a handful of keys on every load and a write only the
+ * once — rather than a removeItem on every cache read for the life of the
+ * product.
+ */
+function clearSupersededStores(): void {
+  const stale = Object.keys(localStorage).filter(
+    (key) =>
+      key !== STORE_KEY && (key === STORE_KEY_PREFIX || key.startsWith(`${STORE_KEY_PREFIX}.`)),
+  );
+  for (const key of stale) localStorage.removeItem(key);
+}
+
 function load(): CacheEntry[] {
   try {
-    localStorage.removeItem(SUPERSEDED_STORE_KEY);
+    clearSupersededStores();
     const raw = localStorage.getItem(STORE_KEY);
     return raw ? (JSON.parse(raw) as CacheEntry[]) : [];
   } catch {

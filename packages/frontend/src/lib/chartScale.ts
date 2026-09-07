@@ -17,10 +17,32 @@ export interface Scale {
   ticks: number[];
   /** Decimals a tick label needs for the ticks to read differently. */
   decimals: number;
+  /** Renders a tick. Use this rather than toFixed: it also covers the domains
+   *  too narrow for fixed notation to label distinctly. */
+  format: (value: number) => string;
 }
 
 /** Ticks to aim for. Fewer on a narrow panel would crowd; more would clutter. */
 const TARGET_TICKS = 4;
+
+/**
+ * Relative span below which a series is round-off rather than signal.
+ *
+ * Scaling to the data is the point of this module, but it cuts both ways: a
+ * quantity that is mathematically constant still comes back from the solver
+ * with ~1e-12 of jitter, and an axis fitted to that draws the jitter as a
+ * full-height trend with twelve-decimal labels. Nine significant figures is
+ * far past what any reliability input is known to — rates are good to one or
+ * two — so a span this small is noise, and noise renders flat.
+ */
+const NOISE_FLOOR = 1e-9;
+
+/**
+ * Most decimals a fixed-notation tick may use. Also toFixed's hard ceiling is
+ * 100, past which it throws — which took the whole panel down from inside the
+ * tick loop.
+ */
+const MAX_DECIMALS = 12;
 
 /**
  * Round a raw step up to a 1-2-5 multiple of a power of ten, so ticks land on
@@ -44,6 +66,21 @@ function decimalsFor(step: number): number {
   return Math.max(0, Math.ceil(-Math.log10(step)));
 }
 
+/**
+ * Tick precision for a step, plus the formatter that goes with it.
+ *
+ * A step needing more than MAX_DECIMALS cannot be written in fixed notation
+ * without every label collapsing to the same string, so those domains switch to
+ * exponential rather than print identical numbers at different heights.
+ */
+function precisionFor(step: number): Pick<Scale, 'decimals' | 'format'> {
+  const needed = decimalsFor(step);
+  if (needed > MAX_DECIMALS) {
+    return { decimals: MAX_DECIMALS, format: (value) => value.toExponential(3) };
+  }
+  return { decimals: needed, format: (value) => value.toFixed(needed) };
+}
+
 function round(value: number, decimals: number): number {
   const factor = 10 ** decimals;
   return Math.round(value * factor) / factor;
@@ -57,8 +94,10 @@ function round(value: number, decimals: number): number {
  * a zero-height domain.
  */
 function spread(lo: number, hi: number): [number, number] {
-  if (hi > lo) return [lo, hi];
-  const pad = lo === 0 ? 1 : Math.abs(lo) * 1e-3;
+  const magnitude = Math.max(Math.abs(lo), Math.abs(hi));
+  // Anything at or under the noise floor counts as no span at all.
+  if (hi - lo > magnitude * NOISE_FLOOR && hi > lo) return [lo, hi];
+  const pad = magnitude === 0 ? 1 : magnitude * 1e-3;
   return [lo - pad, hi + pad];
 }
 
@@ -70,19 +109,22 @@ function spread(lo: number, hi: number): [number, number] {
 export function valueScale(dataMin: number, dataMax: number, target = TARGET_TICKS): Scale {
   const [lo, hi] = spread(dataMin, dataMax);
   const step = niceStep((hi - lo) / target);
-  const decimals = decimalsFor(step);
+  const { decimals, format } = precisionFor(step);
   // Two extra digits keep the bounds off float artefacts (0.30000000000000004)
   // without disturbing the value a label will show.
-  const precision = decimals + 2;
+  const rounding = decimals + 2;
 
-  const min = round(Math.floor(lo / step) * step, precision);
-  const max = round(Math.ceil(hi / step) * step, precision);
+  // Rounding a very narrow domain can land `max` just *below* the data, which
+  // puts the top of the curve outside the plot. The noise floor should keep us
+  // out of that range entirely; clamping to the data makes it impossible.
+  const min = Math.min(dataMin, round(Math.floor(lo / step) * step, rounding));
+  const max = Math.max(dataMax, round(Math.ceil(hi / step) * step, rounding));
   const count = Math.max(1, Math.round((max - min) / step));
 
   const ticks = Array.from({ length: count + 1 }, (_, i) =>
-    i === 0 ? min : i === count ? max : round(min + i * step, precision),
+    i === 0 ? min : i === count ? max : round(min + i * step, rounding),
   );
-  return { min, max, ticks, decimals };
+  return { min, max, ticks, decimals, format };
 }
 
 /**
@@ -96,13 +138,13 @@ export function valueScale(dataMin: number, dataMax: number, target = TARGET_TIC
 export function timeScale(dataMin: number, dataMax: number, target = TARGET_TICKS): Scale {
   const [min, max] = spread(dataMin, dataMax);
   const step = niceStep((max - min) / target);
-  const decimals = decimalsFor(step);
-  const precision = decimals + 2;
+  const { decimals, format } = precisionFor(step);
+  const rounding = decimals + 2;
 
   const ticks: number[] = [];
   const first = Math.ceil(min / step) * step;
   for (let t = first; t <= max + step * 1e-9; t += step) {
-    ticks.push(round(t, precision));
+    ticks.push(round(t, rounding));
   }
-  return { min, max, ticks, decimals };
+  return { min, max, ticks, decimals, format };
 }
