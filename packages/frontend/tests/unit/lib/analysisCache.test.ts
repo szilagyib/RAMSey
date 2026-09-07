@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { AnalyzeResponse } from '@ramsey/engine';
-import { getCachedResult, setCachedResult, getLatestResult } from '../../../src/lib/analysisCache';
+import {
+  getCachedResult,
+  setCachedResult,
+  getLatestResult,
+  clearSupersededStores,
+} from '../../../src/lib/analysisCache';
 
 function resp(value: number): AnalyzeResponse {
   return {
@@ -83,7 +88,7 @@ describe('analysisCache', () => {
 
     it('are cleared out rather than left in storage forever', () => {
       localStorage.setItem('ramsey.analysisCache.v1', legacyEntry());
-      getCachedResult('d1', 'transient', 'hashA');
+      clearSupersededStores();
       expect(localStorage.getItem('ramsey.analysisCache.v1')).toBeNull();
     });
 
@@ -95,7 +100,7 @@ describe('analysisCache', () => {
       localStorage.setItem('ramsey.analysisCache', legacyEntry());
       localStorage.setItem('ramsey.analysisCache.v0', legacyEntry());
 
-      getCachedResult('d1', 'transient', 'hashA');
+      clearSupersededStores();
 
       expect(localStorage.getItem('ramsey.analysisCache.v1')).toBeNull();
       expect(localStorage.getItem('ramsey.analysisCache')).toBeNull();
@@ -104,8 +109,26 @@ describe('analysisCache', () => {
 
     it('leaves unrelated keys alone', () => {
       localStorage.setItem('ramsey-inspector-width', '320');
-      getCachedResult('d1', 'transient', 'hashA');
+      clearSupersededStores();
       expect(localStorage.getItem('ramsey-inspector-width')).toBe('320');
+    });
+
+    // The cleanup used to sit inside load()'s blanket catch, so anything it
+    // threw — Safari private mode, a disabled-storage setting, a quota error —
+    // was read as "the cache is unreadable". getCachedResult then missed, and
+    // setCachedResult rebuilt the list from empty and persisted it, discarding
+    // up to 50 good entries to fail at deleting one dead key.
+    it('keeps the current cache readable when the cleanup itself fails', () => {
+      setCachedResult('d1', 'availability', 'hashA', resp(0.9));
+      localStorage.setItem('ramsey.analysisCache.v1', legacyEntry());
+
+      const removeItem = vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
+        throw new Error('storage unavailable');
+      });
+      expect(() => clearSupersededStores()).not.toThrow();
+      removeItem.mockRestore();
+
+      expect(getCachedResult('d1', 'availability', 'hashA')?.metrics.availability).toBe(0.9);
     });
 
     // Reading the cache should not write to it. The cleanup ran unconditionally

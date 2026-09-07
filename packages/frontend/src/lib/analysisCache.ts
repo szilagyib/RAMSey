@@ -35,24 +35,32 @@ export interface CacheEntry {
 }
 
 /**
- * Drop any superseded store.
+ * Drop any superseded store. Runs once when this module loads.
  *
- * Reads the key list first and only writes when there is something to remove,
- * so this costs a scan of a handful of keys on every load and a write only the
- * once — rather than a removeItem on every cache read for the life of the
- * product.
+ * Deliberately not called from `load()`: that would enumerate every key in the
+ * origin on each cache read, and — worse — put the cleanup under load()'s
+ * blanket catch, where a storage failure (Safari private mode, a disabled
+ * storage setting, a quota error) reads as "the cache is unreadable". The next
+ * write would then rebuild the entry list from empty and persist it, discarding
+ * every good entry in order to fail at deleting one dead key. Failing to clean
+ * up is a nuisance; losing the cache is not, so it catches for itself.
  */
-function clearSupersededStores(): void {
-  const stale = Object.keys(localStorage).filter(
-    (key) =>
-      key !== STORE_KEY && (key === STORE_KEY_PREFIX || key.startsWith(`${STORE_KEY_PREFIX}.`)),
-  );
-  for (const key of stale) localStorage.removeItem(key);
+export function clearSupersededStores(): void {
+  try {
+    const stale = Object.keys(localStorage).filter(
+      (key) =>
+        key !== STORE_KEY && (key === STORE_KEY_PREFIX || key.startsWith(`${STORE_KEY_PREFIX}.`)),
+    );
+    for (const key of stale) localStorage.removeItem(key);
+  } catch {
+    // Storage unavailable — the stale keys stay, which costs nothing but space.
+  }
 }
+
+clearSupersededStores();
 
 function load(): CacheEntry[] {
   try {
-    clearSupersededStores();
     const raw = localStorage.getItem(STORE_KEY);
     return raw ? (JSON.parse(raw) as CacheEntry[]) : [];
   } catch {
