@@ -63,6 +63,11 @@ function fmt(n: number): string {
  * and there is no form submit here. matExp now rejects a negative or non-finite
  * t rather than quietly returning zeros, so an unclamped typo turned into a
  * failed analysis instead of a wrong one — better, but avoidable at the source.
+ *
+ * Only the sign is clamped. There is no defensible upper bound on a mission
+ * time — hours, days and years are all legitimate, and any ceiling picked here
+ * would be arbitrary — so an absurdly large value is left to the solver, which
+ * rejects it precisely, when Λ·t overflows, and says so.
  */
 function cleanMissionTime(raw: string): number {
   const value = Number(raw);
@@ -316,14 +321,23 @@ export function AnalysisPanel({ projectId, diagramId }: AnalysisPanelProps) {
 function TimeSeries({ series }: { series: number[][] }) {
   const [showValues, setShowValues] = useState(false);
 
+  // A curve can only be drawn through real numbers. The cache round-trips
+  // through JSON.stringify, which writes NaN and Infinity as null, so a
+  // restored result can arrive with holes in it — and a hole poisons the axis
+  // domain and throws when the chart formats it. The table still shows every
+  // value, which is what the plain table this replaced always did.
+  const plottable = series.every(([t, v]) => Number.isFinite(t) && Number.isFinite(v));
+
   return (
     <div className="mt-2">
-      <TimeSeriesChart
-        time={series.map(([t]) => t)}
-        values={series.map(([, v]) => v)}
-        valueLabel="availability"
-        timeUnit="h"
-      />
+      {plottable && (
+        <TimeSeriesChart
+          time={series.map(([t]) => t)}
+          values={series.map(([, v]) => v)}
+          valueLabel="availability"
+          timeUnit="h"
+        />
+      )}
 
       <button
         onClick={() => setShowValues(!showValues)}

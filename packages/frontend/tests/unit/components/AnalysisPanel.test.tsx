@@ -272,6 +272,22 @@ describe('AnalysisPanel — transient results', () => {
     expect(screen.queryByRole('img')).toBeNull();
   });
 
+  // The cache round-trips through JSON.stringify, which writes NaN and Infinity
+  // as null. Restoring such a result handed the chart a null, where Math.min
+  // coerced it to 0 (a bogus domain) and toFixed threw outright — an uncaught
+  // render error taking the whole panel down, where the table it replaced had
+  // printed the value harmlessly.
+  it('lists the values instead of charting a series with a hole in it', async () => {
+    await runTransient({
+      time: [0, 100, 200],
+      availability: [1, null as unknown as number, 0.9],
+    });
+
+    expect(screen.queryByRole('img')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /values/i }));
+    expect(screen.getByText('0.9')).toBeTruthy();
+  });
+
   // matExp rejects a negative t outright now, so an unclamped input turned a
   // typo into a failed analysis. `min={0}` on a number input only validates.
   it('does not let the mission time go negative', () => {

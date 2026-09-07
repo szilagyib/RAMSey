@@ -88,6 +88,32 @@ describe('valueScale', () => {
     }
   });
 
+  // Rounding to a capped number of decimals collapses every interior tick onto
+  // the same number once the step is smaller than that cap can express, and a
+  // step that underflows to zero leaves no ticks at all — an axis with no
+  // gridlines and no labels. Both also feed the chart duplicate React keys.
+  describe('a domain far below 1', () => {
+    it('keeps its ticks distinct', () => {
+      const s = valueScale(1e-15, 2e-15);
+      expect(new Set(s.ticks).size).toBe(s.ticks.length);
+      const labels = s.ticks.map(s.format);
+      expect(new Set(labels).size).toBe(labels.length);
+    });
+
+    it('still produces an axis when the step underflows', () => {
+      for (const [lo, hi] of [
+        [Number.MIN_VALUE, 4 * Number.MIN_VALUE],
+        [1e-300, 1.5e-300],
+        [1e-16, 4e-16],
+      ]) {
+        const s = valueScale(lo, hi);
+        expect(s.ticks.length).toBeGreaterThan(1);
+        expect(s.ticks.every(Number.isFinite)).toBe(true);
+        expect(new Set(s.ticks).size).toBe(s.ticks.length);
+      }
+    });
+  });
+
   it('gives every tick a distinct label', () => {
     for (const [lo, hi] of [
       [0.99996825, 1],
