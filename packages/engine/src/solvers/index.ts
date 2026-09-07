@@ -42,6 +42,9 @@ export function getSolver(type: DiagramType): Solver | undefined {
   }
 }
 
+/** Stamped on errors raised before any solver is chosen. */
+const DISPATCHER_VERSION = '0.1.0';
+
 /**
  * Dispatch an analysis request to the appropriate solver. Returns a clean error
  * response for unsupported diagram types or methods rather than throwing.
@@ -55,6 +58,7 @@ export async function analyze(request: AnalyzeRequest): Promise<AnalyzeResponse>
       method,
       `No solver available for diagram type '${modelIR.type}'`,
       'dispatcher',
+      DISPATCHER_VERSION,
       Date.now(),
     );
   }
@@ -64,6 +68,9 @@ export async function analyze(request: AnalyzeRequest): Promise<AnalyzeResponse>
       method,
       `Method '${method}' is not supported for ${modelIR.type}`,
       solver.name,
+      // The solver exists, it just cannot do this method — so the error is
+      // still its own, and carries its version.
+      solver.version,
       Date.now(),
     );
   }

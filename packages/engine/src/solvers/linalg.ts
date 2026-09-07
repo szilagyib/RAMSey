@@ -100,16 +100,26 @@ const MAX_DIRECT_LT = 100;
  * Matrix exponential of a CTMC generator: exp(Q·t), computed by uniformization
  * (Jensen's method). Q must have non-positive diagonals and zero row sums.
  *
- * Returns the transition probability matrix P(t), for any Λt. Large Λt is
- * handled by scaling and squaring — exp(Q·t) = exp(Q·t/2^k)^(2^k) — which keeps
- * the series inside the range float64 can seed (see MAX_DIRECT_LT) and is also
- * much cheaper than the long series it replaces, since squaring reaches t in k
- * multiplications rather than Λt terms. `tol` controls the Poisson tail
- * truncation.
+ * Returns the transition probability matrix P(t), for any finite Λt ≥ 0. Large
+ * Λt is handled by scaling and squaring — exp(Q·t) = exp(Q·t/2^k)^(2^k) — which
+ * keeps the series inside the range float64 can seed (see MAX_DIRECT_LT) and is
+ * also much cheaper than the long series it replaces, since squaring reaches t
+ * in k multiplications rather than Λt terms.
+ *
+ * `tol` bounds the Poisson tail truncation in the *returned* matrix, so rows sum
+ * to 1 within `tol` whatever k turns out to be. Throws RangeError on a negative
+ * or non-finite t.
  */
 export function matExp(Q: Matrix, t: number, tol = 1e-12): Matrix {
   const n = Q.length;
   if (n === 0) return [];
+  // Neither of these has an answer to compute, and both used to fail quietly:
+  // a NaN term count meant the series never ran and the zeroed accumulator was
+  // returned as if it were a result, while an infinite t made the squaring
+  // count infinite and the loop below never ended.
+  if (!Number.isFinite(t) || t < 0) {
+    throw new RangeError(`matExp needs a finite, non-negative t (got ${t})`);
+  }
   if (t === 0) return identity(n);
 
   // Uniformization rate: the largest total exit rate.
@@ -128,6 +138,13 @@ export function matExp(Q: Matrix, t: number, tol = 1e-12): Matrix {
   for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) P[i][j] += Q[i][j] / lambda;
 
   const lt = lambda * step;
+  // The series stops with the Poisson tail still worth `stepTol`, leaving rows
+  // summing to 1 − stepTol — and each squaring below doubles that deficit. So
+  // the sub-step has to be 2^squarings tighter for the *final* matrix to hold
+  // the tolerance this function documents. Left unscaled, a one-year mission
+  // came out sub-stochastic by ~2e−11: invisible in a printed number, but a
+  // caller scaling a chart axis to its own data plots it as a trend.
+  const stepTol = tol / 2 ** squarings;
   let result: Matrix = Array.from({ length: n }, () => new Array(n).fill(0));
   let Pk = identity(n); // P^0
   let weight = Math.exp(-lt); // Poisson(lt) pmf at k=0
@@ -137,7 +154,7 @@ export function matExp(Q: Matrix, t: number, tol = 1e-12): Matrix {
   for (let k = 0; k <= maxTerms; k++) {
     for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) result[i][j] += weight * Pk[i][j];
     cumulative += weight;
-    if (k >= lt && 1 - cumulative < tol) break;
+    if (k >= lt && 1 - cumulative < stepTol) break;
     Pk = multiply(Pk, P);
     weight *= lt / (k + 1);
   }

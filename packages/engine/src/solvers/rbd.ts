@@ -73,7 +73,7 @@ export class RbdSolver implements Solver {
     }
 
     if (ir.blocks.length === 0) {
-      return errorResponse(ir, req.method, 'RBD model has no blocks', NAME, start);
+      return errorResponse(ir, req.method, 'RBD model has no blocks', NAME, VERSION, start);
     }
 
     const mt = resolveValue(
@@ -303,6 +303,7 @@ export class RbdSolver implements Solver {
       req.method,
       `RBD solver does not support method '${req.method}'`,
       NAME,
+      VERSION,
       start,
     );
   }

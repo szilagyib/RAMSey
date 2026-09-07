@@ -142,7 +142,7 @@ export class MarkovSolver implements Solver {
     const warnings: Warning[] = [];
 
     if (ir.states.length === 0) {
-      return errorResponse(ir, req.method, 'Markov model has no states', NAME, start);
+      return errorResponse(ir, req.method, 'Markov model has no states', NAME, VERSION, start);
     }
 
     const index = indexOf(ir);
@@ -247,6 +247,7 @@ export class MarkovSolver implements Solver {
             req.method,
             'MTTF requires at least one absorbing state',
             NAME,
+            VERSION,
             start,
           );
         }
@@ -322,6 +323,7 @@ export class MarkovSolver implements Solver {
           req.method,
           `Markov solver does not support method '${req.method}'`,
           NAME,
+          VERSION,
           start,
         );
     }

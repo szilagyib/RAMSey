@@ -23,7 +23,7 @@ export class BowTieSolver implements Solver {
 
     const bt = ir.bowTie;
     if (!bt || bt.nodes.length === 0) {
-      return errorResponse(ir, req.method, 'Bow-tie model has no structure', NAME, start);
+      return errorResponse(ir, req.method, 'Bow-tie model has no structure', NAME, VERSION, start);
     }
     if (req.method !== 'frequency') {
       return errorResponse(
@@ -31,6 +31,7 @@ export class BowTieSolver implements Solver {
         req.method,
         `Bow-tie solver does not support method '${req.method}'`,
         NAME,
+        VERSION,
         start,
       );
     }

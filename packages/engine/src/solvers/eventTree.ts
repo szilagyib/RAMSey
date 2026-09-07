@@ -76,7 +76,14 @@ export class EventTreeSolver implements Solver {
     const warnings: Warning[] = [];
 
     if (!ir.eventTree || ir.eventTree.branches.length === 0) {
-      return errorResponse(ir, req.method, 'Event-tree model has no branches', NAME, start);
+      return errorResponse(
+        ir,
+        req.method,
+        'Event-tree model has no branches',
+        NAME,
+        VERSION,
+        start,
+      );
     }
     if (req.method !== 'frequency') {
       return errorResponse(
@@ -84,6 +91,7 @@ export class EventTreeSolver implements Solver {
         req.method,
         `Event-tree solver does not support method '${req.method}'`,
         NAME,
+        VERSION,
         start,
       );
     }
