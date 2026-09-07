@@ -40,7 +40,7 @@ vi.mock('../../../src/lib/capabilities', () => ({
 import { AnalysisPanel } from '../../../src/components/editor/AnalysisPanel';
 import { setCachedResult } from '../../../src/lib/analysisCache';
 
-function response(method: string, metrics: Record<string, number>): AnalyzeResponse {
+function response(method: string, metrics: Record<string, number | number[]>): AnalyzeResponse {
   return {
     status: 'success',
     solver: { name: 'test', version: '1.0.0' },
@@ -213,5 +213,60 @@ describe('AnalysisPanel — method/result state sync', () => {
     });
 
     expect(mocks.runAnalysis).toHaveBeenCalledWith(expect.objectContaining({ method: shown }));
+  });
+});
+
+// A transient run is the one method that returns a curve rather than a number.
+// Eleven rows of digits do not show a trend; a plot does — and the values still
+// have to be reachable for anyone copying them into a report.
+describe('AnalysisPanel — transient results', () => {
+  const CURVE = {
+    time: [0, 2190, 4380, 6570, 8760],
+    availability: [1, 0.99926, 0.99889, 0.99869, 0.99854],
+  };
+
+  beforeEach(() => {
+    mocks.diagramType = 'markov_chain';
+  });
+
+  const runTransient = async (metrics: Record<string, number | number[]> = CURVE) => {
+    mocks.runAnalysis.mockResolvedValue(response('transient', metrics));
+    render(<AnalysisPanel projectId="p1" diagramId="d1" />);
+    fireEvent.change(methodSelect(), { target: { value: 'transient' } });
+    await act(async () => {
+      fireEvent.click(runButton());
+    });
+  };
+
+  it('plots the curve', async () => {
+    await runTransient();
+    expect(screen.getByRole('img').getAttribute('aria-label')).toMatch(/availability over time/);
+  });
+
+  it('keeps the numbers reachable without a pointer', async () => {
+    await runTransient();
+
+    // Collapsed by default — the plot is the answer, the table is the backup.
+    expect(screen.queryByText('0.99854')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: /values/i }));
+    expect(screen.getByText('0.99854')).toBeTruthy();
+  });
+
+  it('samples densely enough to draw a curve', async () => {
+    await runTransient();
+    const { options } = mocks.runAnalysis.mock.calls[0][0];
+    expect((options.timePoints as number[]).length).toBeGreaterThan(11);
+  });
+
+  it('leaves a scalar-only result as a plain metric table', async () => {
+    mocks.runAnalysis.mockResolvedValue(response('availability', { availability: 0.98 }));
+    render(<AnalysisPanel projectId="p1" diagramId="d1" />);
+    await act(async () => {
+      fireEvent.click(runButton());
+    });
+
+    expect(screen.queryByRole('img')).toBeNull();
+    expect(screen.getByText('availability')).toBeTruthy();
   });
 });

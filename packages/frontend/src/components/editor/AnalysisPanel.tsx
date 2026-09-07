@@ -14,6 +14,7 @@ import {
 import { api } from '../../services/api';
 import { useCapabilities } from '../../lib/capabilities';
 import { Button } from '../ui/Button';
+import { TimeSeriesChart } from './TimeSeriesChart';
 
 interface AnalysisPanelProps {
   projectId?: string;
@@ -54,6 +55,17 @@ function fmt(n: number): string {
   if (n !== 0 && Math.abs(n) < 1e-3) return n.toExponential(3);
   return Number(n.toFixed(6)).toString();
 }
+
+/**
+ * Time points a transient run is evaluated at.
+ *
+ * Eleven was enough while the result was a column of numbers. As a curve it has
+ * to carry a shape, and the panel is only a couple of hundred pixels wide, so
+ * ~60 is the point past which more samples stop being visible. The cost is
+ * small and off the main thread — the fixed matrix exponential runs this in
+ * ~27 ms in the analysis worker.
+ */
+const TRANSIENT_SAMPLES = 61;
 
 function linspace(a: number, b: number, count: number): number[] {
   if (count <= 1) return [b];
@@ -165,7 +177,8 @@ export function AnalysisPanel({ projectId, diagramId }: AnalysisPanelProps) {
           return;
         }
       }
-      const options = method === 'transient' ? { timePoints: linspace(0, missionTime, 11) } : {};
+      const options =
+        method === 'transient' ? { timePoints: linspace(0, missionTime, TRANSIENT_SAMPLES) } : {};
 
       const res =
         serverRun && canRunOnServer
@@ -279,6 +292,50 @@ export function AnalysisPanel({ projectId, diagramId }: AnalysisPanelProps) {
   );
 }
 
+/**
+ * The curve, with the numbers a click away.
+ *
+ * The plot answers the question the method was run to ask — does availability
+ * hold over the mission, and where does it bend. The table stays because a plot
+ * cannot be copied into a report and because a value must never be reachable
+ * only by hovering; it starts closed so it does not bury the chart.
+ */
+function TimeSeries({ series }: { series: number[][] }) {
+  const [showValues, setShowValues] = useState(false);
+
+  return (
+    <div className="mt-2">
+      <TimeSeriesChart
+        time={series.map(([t]) => t)}
+        values={series.map(([, v]) => v)}
+        valueLabel="availability"
+        timeUnit="h"
+      />
+
+      <button
+        onClick={() => setShowValues(!showValues)}
+        className="mt-1 flex items-center gap-1 text-[10px] text-surface-500"
+      >
+        {showValues ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+        {showValues ? 'Hide values' : 'Show values'}
+      </button>
+
+      {showValues && (
+        <table className="mt-1 w-full font-mono">
+          <tbody>
+            {series.map(([t, a], i) => (
+              <tr key={i}>
+                <td className="py-0.5 pr-2 text-surface-500">t={fmt(t)}</td>
+                <td className="py-0.5 text-right text-surface-800">{fmt(a)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
 function Results({ result }: { result: AnalyzeResponse }) {
   if (result.status === 'error') {
     return (
@@ -315,21 +372,7 @@ function Results({ result }: { result: AnalyzeResponse }) {
         </table>
       )}
 
-      {timeSeries && (
-        <div className="mt-2">
-          <div className="mb-1 text-surface-400">availability over time</div>
-          <table className="w-full font-mono">
-            <tbody>
-              {timeSeries.map(([t, a], i) => (
-                <tr key={i}>
-                  <td className="py-0.5 pr-2 text-surface-500">t={fmt(t)}</td>
-                  <td className="py-0.5 text-right text-surface-800">{fmt(a)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      {timeSeries && <TimeSeries series={timeSeries} />}
 
       {Object.entries(result.contributions).map(([group, values]) => (
         <div key={group} className="mt-2">
