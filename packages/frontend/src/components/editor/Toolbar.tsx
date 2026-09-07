@@ -19,12 +19,17 @@ import {
   AlignVerticalJustifyCenter,
   AlignHorizontalDistributeCenter,
   AlignVerticalDistributeCenter,
-  Map,
+  // Aliased: an unaliased `Map` shadows the global for this whole module.
+  Map as MapIcon,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { useDiagramStore } from '../../stores/diagramStore';
 import { getDiagramTypeConfig } from '../../diagram-types/registry';
-import { useAutoLayout, routeEdgesAfterLayout } from '../../hooks/useAutoLayout';
+import {
+  useAutoLayout,
+  routeEdgesAfterLayout,
+  applyLayoutPositions,
+} from '../../hooks/useAutoLayout';
 import { useEditorPrefs, type BackgroundMode } from '../../stores/editorPrefs';
 import { parseDiagramJson } from '../../lib/importDiagram';
 import { pickJsonFile } from '../../lib/exportUtils';
@@ -225,16 +230,33 @@ export function Toolbar({
     // Fault trees read top-down per the notation; every other type is a
     // left-to-right flow.
     const direction = diagramType === 'fault_tree' ? 'DOWN' : 'RIGHT';
-    const layoutedNodes = await autoLayout(nodes, edges, { direction });
+    let layoutedNodes;
+    try {
+      layoutedNodes = await autoLayout(nodes, edges, { direction });
+    } catch (err) {
+      // elkjs is fetched on demand, so this is usually a chunk that no longer
+      // exists (a tab left open across a deploy). Silently doing nothing makes
+      // the button look broken.
+      window.alert(`Auto layout failed: ${err instanceof Error ? err.message : err}`);
+      return;
+    }
+
+    // The layout ran against a snapshot; the diagram may have moved on since.
+    // Merge into the current state rather than writing that snapshot back, or
+    // edits made while it ran are reverted — and pushed to collaborators.
+    const { nodes: currentNodes, edges: currentEdges } = useDiagramStore.getState();
+    const positioned = applyLayoutPositions(currentNodes, layoutedNodes);
+    if (!positioned) return; // the whole diagram was replaced mid-layout
+
     // Re-route edges for the new positions: hand-placed control points move
     // with the endpoints they were drawn against (hence the pre-layout nodes),
     // and bidirectional pairs need fresh arcs so they don't collapse onto one
     // another.
-    const routedEdges = routeEdgesAfterLayout(layoutedNodes, edges, nodes);
+    const routedEdges = routeEdgesAfterLayout(positioned, currentEdges, currentNodes);
 
     // One undo entry for the whole layout (positions + edge routing).
     useDiagramStore.getState().runInHistoryEntry(() => {
-      setNodes(layoutedNodes);
+      setNodes(positioned);
       useDiagramStore.setState({ edges: routedEdges });
     });
 
@@ -690,7 +712,7 @@ export function Toolbar({
               className={cn('h-7 w-7 p-0', minimap && 'text-primary-600')}
               title={minimap ? 'Hide minimap' : 'Show minimap'}
             >
-              <Map className="h-3.5 w-3.5" />
+              <MapIcon className="h-3.5 w-3.5" />
             </Button>
             <span className="mx-0.5 h-4 w-px bg-surface-200" />
             <Button

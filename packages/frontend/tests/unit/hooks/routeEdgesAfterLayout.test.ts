@@ -144,6 +144,34 @@ describe('routeEdgesAfterLayout', () => {
     expect(e.data).toMatchObject({ cpX: null, cpY: null });
   });
 
+  // Endpoints on the exact same spot give no direction to offset a bend along:
+  // any control point would land on the node centre, hiding the edge under the
+  // node. Both the remap and the pair arc used to produce exactly that.
+  describe('endpoints stacked on the same spot', () => {
+    const stacked = [node('a', 0, 0), node('b', 0, 0)];
+
+    it('drops a remapped control point instead of pinning it to the centre', () => {
+      const [e] = routeEdgesAfterLayout(
+        stacked,
+        [edge('e1', 'a', 'b', { cpX: 124, cpY: 100 })],
+        nodes,
+      );
+      expect(e.data).toMatchObject({ cpX: null, cpY: null });
+    });
+
+    it('does not arc a bidirectional pair onto the centre', () => {
+      const routed = routeEdgesAfterLayout(
+        stacked,
+        [edge('e1', 'a', 'b'), edge('e2', 'b', 'a')],
+        nodes,
+      );
+      expect(routed.map((e) => e.data)).toEqual([
+        { cpX: null, cpY: null },
+        { cpX: null, cpY: null },
+      ]);
+    });
+  });
+
   // A node the previous layout never saw (freshly added) gives nothing to
   // decompose against, so the edge falls back to automatic routing.
   it('falls back to automatic routing when the endpoint is new', () => {
