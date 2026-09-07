@@ -12,6 +12,10 @@ export default [
       '**/node_modules/**',
       '**/coverage/**',
       '**/cdk.out/**',
+      // Local scratch checkouts. .gitignore already covers .tmp/, so eslint was
+      // the only thing walking into it — and failing the lint script on code
+      // that isn't ours.
+      '**/.tmp/**',
     ],
   },
   {
