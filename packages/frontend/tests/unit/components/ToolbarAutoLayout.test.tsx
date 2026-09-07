@@ -183,6 +183,66 @@ describe('Toolbar — Auto Layout', () => {
     expect(useDiagramStore.getState().undoStack).toHaveLength(0);
   });
 
+  // Auto Layout is reachable from the toolbar button and the View menu, and
+  // nothing stopped a second run starting while the first was still in flight.
+  // The merge handles "someone else changed the diagram"; it cannot help when
+  // the other actor is a second copy of this same action, each seeded with the
+  // snapshot it captured and the later one overwriting the earlier.
+  it('ignores a second run while one is already in flight', async () => {
+    const layout = deferred<Node[]>();
+    mocks.autoLayout.mockReturnValue(layout.promise);
+
+    renderToolbar();
+    const button = autoLayoutButton();
+    // Both in one tick, before React re-renders the button as disabled — so
+    // this exercises the guard itself rather than the disabled attribute.
+    act(() => {
+      fireEvent.click(button);
+      fireEvent.click(button);
+    });
+
+    expect(mocks.autoLayout).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      layout.resolve([node('a', 100, 0), node('b', 300, 0)]);
+      await layout.promise;
+    });
+
+    // One user intent, one undo entry.
+    expect(useDiagramStore.getState().undoStack).toHaveLength(1);
+  });
+
+  it('allows a new run once the previous one has finished', async () => {
+    mocks.autoLayout.mockResolvedValue([node('a', 100, 0), node('b', 300, 0)]);
+
+    renderToolbar();
+    await act(async () => {
+      fireEvent.click(autoLayoutButton());
+    });
+    await act(async () => {
+      fireEvent.click(autoLayoutButton());
+    });
+
+    expect(mocks.autoLayout).toHaveBeenCalledTimes(2);
+  });
+
+  it('releases the in-flight guard when the layout fails', async () => {
+    const alert = vi.spyOn(window, 'alert').mockImplementation(() => {});
+    mocks.autoLayout.mockRejectedValue(new Error('boom'));
+
+    renderToolbar();
+    await act(async () => {
+      fireEvent.click(autoLayoutButton());
+    });
+    await act(async () => {
+      fireEvent.click(autoLayoutButton());
+    });
+
+    // A failed run must not wedge the button for the rest of the session.
+    expect(mocks.autoLayout).toHaveBeenCalledTimes(2);
+    alert.mockRestore();
+  });
+
   it('reports a failed layout instead of doing nothing', async () => {
     const alert = vi.spyOn(window, 'alert').mockImplementation(() => {});
     // What a tab left open across a deploy hits: the elkjs chunk is gone.
