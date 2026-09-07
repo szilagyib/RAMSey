@@ -37,6 +37,45 @@ describe('linalg', () => {
     close(P[0][1], 1 - Math.exp(-1), 1e-9);
     close(P[1][1], 1);
   });
+
+  // Uniformization seeds the Poisson recurrence at e^{-Λt}, which is exactly 0
+  // in float64 once Λt > 745 — every term then contributes nothing and the
+  // result is an all-zero matrix. Just below that, the seed is denormal and the
+  // series loses most of its precision. Both regimes are silent: the numbers
+  // look like answers. A row of a transition-probability matrix must sum to 1,
+  // so the row sum catches either failure without needing a reference value.
+  describe('matrix exponential past the Poisson underflow horizon', () => {
+    // Symmetric two-state chain: Λ = 1, so Λt = t and the horizon is t ≈ 745.
+    // P00(t) = ½(1 + e^{−2t}), which stays a comfortable 0.5 out to any t.
+    const SYMMETRIC: number[][] = [
+      [-1, 1],
+      [1, -1],
+    ];
+
+    it('stays a probability matrix well past the horizon', () => {
+      const P = matExp(SYMMETRIC, 1000);
+      close(P[0][0] + P[0][1], 1, 1e-9);
+      close(P[1][0] + P[1][1], 1, 1e-9);
+    });
+
+    it('matches the analytic result well past the horizon', () => {
+      const P = matExp(SYMMETRIC, 1000);
+      close(P[0][0], 0.5, 1e-9);
+      close(P[0][1], 0.5, 1e-9);
+    });
+
+    it('keeps full precision at the horizon, where the seed goes denormal', () => {
+      const P = matExp(SYMMETRIC, 745);
+      close(P[0][0] + P[0][1], 1, 1e-9);
+      close(P[0][0], 0.5, 1e-9);
+    });
+
+    it('is continuous across the horizon', () => {
+      const before = matExp(SYMMETRIC, 744)[0][0];
+      const after = matExp(SYMMETRIC, 746)[0][0];
+      close(after, before, 1e-9);
+    });
+  });
 });
 
 // ───────────────────────── Markov ─────────────────────────
@@ -61,6 +100,28 @@ function absorbing(lambda: number): ModelIR {
     { id: 'S1', label: 'Failed', type: 'absorbing' },
   ];
   ir.transitions = [{ id: 't0', from: 'S0', to: 'S1', rate: lambda }];
+  ir.initialCondition = { type: 'single', stateId: 'S0' };
+  return ir;
+}
+
+/**
+ * Up ⇄ Degraded on a fast repair, with a slow absorbing failure out of
+ * Degraded. The fast repair sets the uniformization rate (Λ = 0.3) while
+ * absorption is slow, so Λ·t crosses the float64 underflow horizon (t ≈ 2483 h)
+ * a third of the way into a one-year mission.
+ */
+function repairableWithAbsorbingFailure(): ModelIR {
+  const ir = createDefaultModelIR('markov_chain');
+  ir.states = [
+    { id: 'S0', label: 'Up', type: 'operational' },
+    { id: 'S1', label: 'Degraded', type: 'degraded' },
+    { id: 'S2', label: 'Failed', type: 'absorbing' },
+  ];
+  ir.transitions = [
+    { id: 't0', from: 'S0', to: 'S1', rate: 0.0004 },
+    { id: 't1', from: 'S1', to: 'S0', rate: 0.3 },
+    { id: 't2', from: 'S1', to: 'S2', rate: 0.0002 },
+  ];
   ir.initialCondition = { type: 'single', stateId: 'S0' };
   return ir;
 }
@@ -95,6 +156,61 @@ describe('Markov solver', () => {
     ir.missionTime = 100;
     const r = await analyze(req(ir, 'reliability'));
     close(r.metrics.reliability as number, Math.exp(-lambda * 100), 1e-6);
+  });
+
+  // The uniformization rate is the largest total exit rate in the chain, so a
+  // fast repair sets it while the slow failure sets the timescale of interest.
+  // That combination — normal for a repairable system — puts Λ·t past the
+  // underflow horizon well inside a one-year mission, which is where the
+  // solver used to start returning zeros dressed up as results.
+  describe('a one-year mission on a chain with a fast repair rate', () => {
+    // Λ = μ = 0.3, so the horizon lands at t ≈ 2483 h, a third of the way in.
+    const FAST_MU = 0.3;
+    const SLOW_LAMBDA = 0.0004;
+    const YEAR = 8760;
+
+    it('transient availability holds its plateau instead of collapsing to zero', async () => {
+      const r = await analyze(
+        req(repairable(SLOW_LAMBDA, FAST_MU), 'transient', { timePoints: [0, YEAR] }),
+      );
+      const avail = r.metrics.availability as number[];
+      const steady = FAST_MU / (SLOW_LAMBDA + FAST_MU);
+      const expected =
+        steady +
+        (SLOW_LAMBDA / (SLOW_LAMBDA + FAST_MU)) * Math.exp(-(SLOW_LAMBDA + FAST_MU) * YEAR);
+      close(avail[1], expected, 1e-9);
+    });
+
+    it('never reports availability above 1', async () => {
+      const r = await analyze(
+        req(repairable(SLOW_LAMBDA, FAST_MU), 'transient', {
+          // Straddles the horizon, including the denormal-seed region.
+          timePoints: [2400, 2483, 2484, 5000, YEAR],
+        }),
+      );
+      for (const a of r.metrics.availability as number[]) {
+        expect(a).toBeLessThanOrEqual(1);
+        expect(a).toBeGreaterThan(0);
+      }
+    });
+  });
+
+  // Survival probability is non-increasing in mission time. The underflow made
+  // reliability read exactly 1.0 past the horizon — a longer mission looking
+  // *safer* than a shorter one, and the most dangerous shape this bug takes:
+  // a plausible, perfect number.
+  it('reliability never increases with a longer mission', async () => {
+    const missions = [1000, 2400, 2483, 2600, 5000, 8760];
+    const values: number[] = [];
+    for (const missionTime of missions) {
+      const ir = repairableWithAbsorbingFailure();
+      ir.missionTime = missionTime;
+      values.push((await analyze(req(ir, 'reliability'))).metrics.reliability as number);
+    }
+    for (let i = 1; i < values.length; i++) {
+      expect(values[i]).toBeLessThanOrEqual(values[i - 1]);
+    }
+    expect(values[values.length - 1]).toBeLessThan(1);
   });
 
   it('populates provenance metadata', async () => {

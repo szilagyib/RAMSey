@@ -86,12 +86,26 @@ export function invert(A: Matrix): Matrix {
 }
 
 /**
+ * Largest Λ·t the Poisson series is evaluated at directly.
+ *
+ * The series is seeded with e^{−Λt}, so Λt is bounded by what float64 can
+ * represent: the seed is denormal past ~709 and exactly 0 past 745, at which
+ * point every term contributes nothing and the series returns a zero matrix.
+ * 100 keeps the seed at ~3.7e−44 — far from either cliff — while keeping the
+ * series short, since its length grows with Λt.
+ */
+const MAX_DIRECT_LT = 100;
+
+/**
  * Matrix exponential of a CTMC generator: exp(Q·t), computed by uniformization
  * (Jensen's method). Q must have non-positive diagonals and zero row sums.
  *
- * Returns the transition probability matrix P(t). Accurate for small/moderate
- * Λt; for very large Λt (Poisson left tail underflows) accuracy degrades — the
- * caller should warn. `tol` controls the Poisson tail truncation.
+ * Returns the transition probability matrix P(t), for any Λt. Large Λt is
+ * handled by scaling and squaring — exp(Q·t) = exp(Q·t/2^k)^(2^k) — which keeps
+ * the series inside the range float64 can seed (see MAX_DIRECT_LT) and is also
+ * much cheaper than the long series it replaces, since squaring reaches t in k
+ * multiplications rather than Λt terms. `tol` controls the Poisson tail
+ * truncation.
  */
 export function matExp(Q: Matrix, t: number, tol = 1e-12): Matrix {
   const n = Q.length;
@@ -103,12 +117,18 @@ export function matExp(Q: Matrix, t: number, tol = 1e-12): Matrix {
   for (let i = 0; i < n; i++) lambda = Math.max(lambda, -Q[i][i]);
   if (lambda <= 0) return identity(n); // no transitions
 
+  // Split t into 2^k sub-steps small enough to evaluate the series on, then
+  // recombine by repeated squaring. k = 0 for the common small-Λt case, which
+  // leaves the direct series below untouched.
+  const squarings = Math.max(0, Math.ceil(Math.log2((lambda * t) / MAX_DIRECT_LT)));
+  const step = t / 2 ** squarings;
+
   // Uniformized stochastic matrix P = I + Q/lambda.
   const P = identity(n);
   for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) P[i][j] += Q[i][j] / lambda;
 
-  const lt = lambda * t;
-  const result: Matrix = Array.from({ length: n }, () => new Array(n).fill(0));
+  const lt = lambda * step;
+  let result: Matrix = Array.from({ length: n }, () => new Array(n).fill(0));
   let Pk = identity(n); // P^0
   let weight = Math.exp(-lt); // Poisson(lt) pmf at k=0
   let cumulative = 0;
@@ -121,5 +141,8 @@ export function matExp(Q: Matrix, t: number, tol = 1e-12): Matrix {
     Pk = multiply(Pk, P);
     weight *= lt / (k + 1);
   }
+
+  // exp(Q·step)^(2^squarings) = exp(Q·t).
+  for (let s = 0; s < squarings; s++) result = multiply(result, result);
   return result;
 }

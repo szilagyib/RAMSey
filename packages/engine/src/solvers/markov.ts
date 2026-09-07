@@ -11,7 +11,7 @@ import { resolveValue } from './valueref.js';
 import { buildResponse, errorResponse } from './response.js';
 
 const NAME = 'markov-solver';
-const VERSION = '0.1.0';
+const VERSION = '0.2.0';
 const UP: State['type'][] = ['operational', 'degraded'];
 
 function indexOf(ir: ModelIR): Map<string, number> {

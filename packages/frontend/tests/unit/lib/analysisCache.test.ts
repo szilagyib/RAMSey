@@ -42,4 +42,35 @@ describe('analysisCache', () => {
     expect(latest?.response.metrics.availability).toBe(0.5);
     expect(getLatestResult('other')).toBeNull();
   });
+
+  // Entries are keyed by the model's content hash, which says nothing about the
+  // solver that produced the numbers. So a solver correctness fix cannot reach
+  // anyone holding a cached result: the model is unchanged, the entry still
+  // matches, and the panel keeps serving the old numbers under a "model
+  // unchanged" label. The store key carries a version for exactly this — bump
+  // it when solver numerics change, and stale results are left behind.
+  describe('results cached by a superseded solver', () => {
+    const legacyEntry = () =>
+      JSON.stringify([
+        {
+          key: 'd1:transient:hashA',
+          diagramId: 'd1',
+          method: 'transient',
+          response: resp(0),
+          at: 1000,
+        },
+      ]);
+
+    it('are not served', () => {
+      localStorage.setItem('ramsey.analysisCache.v1', legacyEntry());
+      expect(getCachedResult('d1', 'transient', 'hashA')).toBeNull();
+      expect(getLatestResult('d1')).toBeNull();
+    });
+
+    it('are cleared out rather than left in storage forever', () => {
+      localStorage.setItem('ramsey.analysisCache.v1', legacyEntry());
+      getCachedResult('d1', 'transient', 'hashA');
+      expect(localStorage.getItem('ramsey.analysisCache.v1')).toBeNull();
+    });
+  });
 });
