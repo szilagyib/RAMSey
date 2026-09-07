@@ -21,7 +21,7 @@ export function bowTieToTikz(nodes: Node[], edges: Edge[]): string {
 
   for (const n of nodes) {
     const d = n.data as BowTieNodeData;
-    const p = tf(n.position);
+    const p = tf(n);
     // Barriers are bars (no inner text); other kinds carry their label.
     const isBarrier = d.nodeKind === 'preventive_barrier' || d.nodeKind === 'mitigative_barrier';
     const id = sanitizeId(n.id);

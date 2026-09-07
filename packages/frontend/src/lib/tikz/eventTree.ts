@@ -23,7 +23,7 @@ export function eventTreeToTikz(nodes: Node[], edges: Edge[]): string {
 
   for (const n of nodes) {
     const d = n.data as EventTreeNodeData;
-    const p = tf(n.position);
+    const p = tf(n);
     lines.push(
       `  \\node[${NODE_STYLE[d.nodeKind]}] (${sanitizeId(n.id)}) at ${coord(p)} {${escapeLatex(d.label)}};`,
     );
