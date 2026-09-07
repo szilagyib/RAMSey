@@ -147,6 +147,48 @@ describe('linalg', () => {
       expect(() => matExp(CHAIN, Infinity)).toThrow(RangeError);
       expect(() => matExp(CHAIN, NaN)).toThrow(RangeError);
     });
+
+    // Guarding `t` alone is not enough: it is Λ·t that sizes the work, and it
+    // can overflow while t itself is a perfectly ordinary finite number. The
+    // squaring count then becomes Infinity and the loop never ends — in the
+    // analysis worker, which has no timeout, so the panel waits forever.
+    it('rejects a finite t whose Λ·t overflows', () => {
+      // Λ = 2, so Λ·t tips over float64's ceiling while t itself is finite.
+      const fast: number[][] = [
+        [-2, 2],
+        [2, -2],
+      ];
+      expect(() => matExp(fast, 1e308)).toThrow(RangeError);
+    });
+  });
+
+  // The series stops once its Poisson tail is worth less than stepTol, and
+  // stepTol shrinks by 2^k so the *final* matrix can hold `tol`. Past ~2^13 that
+  // target falls under float64's resolution near 1, so the break can never fire
+  // and the accumulated error runs free — including past 1, which is how a
+  // probability ends up super-stochastic.
+  describe('matrix exponential at a high uniformization rate', () => {
+    // Λ ≈ 1000 (a fast repair), so a one-year mission needs ~17 squarings.
+    const FAST: number[][] = [
+      [-1e-4, 1e-4, 0],
+      [1000, -1000.00001, 1e-5],
+      [0, 0, 0],
+    ];
+
+    it('still holds the documented tolerance', () => {
+      for (const t of [8760, 20000, 87600]) {
+        const rowSum = matExp(FAST, t)[0].reduce((a, b) => a + b, 0);
+        expect(Math.abs(1 - rowSum)).toBeLessThan(1e-12);
+      }
+    });
+
+    it('never returns a probability above 1', () => {
+      for (const t of [8760, 20000, 87600]) {
+        for (const row of matExp(FAST, t)) {
+          for (const p of row) expect(p).toBeLessThanOrEqual(1);
+        }
+      }
+    });
   });
 });
 

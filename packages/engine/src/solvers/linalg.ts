@@ -127,6 +127,14 @@ export function matExp(Q: Matrix, t: number, tol = 1e-12): Matrix {
   for (let i = 0; i < n; i++) lambda = Math.max(lambda, -Q[i][i]);
   if (lambda <= 0) return identity(n); // no transitions
 
+  // Λ·t, not t, is what sizes the work, and it can overflow while t is an
+  // ordinary finite number — a mission time of 1e308 against any rate above
+  // ~1.8. The squaring count then becomes Infinity and the loop below never
+  // ends, in a worker with no timeout.
+  if (!Number.isFinite(lambda * t)) {
+    throw new RangeError(`matExp: Λ·t overflows (Λ=${lambda}, t=${t})`);
+  }
+
   // Split t into 2^k sub-steps small enough to evaluate the series on, then
   // recombine by repeated squaring. k = 0 for the common small-Λt case, which
   // leaves the direct series below untouched.
@@ -144,7 +152,11 @@ export function matExp(Q: Matrix, t: number, tol = 1e-12): Matrix {
   // the tolerance this function documents. Left unscaled, a one-year mission
   // came out sub-stochastic by ~2e−11: invisible in a printed number, but a
   // caller scaling a chart axis to its own data plots it as a trend.
-  const stepTol = tol / 2 ** squarings;
+  // ...but not below what float64 can resolve near 1. `1 - cumulative` bottoms
+  // out around machine epsilon, so a smaller target can never be met: the break
+  // never fires, the series burns every one of its maxTerms, and the error it
+  // was meant to bound runs free.
+  const stepTol = Math.max(tol / 2 ** squarings, 4 * Number.EPSILON);
   let result: Matrix = Array.from({ length: n }, () => new Array(n).fill(0));
   let Pk = identity(n); // P^0
   let weight = Math.exp(-lt); // Poisson(lt) pmf at k=0
@@ -161,5 +173,19 @@ export function matExp(Q: Matrix, t: number, tol = 1e-12): Matrix {
 
   // exp(Q·step)^(2^squarings) = exp(Q·t).
   for (let s = 0; s < squarings; s++) result = multiply(result, result);
+
+  // Each squaring squares whatever the series left behind, so at a high Λ·t the
+  // rows drift off 1 by orders of magnitude more than `tol` — in either
+  // direction, and a row summing above 1 means individual probabilities can
+  // read above 1. exp(Q·t) is exactly stochastic for a generator matrix, so
+  // that invariant is not an approximation to be hoped for: restore it, and the
+  // drift is corrected proportionally across the row.
+  for (const row of result) {
+    let sum = 0;
+    for (const p of row) sum += p;
+    if (sum > 0 && Number.isFinite(sum)) {
+      for (let j = 0; j < n; j++) row[j] /= sum;
+    }
+  }
   return result;
 }
