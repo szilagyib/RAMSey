@@ -6,7 +6,7 @@ import type {
   Solver,
   Warning,
 } from './interface.js';
-import { identity, matExp, matvec, solveLinear, type Matrix } from './linalg.js';
+import { matExp, matvec, solveLinear, type Matrix } from './linalg.js';
 import { resolveValue } from './valueref.js';
 import { buildResponse, errorResponse } from './response.js';
 
@@ -115,7 +115,7 @@ function transpose(a: Matrix): Matrix {
 function reliabilityAt(ir: ModelIR, Q: Matrix, index: Map<string, number>, t: number): number {
   const absorbing = ir.states.filter((s) => s.type === 'absorbing');
   if (absorbing.length === 0) return 1;
-  const P = t === 0 ? identity(Q.length) : matExp(Q, t);
+  const P = matExp(Q, t);
   const pt = matvec(transpose(P), initialDist(ir, index));
   return 1 - absorbing.reduce((s, st) => s + pt[index.get(st.id)!], 0);
 }
@@ -223,7 +223,7 @@ export class MarkovSolver implements Solver {
         const p0 = initialDist(ir, index);
         const availability: number[] = [];
         for (const t of times) {
-          const P = t === 0 ? identity(Q.length) : matExp(Q, t);
+          const P = matExp(Q, t);
           const pt = matvec(transpose(P), p0);
           availability.push(ir.states.reduce((s, _st, i) => (isUp(ir, i) ? s + pt[i] : s), 0));
         }
