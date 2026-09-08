@@ -273,6 +273,25 @@ describe('faultTreeToTikz', () => {
 });
 
 describe('eventTreeToTikz', () => {
+  // `minimum width` is a floor, not a cap, so a box grew to fit its label on one
+  // line: "Loss of main cooling water" stretched to ~4.5cm and printed over the
+  // node beside it. The canvas wraps inside a fixed-width box, so the export
+  // does too — same fix as the fault-tree description boxes.
+  it('wraps a long label instead of stretching the box', () => {
+    const nodes = [
+      sized('ie1', 60, 300, 128, 48, {
+        label: 'Loss of main cooling water',
+        nodeKind: 'initiating_event',
+      }),
+      sized('h1', 340, 300, 128, 48, { label: 'Standby pump starts', nodeKind: 'header' }),
+    ];
+    const out = eventTreeToTikz(nodes, []);
+
+    for (const line of out.split('\n').filter((l) => l.includes('\\node'))) {
+      expect(line).toContain('text width=');
+    }
+  });
+
   it('styles nodes and labels branches', () => {
     const nodes = [
       node('ie1', 0, 0, { label: 'IE', nodeKind: 'initiating_event' }),
@@ -301,6 +320,42 @@ describe('rbdToTikz', () => {
 });
 
 describe('bowTieToTikz', () => {
+  // A barrier's name used to be rotated onto the bar itself, unbounded, so a
+  // 20-character name ran ~0.85cm past each end of a 1.1cm bar and collided
+  // with the barriers above and below. It sits below the bar now, wrapped: the
+  // bar stays the thin bar the notation calls for, and the name is readable
+  // without crossing the arrows that run through it.
+  describe('barrier labels', () => {
+    const nodes = [
+      sized('b1', 280, 120, 32, 80, {
+        label: 'Vibration monitoring',
+        nodeKind: 'preventive_barrier',
+      }),
+    ];
+    const labelLine = () =>
+      bowTieToTikz(nodes, [])
+        .split('\n')
+        .find((l) => l.includes('Vibration monitoring'))!;
+
+    it('sits below the bar rather than on it', () => {
+      expect(labelLine()).toContain('anchor=north');
+      expect(labelLine()).not.toContain('rotate=90');
+    });
+
+    // The shipped example spaces barriers 180px (2.25cm) apart vertically, so
+    // an unbounded label is what ran into its neighbours.
+    it('wraps instead of running into the next barrier', () => {
+      expect(labelLine()).toContain('text width=');
+    });
+
+    it('leaves the bar itself empty', () => {
+      const bar = bowTieToTikz(nodes, [])
+        .split('\n')
+        .find((l) => l.includes('(nb1) at'))!;
+      expect(bar).toMatch(/\{\}\s*;\s*$/);
+    });
+  });
+
   it('renders barrier bars and maps amber to orange', () => {
     const nodes = [
       node('te', 100, 0, { label: 'Top', nodeKind: 'top_event' }),
