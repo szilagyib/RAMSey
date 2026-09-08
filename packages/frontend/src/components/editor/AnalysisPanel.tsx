@@ -328,7 +328,7 @@ export function AnalysisPanel({ projectId, diagramId }: AnalysisPanelProps) {
  * cannot be copied into a report and because a value must never be reachable
  * only by hovering; it starts closed so it does not bury the chart.
  */
-function TimeSeries({ series }: { series: number[][] }) {
+function TimeSeries({ time, values }: { time: number[]; values: number[] }) {
   const [showValues, setShowValues] = useState(false);
 
   // A curve can only be drawn through real numbers. The cache round-trips
@@ -336,17 +336,12 @@ function TimeSeries({ series }: { series: number[][] }) {
   // restored result can arrive with holes in it — and a hole poisons the axis
   // domain and throws when the chart formats it. The table still shows every
   // value, which is what the plain table this replaced always did.
-  const plottable = series.every(([t, v]) => Number.isFinite(t) && Number.isFinite(v));
+  const plottable = time.every(Number.isFinite) && values.every(Number.isFinite);
 
   return (
     <div className="mt-2">
       {plottable && (
-        <TimeSeriesChart
-          time={series.map(([t]) => t)}
-          values={series.map(([, v]) => v)}
-          valueLabel="availability"
-          timeUnit="h"
-        />
+        <TimeSeriesChart time={time} values={values} valueLabel="availability" timeUnit="h" />
       )}
 
       <button
@@ -360,10 +355,10 @@ function TimeSeries({ series }: { series: number[][] }) {
       {showValues && (
         <table className="mt-1 w-full font-mono">
           <tbody>
-            {series.map(([t, a], i) => (
+            {time.map((t, i) => (
               <tr key={i}>
                 <td className="py-0.5 pr-2 text-surface-500">t={fmt(t)}</td>
-                <td className="py-0.5 text-right text-surface-800">{fmt(a)}</td>
+                <td className="py-0.5 text-right text-surface-800">{fmt(values[i])}</td>
               </tr>
             ))}
           </tbody>
@@ -391,12 +386,12 @@ function Results({ result }: { result: AnalyzeResponse }) {
   // yields undefined values — which the chart cannot scale or label.
   const time = result.metrics.time;
   const availability = result.metrics.availability;
-  const timeSeries =
+  const curve =
     Array.isArray(time) &&
     Array.isArray(availability) &&
     time.length > 0 &&
     time.length === availability.length
-      ? time.map((t, i) => [t, availability[i]])
+      ? { time, values: availability }
       : null;
 
   return (
@@ -414,7 +409,7 @@ function Results({ result }: { result: AnalyzeResponse }) {
         </table>
       )}
 
-      {timeSeries && <TimeSeries series={timeSeries} />}
+      {curve && <TimeSeries {...curve} />}
 
       {Object.entries(result.contributions).map(([group, values]) => (
         <div key={group} className="mt-2">
