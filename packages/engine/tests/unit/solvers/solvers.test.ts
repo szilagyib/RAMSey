@@ -295,6 +295,52 @@ describe('Markov solver', () => {
     });
   });
 
+  // A repairable chain relaxes to steady state on ~1/(λ+μ), set by the repair
+  // rate — hours — while a mission is typically a year. On a linear grid over
+  // the mission the whole transient falls inside the first step (measured on
+  // examples/markov-2oo3-pump-station.json: settles within 0.1% by t=1.6h,
+  // which is 1% of one 146h step), so the curve is a step to a constant and
+  // carries almost nothing. The number wanted is the steady state, which has
+  // its own method — so say so, the way the availability method already warns
+  // the other way round for absorbing chains.
+  describe('a transient the time grid cannot resolve', () => {
+    const YEAR = 8760;
+    const grid = Array.from({ length: 61 }, (_, i) => (YEAR * i) / 60);
+
+    it('points at the steady-state method', async () => {
+      // μ = 0.5/h: relaxation ~2h against a 146h first step.
+      const r = await analyze(req(repairable(0.0004, 0.5), 'transient', { timePoints: grid }));
+      const warning = r.warnings.find((w) => w.code === 'transient_unresolved');
+
+      expect(warning).toBeDefined();
+      expect(warning!.message).toMatch(/steady.state/i);
+    });
+
+    it('says nothing when the transient actually spans the mission', async () => {
+      // The shipped absorbing example's shape: decay over the whole year.
+      const r = await analyze(
+        req(repairableWithAbsorbingFailure(), 'transient', { timePoints: grid }),
+      );
+      expect(r.warnings.map((w) => w.code)).not.toContain('transient_unresolved');
+    });
+
+    it('says nothing when the grid is fine enough to show the relaxation', async () => {
+      const fine = Array.from({ length: 61 }, (_, i) => (20 * i) / 60); // 20h window
+      const r = await analyze(req(repairable(0.0004, 0.5), 'transient', { timePoints: fine }));
+      expect(r.warnings.map((w) => w.code)).not.toContain('transient_unresolved');
+    });
+
+    it('says nothing about a curve that never moves', async () => {
+      // No failure transition at all: constant 1, nothing being hidden.
+      const ir = createDefaultModelIR('markov_chain');
+      ir.states = [{ id: 'S0', label: 'Up', type: 'operational' }];
+      ir.transitions = [];
+      ir.initialCondition = { type: 'single', stateId: 'S0' };
+      const r = await analyze(req(ir, 'transient', { timePoints: grid }));
+      expect(r.warnings.map((w) => w.code)).not.toContain('transient_unresolved');
+    });
+  });
+
   it('MTTF = 1/λ for a single failure transition to an absorbing state', async () => {
     const r = await analyze(req(absorbing(lambda), 'mttf'));
     expect(r.status).toBe('success');

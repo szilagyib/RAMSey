@@ -257,6 +257,38 @@ export class MarkovSolver implements Solver {
           const pt = matvec(transpose(P), p0);
           availability.push(ir.states.reduce((s, _st, j) => (isUp(ir, j) ? s + pt[j] : s), 0));
         }
+        // A repairable chain relaxes to steady state on ~1/(λ+μ), which the repair
+        // rate dominates — hours — while a mission is typically a year. Sampled
+        // linearly across the mission the entire transition then falls inside the
+        // first step, and the curve is a step to a constant: it looks like a
+        // result but shows nothing. The value being sought is the steady state,
+        // which has a method of its own, so point at it — the mirror of the
+        // warning the availability method already raises for absorbing chains.
+        //
+        // The tell is that essentially all the variation sits between the first
+        // two samples. Deliberately not raised for an absorbing chain: there a
+        // fast collapse is a real result, and the useful alternative would be
+        // reliability/MTTF rather than steady state.
+        if (!hasAbsorbing && availability.length >= 3) {
+          const lo = Math.min(...availability);
+          const hi = Math.max(...availability);
+          const settled = availability[availability.length - 1];
+          // Nine significant figures is past what any failure rate is known to,
+          // so a spread below that is round-off, not a hidden transient.
+          const meaningful = hi - lo > Math.max(1, Math.abs(settled)) * 1e-9;
+          const inFirstStep = Math.abs(availability[1] - availability[0]) >= 0.99 * (hi - lo);
+          if (meaningful && inFirstStep) {
+            warnings.push({
+              code: 'transient_unresolved',
+              message:
+                `Availability relaxes to its steady state within the first sample interval, ` +
+                `so this curve is a step to ${Number(settled.toPrecision(6))}. Steady-state ` +
+                `availability reports that value directly; a shorter mission time would ` +
+                `resolve the transition itself.`,
+            });
+          }
+        }
+
         return buildResponse({
           ...base,
           metrics: { time: times, availability },
