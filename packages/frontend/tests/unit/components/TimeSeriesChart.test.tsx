@@ -88,67 +88,45 @@ describe('TimeSeriesChart', () => {
     expect(screen.getByText(/0\.99999206/)).toBeTruthy();
   });
 
-  // The direct label is rounded to tick precision while the readout above the
-  // plot carries the exact value. Two roles, two precisions — and no two nodes
-  // rendering the same string, which would make a value query ambiguous.
-  it('labels the last point directly, so the headline value needs no hover', () => {
-    const { container } = chart();
-    expect(container.querySelector('.chart-endpoint')?.textContent).toBe('0.99997');
+  // The endpoint used to be labelled on the plot itself, which cannot work:
+  // valueScale clamps its domain to the data, so a monotone curve's last point
+  // always lands exactly on a plot boundary — the floor for a decay, the
+  // ceiling for a rise. A label anchored there runs left over the incoming
+  // curve, and pushing it outward lands it on the axis row. It reads as the
+  // caption instead, where it costs no plot space and cannot collide.
+  it('names the final value without needing hover', () => {
+    chart();
+    expect(screen.getByText(/ends at 0\.99997/)).toBeTruthy();
   });
 
-  // The label has to dodge the line, and which side is clear depends on the
-  // direction the curve arrives from: a falling curve comes in from above-left,
-  // so the space above the last point is exactly where the line already is.
-  describe('endpoint label placement', () => {
-    const lastPointY = (container: HTMLElement) => {
-      const d = container.querySelector('.chart-line')!.getAttribute('d')!;
-      return Number(d.match(/L([\d.]+) ([\d.]+)$/)![2]);
-    };
-    const labelY = (container: HTMLElement) =>
-      Number(container.querySelector('.chart-endpoint')!.getAttribute('y'));
+  it('draws no label on the plot', () => {
+    const { container } = chart();
+    expect(container.querySelector('.chart-endpoint')).toBeNull();
+  });
 
-    it('sits below the last point on a falling curve', () => {
-      const { container } = chart({ ...series([1, 0.8, 0.6]) });
-      // SVG y grows downward, so "below" is a larger y.
-      expect(labelY(container)).toBeGreaterThan(lastPointY(container));
-    });
+  it('names the metric and the time unit while idle', () => {
+    chart();
+    expect(screen.getByText(/availability/)).toBeTruthy();
+    expect(screen.getByText(/t in h/)).toBeTruthy();
+  });
 
-    it('sits above the last point on a rising curve', () => {
-      const { container } = chart({ ...series([0.6, 0.8, 1]) });
-      expect(labelY(container)).toBeLessThan(lastPointY(container));
-    });
+  // The hovered value replaces it, so the caption never shows two numbers at
+  // once and the reader is never comparing the wrong pair.
+  it('gives the caption over to the hovered value', () => {
+    const { container } = chart();
+    fireEvent.pointerEnter(hitBands(container)[2]);
 
-    it('names the metric and the time unit while idle', () => {
-      chart();
-      expect(screen.getByText(/availability/)).toBeTruthy();
-      expect(screen.getByText(/t in h/)).toBeTruthy();
-    });
+    expect(screen.getByText(/0\.99998413/)).toBeTruthy();
+    expect(screen.queryByText(/ends at/)).toBeNull();
+  });
 
-    // A constant curve is a real result — a system that never leaves its initial
-    // state. It must draw a line, not divide by a zero-height domain.
-    it('renders a flat series without degenerate coordinates', () => {
-      const { container } = chart({ ...series([0.5, 0.5, 0.5]) });
-      const d = container.querySelector('.chart-line')?.getAttribute('d') ?? '';
-      expect(d).not.toContain('NaN');
-      expect(d.length).toBeGreaterThan(0);
-    });
-
-    // At 61 samples the final step is a difference between two plateau values,
-    // which solver round-off can flip either way. The side has to come from the
-    // curve's overall direction, or the label jumps between runs of the same
-    // model and can land on the stroke it is meant to dodge.
-    it('does not flip side when the final step is round-off', () => {
-      const { container } = chart({ ...series([1, 0.9, 0.8, 0.8 + 1e-12]) });
-      // Falling overall, even though the last step ticks up.
-      expect(labelY(container)).toBeGreaterThan(lastPointY(container));
-    });
-    // A falling curve whose last point lands on the bottom gridline pushed the
-    // label below the plot and into the time-axis tick row.
-    it('stays inside the plot when the curve ends at the bottom', () => {
-      const { container } = chart({ ...series([1, 0.5, 0]) });
-      const label = labelY(container);
-      expect(label).toBeLessThan(138); // plot bottom is 132; axis ticks sit at 144
-    });
+  // A constant curve is a real result — a system that never leaves its initial
+  // state. It must draw a line, not divide by a zero-height domain.
+  it('renders a flat series without degenerate coordinates', () => {
+    const { container } = chart({ ...series([0.5, 0.5, 0.5]) });
+    const d = container.querySelector('.chart-line')?.getAttribute('d') ?? '';
+    expect(d).not.toContain('NaN');
+    expect(d.length).toBeGreaterThan(0);
   });
 
   // An empty series is not a curve. It reached here as a TypeError, because the
@@ -162,6 +140,83 @@ describe('TimeSeriesChart', () => {
   it('renders a single sample without crashing', () => {
     const { container } = chart({ ...series([0.5]) });
     expect(container.querySelector('.chart-line')?.getAttribute('d')).not.toContain('NaN');
+  });
+
+  // The gutter holding the y-axis labels was a fixed 44 units, documented as
+  // fitting a 5-decimal label. Both directions were wrong: a span just above the
+  // noise floor needs ten decimals and overflowed it, while the common cases
+  // (0.0 .. 1.0) need three and left most of it empty. It is measured now, so
+  // labels fit without the plot paying for width nothing uses.
+  describe('the y-axis gutter', () => {
+    /** Where the plot starts — the left end of the gridlines. */
+    const gutterOf = (container: HTMLElement) =>
+      Number(container.querySelector('.chart-axis line')!.getAttribute('x1'));
+
+    const widestLabel = (container: HTMLElement) =>
+      Array.from(container.querySelectorAll('.chart-axis text'))
+        .map((t) => t.textContent ?? '')
+        .reduce((a, b) => (b.length > a.length ? b : a), '');
+
+    /**
+     * Rendered width of a label at the 8px axis font.
+     *
+     * These advances were measured in a browser against the real face (IBM Plex
+     * Sans, tabular figures), and are restated here rather than imported from
+     * the component on purpose: a regression in its own width table should fail
+     * this test rather than move it.
+     */
+    const renderedWidth = (label: string) =>
+      [...label].reduce((w, ch) => w + (ch === '.' ? 2.3 : ch === '-' ? 3.0 : 4.85), 0);
+
+    it('fits a ten-decimal label without clipping it', () => {
+      // Just above the 1e-9 noise floor, so the ticks need every decimal.
+      const { container } = chart({ ...series([1 - 1.1e-9, 1 - 5e-10, 1]) });
+      const label = widestLabel(container);
+
+      expect(label.length).toBeGreaterThan(9);
+      expect(gutterOf(container)).toBeGreaterThanOrEqual(renderedWidth(label));
+    });
+
+    it('gives the room back when the labels are short', () => {
+      const { container } = chart({ ...series([0, 0.5, 1]) });
+
+      expect(widestLabel(container).length).toBeLessThan(5);
+      // Narrower than the old fixed 44, so the plot is wider than it used to be.
+      expect(gutterOf(container)).toBeLessThan(44);
+    });
+
+    // Growing without limit would just move the crowding into the plot.
+    it('stays within a bounded share of the width', () => {
+      for (const values of [
+        [1 - 1.1e-9, 1],
+        [1e-6, 1e-6 + 4e-12],
+        [0.99996825, 1],
+        [0, 1],
+        [-12345.6, 98765.4],
+      ]) {
+        const { container } = chart({ ...series(values) });
+        const gutter = gutterOf(container);
+        expect(gutter).toBeGreaterThanOrEqual(18);
+        expect(gutter).toBeLessThanOrEqual(64);
+        cleanup();
+      }
+    });
+
+    it('keeps every tick label clear of the left edge', () => {
+      for (const values of [
+        [1 - 1.1e-9, 1],
+        [1e-6, 1e-6 + 4e-12],
+        [0, 1],
+      ]) {
+        const { container } = chart({ ...series(values) });
+        for (const text of Array.from(container.querySelectorAll('.chart-axis text'))) {
+          const anchorX = Number(text.getAttribute('x'));
+          // Anchored `end`, so the label runs leftward from its x.
+          expect(anchorX - renderedWidth(text.textContent ?? '')).toBeGreaterThanOrEqual(0);
+        }
+        cleanup();
+      }
+    });
   });
 
   it('describes itself for a screen reader', () => {

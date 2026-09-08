@@ -38,11 +38,19 @@ const TARGET_TICKS = 4;
 const NOISE_FLOOR = 1e-9;
 
 /**
- * Most decimals a fixed-notation tick may use. Also toFixed's hard ceiling is
- * 100, past which it throws — which took the whole panel down from inside the
- * tick loop.
+ * Most decimals a fixed-notation tick may use.
+ *
+ * Ten is what NOISE_FLOOR implies rather than a taste: a span at the floor on a
+ * magnitude-1 value gives a step of ~2e-10, so ten decimals is the most a
+ * near-1 axis can legitimately need, and its widest label ("0.9999999989") is
+ * what the chart's gutter is sized to hold. Anything needing more has a small
+ * magnitude, where exponential is both shorter and the clearer reading —
+ * whereas exponential on a near-1 value would render every tick as "1.000e+0".
+ *
+ * Also a ceiling: toFixed throws past 100 digits, which took the whole panel
+ * down from inside the tick loop.
  */
-const MAX_DECIMALS = 12;
+const MAX_DECIMALS = 10;
 
 /**
  * Round a raw step up to a 1-2-5 multiple of a power of ten, so ticks land on

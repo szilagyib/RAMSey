@@ -10,10 +10,45 @@ import { valueScale, timeScale } from '../../lib/chartScale';
 // ---------------------------------------------------------------------------
 
 const VIEW = { w: 280, h: 150 };
-/** Left gutter fits a 5-decimal tick label; the bottom band fits the time row. */
-const PAD = { top: 8, right: 10, bottom: 18, left: 44 };
-const PLOT_W = VIEW.w - PAD.left - PAD.right;
+/** The bottom band fits the time row; the left gutter is measured per render. */
+const PAD = { top: 8, right: 10, bottom: 18 };
 const PLOT_H = VIEW.h - PAD.top - PAD.bottom;
+
+/** Gap between a y-axis label and the plot it labels. */
+const LABEL_INSET = 4;
+/** Clearance kept left of the widest label, so it never sits on the edge. */
+const LABEL_MARGIN = 2;
+
+/**
+ * Bounds on the y-axis gutter.
+ *
+ * A fixed gutter was wrong in both directions: it was documented as fitting a
+ * 5-decimal label, so a span just above the noise floor overflowed it (labels
+ * ran 19 units past the left edge and were clipped), while the ordinary
+ * 0.0…1.0 case needed a third of it and the plot paid for the rest.
+ *
+ * Measured instead, and bounded: the maximum holds the widest label the scale
+ * can produce — ten decimals, see MAX_DECIMALS — and refuses to grow past it,
+ * since a gutter that expands without limit just moves the crowding into the
+ * plot. The minimum keeps short labels off the gridlines.
+ */
+const GUTTER = { min: 20, max: 64 };
+
+/**
+ * Rendered width of a numeric label at the 8px axis font, in viewBox units.
+ *
+ * Measured from the real face (IBM Plex Sans, tabular figures): digits share
+ * one advance, and the separators are narrower. Estimated rather than measured
+ * live because the alternative is a DOM round-trip per render to place an axis.
+ */
+const CHAR_WIDTH: Record<string, number> = { '.': 2.3, ',': 2.3, '-': 3.0, '+': 3.0, e: 4.3 };
+const DIGIT_WIDTH = 4.85;
+
+function labelWidth(label: string): number {
+  let width = 0;
+  for (const ch of label) width += CHAR_WIDTH[ch] ?? DIGIT_WIDTH;
+  return width;
+}
 
 export interface TimeSeriesChartProps {
   /** Sample times, ascending. */
@@ -43,34 +78,26 @@ export function TimeSeriesChart({ time, values, valueLabel, timeUnit }: TimeSeri
   const y = valueScale(Math.min(...values), Math.max(...values));
   const x = timeScale(time[0], time[time.length - 1]);
 
+  // Sized to the labels this particular series produces, so they always fit and
+  // never reserve room they do not use.
+  const gutter = Math.min(
+    GUTTER.max,
+    Math.max(
+      GUTTER.min,
+      Math.max(...y.ticks.map((t) => labelWidth(y.format(t)))) + LABEL_INSET + LABEL_MARGIN,
+    ),
+  );
+  const plotW = VIEW.w - gutter - PAD.right;
+
   // spread() in chartScale guarantees a non-zero span on both axes, so a flat
   // series or a single sample scales instead of dividing by zero.
-  const px = (t: number) => PAD.left + ((t - x.min) / (x.max - x.min)) * PLOT_W;
+  const px = (t: number) => gutter + ((t - x.min) / (x.max - x.min)) * plotW;
   const py = (v: number) => PAD.top + (1 - (v - y.min) / (y.max - y.min)) * PLOT_H;
 
   const line = values.map((v, i) => `${i === 0 ? 'M' : 'L'}${px(time[i])} ${py(v)}`).join(' ');
-  const band = PLOT_W / Math.max(1, values.length - 1);
+  const band = plotW / Math.max(1, values.length - 1);
 
   const last = values.length - 1;
-  // The label has to dodge the line, and the clear side depends on where the
-  // curve arrives from: a falling curve comes in from above-left, so the space
-  // above the last point is already occupied. Flat and rising curves leave it
-  // free.
-  //
-  // Judged against the curve's overall direction, not its final step: across 61
-  // samples that last step is the gap between two plateau values, which solver
-  // round-off can flip either way, so the label would change sides between runs
-  // of the same model.
-  const endpointFalling = values.length > 1 && values[last] < values[0];
-
-  /**
-   * Keep the endpoint label inside the plot band.
-   *
-   * `valueScale` clamps its domain to the data, so a monotone decay can end
-   * exactly on the bottom gridline — and the label's downward offset then put
-   * it on the time-axis tick row underneath.
-   */
-  const endpointY = Math.min(py(values[last]) + (endpointFalling ? 11 : -6), PAD.top + PLOT_H);
 
   const step = (delta: number) =>
     setActive((current) => {
@@ -78,9 +105,21 @@ export function TimeSeriesChart({ time, values, valueLabel, timeUnit }: TimeSeri
       return Math.min(last, Math.max(0, current + delta));
     });
 
+  /**
+   * Idle, this names the series and where it ends; hovering hands it over to
+   * the point under the pointer.
+   *
+   * The final value lives here rather than on the plot because valueScale
+   * clamps its domain to the data, so a monotone curve's last point sits
+   * exactly on a plot boundary — a label anchored there runs back over the
+   * incoming curve, and pushing it clear lands it on the axis row. In the
+   * caption it costs no plot width, which matters on a panel this narrow, and
+   * it cannot collide with anything. The value stays reachable at full
+   * precision by hover, by keyboard, and in the values table.
+   */
   const readout =
     active === null
-      ? `${valueLabel} · t in ${timeUnit}`
+      ? `${valueLabel} · ends at ${y.format(values[last])} · t in ${timeUnit}`
       : `t = ${exact(time[active], x.decimals)} ${timeUnit} · ${exact(values[active], y.decimals)}`;
 
   return (
@@ -129,8 +168,8 @@ export function TimeSeriesChart({ time, values, valueLabel, timeUnit }: TimeSeri
           {y.ticks.map((tick) => (
             <g key={tick}>
               <line
-                x1={PAD.left}
-                x2={PAD.left + PLOT_W}
+                x1={gutter}
+                x2={gutter + plotW}
                 y1={py(tick)}
                 y2={py(tick)}
                 className="text-surface-200"
@@ -139,7 +178,7 @@ export function TimeSeriesChart({ time, values, valueLabel, timeUnit }: TimeSeri
                 vectorEffect="non-scaling-stroke"
               />
               <text
-                x={PAD.left - 4}
+                x={gutter - LABEL_INSET}
                 y={py(tick)}
                 textAnchor="end"
                 dominantBaseline="middle"
@@ -174,17 +213,6 @@ export function TimeSeriesChart({ time, values, valueLabel, timeUnit }: TimeSeri
           vectorEffect="non-scaling-stroke"
         />
 
-        {/* Direct label on the last point, at tick precision: the headline
-            value is readable without hovering anything. */}
-        <text
-          className="chart-endpoint fill-surface-600 text-[8px] font-medium tabular-nums"
-          x={px(time[last])}
-          y={endpointY}
-          textAnchor="end"
-        >
-          {y.format(values[last])}
-        </text>
-
         {active !== null && (
           <g>
             <line
@@ -216,7 +244,7 @@ export function TimeSeriesChart({ time, values, valueLabel, timeUnit }: TimeSeri
           <rect
             key={i}
             className="chart-hit"
-            x={Math.max(PAD.left, px(time[i]) - band / 2)}
+            x={Math.max(gutter, px(time[i]) - band / 2)}
             y={PAD.top}
             width={band}
             height={PLOT_H}
