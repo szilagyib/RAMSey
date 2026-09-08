@@ -6,7 +6,7 @@ import type {
   Solver,
   Warning,
 } from './interface.js';
-import { matExp, matvec, solveLinear, type Matrix } from './linalg.js';
+import { matExp, matvec, multiply, solveLinear, type Matrix } from './linalg.js';
 import { resolveValue } from './valueref.js';
 import { buildResponse, errorResponse } from './response.js';
 
@@ -101,6 +101,25 @@ function steadyMetrics(
 function missionTimeOf(req: AnalyzeRequest, warnings: Warning[]): number {
   const ref = req.options.missionTime ?? req.modelIR.missionTime;
   return resolveValue(ref, req.modelIR.parameters, warnings, 'mission time', 0);
+}
+
+/**
+ * The common spacing of an evenly spaced, ascending grid — or null if the grid
+ * is not one.
+ *
+ * `timePoints` is an arbitrary array on the API, so even spacing is something to
+ * detect rather than assume, even though the panel's linspace always sends it.
+ * The tolerance is relative because linspace computes each point independently
+ * and its gaps differ in the last bits.
+ */
+function uniformStep(times: number[]): number | null {
+  if (times.length < 3) return null; // nothing to amortise over
+  const step = times[1] - times[0];
+  if (!(step > 0)) return null;
+  for (let i = 2; i < times.length; i++) {
+    if (Math.abs(times[i] - times[i - 1] - step) > step * 1e-9) return null;
+  }
+  return step;
 }
 
 function transpose(a: Matrix): Matrix {
@@ -222,10 +241,21 @@ export class MarkovSolver implements Solver {
         const times = req.options.timePoints?.length ? req.options.timePoints : [mt];
         const p0 = initialDist(ir, index);
         const availability: number[] = [];
-        for (const t of times) {
-          const P = matExp(Q, t);
+
+        // On an evenly spaced grid one exponential serves the whole sweep:
+        // P(t_i) = P(t_{i-1})·exp(Q·Δt). That trades 61 uniformization series
+        // (each with its own squaring chain) for one, plus a matrix multiply per
+        // point. Safe to step rather than re-solve because a product of
+        // stochastic matrices is stochastic, so the per-step rounding stays at
+        // the level of the multiply itself rather than compounding.
+        const step = uniformStep(times);
+        const stride = step === null ? null : matExp(Q, step);
+
+        let P: Matrix | null = null;
+        for (let i = 0; i < times.length; i++) {
+          P = stride === null || i === 0 ? matExp(Q, times[i]) : multiply(P!, stride);
           const pt = matvec(transpose(P), p0);
-          availability.push(ir.states.reduce((s, _st, i) => (isUp(ir, i) ? s + pt[i] : s), 0));
+          availability.push(ir.states.reduce((s, _st, j) => (isUp(ir, j) ? s + pt[j] : s), 0));
         }
         return buildResponse({
           ...base,

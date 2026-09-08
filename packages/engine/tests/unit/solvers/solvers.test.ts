@@ -259,6 +259,42 @@ describe('Markov solver', () => {
     close(avail[1], expected, 1e-6);
   });
 
+  // A uniform grid lets one exp(Q·Δt) serve every point, stepped forward by
+  // multiplication instead of solving the exponential 61 times over. The saving
+  // is only sound if every point still lands on the closed form — stepping
+  // accumulates its own rounding — so this checks all of them, not just the last.
+  describe('transient over a uniform grid', () => {
+    const closedForm = (t: number) =>
+      mu / (lambda + mu) + (lambda / (lambda + mu)) * Math.exp(-(lambda + mu) * t);
+
+    it('matches the closed form at every point', async () => {
+      const timePoints = Array.from({ length: 61 }, (_, i) => (8760 * i) / 60);
+      const r = await analyze(req(repairable(lambda, mu), 'transient', { timePoints }));
+      const avail = r.metrics.availability as number[];
+
+      expect(avail).toHaveLength(timePoints.length);
+      timePoints.forEach((t, i) => close(avail[i], closedForm(t), 1e-9));
+    });
+
+    // timePoints is an arbitrary array on the API, so the even spacing the panel
+    // happens to send is not something the solver may assume.
+    it('matches the closed form on an uneven grid too', async () => {
+      const timePoints = [0, 1, 7, 100, 2500, 8760];
+      const r = await analyze(req(repairable(lambda, mu), 'transient', { timePoints }));
+      const avail = r.metrics.availability as number[];
+
+      timePoints.forEach((t, i) => close(avail[i], closedForm(t), 1e-9));
+    });
+
+    it('handles a grid that does not start at zero', async () => {
+      const timePoints = [100, 200, 300, 400];
+      const r = await analyze(req(repairable(lambda, mu), 'transient', { timePoints }));
+      const avail = r.metrics.availability as number[];
+
+      timePoints.forEach((t, i) => close(avail[i], closedForm(t), 1e-9));
+    });
+  });
+
   it('MTTF = 1/λ for a single failure transition to an absorbing state', async () => {
     const r = await analyze(req(absorbing(lambda), 'mttf'));
     expect(r.status).toBe('success');
