@@ -485,6 +485,9 @@ export function Toolbar({
         {
           label: 'Auto Layout',
           onClick: handleAutoLayout,
+          // The ref guard already ignores a second run started from here; this
+          // is what says so, the way the toolbar button does.
+          disabled: layingOut,
         },
       ],
     },

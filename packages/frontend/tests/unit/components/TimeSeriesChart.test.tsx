@@ -142,6 +142,13 @@ describe('TimeSeriesChart', () => {
       // Falling overall, even though the last step ticks up.
       expect(labelY(container)).toBeGreaterThan(lastPointY(container));
     });
+    // A falling curve whose last point lands on the bottom gridline pushed the
+    // label below the plot and into the time-axis tick row.
+    it('stays inside the plot when the curve ends at the bottom', () => {
+      const { container } = chart({ ...series([1, 0.5, 0]) });
+      const label = labelY(container);
+      expect(label).toBeLessThan(138); // plot bottom is 132; axis ticks sit at 144
+    });
   });
 
   // An empty series is not a curve. It reached here as a TypeError, because the

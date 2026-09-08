@@ -212,6 +212,34 @@ describe('Toolbar — Auto Layout', () => {
     expect(useDiagramStore.getState().undoStack).toHaveLength(1);
   });
 
+  // The guard covers the menu entry, but nothing told the user: the toolbar
+  // button greys out and reads "Laying out…" while the menu item still looked
+  // live and silently did nothing — the same "makes the button look broken"
+  // complaint the failure path already answers.
+  it('disables the View-menu entry while a layout is in flight', async () => {
+    const layout = deferred<Node[]>();
+    mocks.autoLayout.mockReturnValue(layout.promise);
+
+    renderToolbar();
+    act(() => {
+      fireEvent.click(autoLayoutButton());
+    });
+
+    const menuEntry = () =>
+      screen.getByRole('button', { name: 'Auto Layout' }) as HTMLButtonElement;
+
+    fireEvent.click(screen.getByRole('button', { name: 'View' }));
+    expect(menuEntry().disabled).toBe(true);
+
+    await act(async () => {
+      layout.resolve([node('a', 100, 0), node('b', 300, 0)]);
+      await layout.promise;
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'View' }));
+    expect(menuEntry().disabled).toBe(false);
+  });
+
   it('allows a new run once the previous one has finished', async () => {
     mocks.autoLayout.mockResolvedValue([node('a', 100, 0), node('b', 300, 0)]);
 

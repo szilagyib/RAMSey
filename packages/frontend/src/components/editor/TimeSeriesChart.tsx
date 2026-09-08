@@ -63,6 +63,15 @@ export function TimeSeriesChart({ time, values, valueLabel, timeUnit }: TimeSeri
   // of the same model.
   const endpointFalling = values.length > 1 && values[last] < values[0];
 
+  /**
+   * Keep the endpoint label inside the plot band.
+   *
+   * `valueScale` clamps its domain to the data, so a monotone decay can end
+   * exactly on the bottom gridline — and the label's downward offset then put
+   * it on the time-axis tick row underneath.
+   */
+  const endpointY = Math.min(py(values[last]) + (endpointFalling ? 11 : -6), PAD.top + PLOT_H);
+
   const step = (delta: number) =>
     setActive((current) => {
       if (current === null) return delta > 0 ? 0 : last;
@@ -170,7 +179,7 @@ export function TimeSeriesChart({ time, values, valueLabel, timeUnit }: TimeSeri
         <text
           className="chart-endpoint fill-surface-600 text-[8px] font-medium tabular-nums"
           x={px(time[last])}
-          y={py(values[last]) + (endpointFalling ? 11 : -6)}
+          y={endpointY}
           textAnchor="end"
         >
           {y.format(values[last])}
