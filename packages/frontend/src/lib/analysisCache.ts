@@ -15,14 +15,13 @@ const MAX_ENTRIES = 50;
  * Entries are keyed by the model's content hash, which says nothing about the
  * solver that produced the numbers — so a solver correctness fix cannot reach
  * anyone holding a cached result: the model is unchanged, the key still matches,
- * and the panel keeps serving the old numbers labelled "model unchanged". Bump
- * STORE_KEY when solver numerics change (v2: the Markov matrix exponential
- * returned zeros past Λ·t > 745); anything else under this prefix is a
- * superseded store and gets cleared.
+ * and the panel keeps serving the old numbers labelled "model unchanged".
  *
- * Matching on the prefix rather than naming the predecessor covers a browser
- * that skipped a version — naming only v1 would strand v0 entries forever,
- * which is the leak this exists to prevent.
+ * That is now handled by the key, which carries the solver version, so no
+ * future bump is needed. This prefix covers the one-time migration off v1,
+ * whose entries have no version segment and are dead weight in browsers that
+ * ran the old code. Matching the prefix rather than naming v1 also covers a
+ * browser that skipped a version.
  */
 const STORE_KEY_PREFIX = 'ramsey.analysisCache';
 
@@ -76,8 +75,20 @@ function persist(entries: CacheEntry[]): void {
   }
 }
 
-function makeKey(diagramId: string, method: string, contentHash: string): string {
-  return `${diagramId}:${method}:${contentHash}`;
+/**
+ * A cache key has to name everything the result depends on. The model hash
+ * fingerprints the model; the solver version fingerprints the code that turned
+ * it into numbers. Leaving the latter out is what made a numerics fix unable to
+ * reach anyone holding a cached result — the model was unchanged, so the entry
+ * still matched and the old numbers kept being served as "model unchanged".
+ */
+function makeKey(
+  diagramId: string,
+  method: string,
+  contentHash: string,
+  solverVersion: string,
+): string {
+  return `${diagramId}:${method}:${contentHash}:${solverVersion}`;
 }
 
 /** A cached result for an exact (diagram, method, model-state), or null. */
@@ -85,8 +96,9 @@ export function getCachedResult(
   diagramId: string,
   method: AnalysisMethod,
   contentHash: string,
+  solverVersion: string,
 ): AnalyzeResponse | null {
-  const key = makeKey(diagramId, method, contentHash);
+  const key = makeKey(diagramId, method, contentHash, solverVersion);
   return load().find((e) => e.key === key)?.response ?? null;
 }
 
@@ -98,7 +110,9 @@ export function setCachedResult(
   response: AnalyzeResponse,
   now: number = Date.now(),
 ): void {
-  const key = makeKey(diagramId, method, contentHash);
+  // Taken from the response rather than asked for: the solver that answered is
+  // the authority on which version produced these numbers.
+  const key = makeKey(diagramId, method, contentHash, response.solver.version);
   let entries = load().filter((e) => e.key !== key);
   entries.push({ key, diagramId, method, response, at: now });
   if (entries.length > MAX_ENTRIES) {
@@ -107,9 +121,17 @@ export function setCachedResult(
   persist(entries);
 }
 
-/** The most recently stored result for a diagram (any method), or null. */
-export function getLatestResult(diagramId: string): CacheEntry | null {
-  const entries = load().filter((e) => e.diagramId === diagramId);
+/**
+ * The most recently stored result for a diagram (any method), or null.
+ *
+ * Filtered by solver version like the keyed lookup: restoring a panel with
+ * numbers from a superseded solver would reintroduce exactly what keying them
+ * out prevents.
+ */
+export function getLatestResult(diagramId: string, solverVersion: string): CacheEntry | null {
+  const entries = load().filter(
+    (e) => e.diagramId === diagramId && e.response.solver.version === solverVersion,
+  );
   if (entries.length === 0) return null;
   return entries.reduce((latest, e) => (e.at > latest.at ? e : latest));
 }

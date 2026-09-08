@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { StrictMode } from 'react';
 import { render, screen, cleanup, fireEvent, act } from '@testing-library/react';
-import type { AnalyzeResponse } from '@ramsey/engine';
+import { getSolver, type AnalyzeResponse, type DiagramType } from '@ramsey/engine';
 
 const mocks = vi.hoisted(() => ({
   runAnalysis: vi.fn(),
@@ -43,7 +43,13 @@ import { setCachedResult } from '../../../src/lib/analysisCache';
 function response(method: string, metrics: Record<string, number | number[]>): AnalyzeResponse {
   return {
     status: 'success',
-    solver: { name: 'test', version: '1.0.0' },
+    // Cached results are keyed by solver version, so a stored result has to
+    // carry the version the panel will look for — that of the solver which
+    // would actually run for this diagram type.
+    solver: {
+      name: 'test',
+      version: getSolver(mocks.diagramType as DiagramType)?.version ?? 'none',
+    },
     modelIRVersion: '1.0.0',
     contentHash: 'hash',
     metrics,

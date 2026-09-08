@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Play, ChevronDown, ChevronRight } from 'lucide-react';
-import { contentHash, type AnalysisMethod, type AnalyzeResponse } from '@ramsey/engine';
+import {
+  contentHash,
+  getSolver,
+  type AnalysisMethod,
+  type AnalyzeResponse,
+  type DiagramType,
+} from '@ramsey/engine';
 import { useDiagramStore } from '../../stores/diagramStore';
 import { runAnalysis } from '../../lib/analysisClient';
 import { getCachedResult, setCachedResult, getLatestResult } from '../../lib/analysisCache';
@@ -96,6 +102,10 @@ export function AnalysisPanel({ projectId, diagramId }: AnalysisPanelProps) {
   const diagramType = useDiagramStore((s) => s.diagramType);
 
   const methods = METHODS_BY_TYPE[diagramType];
+  // Cached results are keyed by the solver version that produced them, so a
+  // numerics fix invalidates them without anyone having to remember a step.
+  // No solver (FMEA) means nothing is analysable and nothing is cached.
+  const solverVersion = getSolver(diagramType as DiagramType)?.version ?? 'none';
   const [selectedMethod, setMethod] = useState<AnalysisMethod>(methods?.[0]?.[0] ?? 'availability');
   // Navigating to a diagram of a different type does not remount this panel, so
   // the selection can outlive its option list. A <select> whose value matches no
@@ -126,7 +136,7 @@ export function AnalysisPanel({ projectId, diagramId }: AnalysisPanelProps) {
   useEffect(() => {
     if (!diagramId || restoredFor.current === diagramId) return;
     restoredFor.current = diagramId;
-    const latest = getLatestResult(diagramId);
+    const latest = getLatestResult(diagramId, solverVersion);
     setResult(latest?.response ?? null);
     setCached(Boolean(latest));
     setGuard(null);
@@ -188,7 +198,7 @@ export function AnalysisPanel({ projectId, diagramId }: AnalysisPanelProps) {
       const hash = contentHash(ir);
       // Return a cached result if this exact model+method was already solved.
       if (diagramId) {
-        const hit = getCachedResult(diagramId, method, hash);
+        const hit = getCachedResult(diagramId, method, hash, solverVersion);
         if (hit) {
           setResult(hit);
           setCached(true);

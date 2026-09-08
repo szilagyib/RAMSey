@@ -42,24 +42,44 @@ describe('analysisCache', () => {
   beforeEach(() => localStorage.clear());
 
   it('round-trips a result by (diagram, method, hash)', () => {
-    expect(getCachedResult('d1', 'availability', 'hashA')).toBeNull();
+    expect(getCachedResult('d1', 'availability', 'hashA', '1')).toBeNull();
     setCachedResult('d1', 'availability', 'hashA', resp(0.9));
-    expect(getCachedResult('d1', 'availability', 'hashA')?.metrics.availability).toBe(0.9);
+    expect(getCachedResult('d1', 'availability', 'hashA', '1')?.metrics.availability).toBe(0.9);
   });
 
   it('isolates entries by method and by hash', () => {
     setCachedResult('d1', 'availability', 'hashA', resp(0.9));
-    expect(getCachedResult('d1', 'reliability', 'hashA')).toBeNull(); // different method
-    expect(getCachedResult('d1', 'availability', 'hashB')).toBeNull(); // different model state
+    expect(getCachedResult('d1', 'reliability', 'hashA', '1')).toBeNull(); // different method
+    expect(getCachedResult('d1', 'availability', 'hashB', '1')).toBeNull(); // different model state
   });
 
   it('returns the most recent result for a diagram', () => {
     setCachedResult('d1', 'availability', 'hashA', resp(0.9), 1000);
     setCachedResult('d1', 'reliability', 'hashB', resp(0.5), 2000);
-    const latest = getLatestResult('d1');
+    const latest = getLatestResult('d1', '1');
     expect(latest?.method).toBe('reliability');
     expect(latest?.response.metrics.availability).toBe(0.5);
-    expect(getLatestResult('other')).toBeNull();
+    expect(getLatestResult('other', '1')).toBeNull();
+  });
+
+  // A model hash fingerprints the model, not the code that solved it — so a
+  // numerics fix could never reach anyone holding a cached result: the model is
+  // unchanged, the key still matches, and the panel keeps serving the old
+  // numbers under a "model unchanged" label. Every response already stamps the
+  // solver version for exactly this reason; the key now uses it, so a bumped
+  // solver misses instead of needing anyone to remember a manual step.
+  describe('results from a superseded solver version', () => {
+    it('are not served', () => {
+      setCachedResult('d1', 'availability', 'hashA', resp(0.9));
+      expect(getCachedResult('d1', 'availability', 'hashA', '1')?.metrics.availability).toBe(0.9);
+      expect(getCachedResult('d1', 'availability', 'hashA', '2')).toBeNull();
+    });
+
+    it('are not restored as the latest result either', () => {
+      setCachedResult('d1', 'availability', 'hashA', resp(0.9));
+      expect(getLatestResult('d1', '1')).not.toBeNull();
+      expect(getLatestResult('d1', '2')).toBeNull();
+    });
   });
 
   // Entries are keyed by the model's content hash, which says nothing about the
@@ -82,8 +102,8 @@ describe('analysisCache', () => {
 
     it('are not served', () => {
       localStorage.setItem('ramsey.analysisCache.v1', legacyEntry());
-      expect(getCachedResult('d1', 'transient', 'hashA')).toBeNull();
-      expect(getLatestResult('d1')).toBeNull();
+      expect(getCachedResult('d1', 'transient', 'hashA', '1')).toBeNull();
+      expect(getLatestResult('d1', '1')).toBeNull();
     });
 
     it('are cleared out rather than left in storage forever', () => {
@@ -128,7 +148,7 @@ describe('analysisCache', () => {
       expect(() => clearSupersededStores()).not.toThrow();
       removeItem.mockRestore();
 
-      expect(getCachedResult('d1', 'availability', 'hashA')?.metrics.availability).toBe(0.9);
+      expect(getCachedResult('d1', 'availability', 'hashA', '1')?.metrics.availability).toBe(0.9);
     });
 
     // Reading the cache should not write to it. The cleanup ran unconditionally
@@ -138,8 +158,8 @@ describe('analysisCache', () => {
       setCachedResult('d1', 'availability', 'hashA', resp(0.9));
       const removeItem = vi.spyOn(Storage.prototype, 'removeItem');
 
-      getCachedResult('d1', 'availability', 'hashA');
-      getLatestResult('d1');
+      getCachedResult('d1', 'availability', 'hashA', '1');
+      getLatestResult('d1', '1');
 
       expect(removeItem).not.toHaveBeenCalled();
       removeItem.mockRestore();
