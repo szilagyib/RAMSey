@@ -17,6 +17,12 @@ async function start(): Promise<void> {
     const rateLimitRedis = new Redis(env.REDIS_URL, {
       connectTimeout: 500,
       maxRetriesPerRequest: 1,
+      // Without this, a command issued while the client is between reconnect
+      // attempts is QUEUED until the next attempt resolves. ioredis backs off up
+      // to 2s per retry, so with Redis down every rate-limited request — which
+      // is every route — stalled for seconds before the limiter could fail open.
+      // Measured at 2-4s per request against a dead Redis; ~10ms with this set.
+      enableOfflineQueue: false,
     });
     rateLimitRedis.on('error', (err: Error) => logger.warn({ err }, 'rate-limit Redis error'));
 
