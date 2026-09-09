@@ -124,17 +124,43 @@ jobs:
           node-version: 22
           cache: npm
 
-      # The export is only as good as the document it produces, and every defect
-      # this suite has caught was invisible until something compiled it: a raw
+      # TeX Live is the heaviest thing in this workflow, so its .debs are
+      # cached and only downloaded when the package list below changes — the
+      # key hashes this file, so editing the list invalidates it on its own.
+      # A miss costs what it always did; a hit skips the download and only
+      # unpacks.
+      - name: Cache the LaTeX packages
+        uses: actions/cache@v4
+        # The cache is an optimisation, not a correctness requirement: if it is
+        # unavailable for any reason the install below simply downloads as it
+        # always did. Non-fatal on purpose, because this job gates `build` and a
+        # caching hiccup must never be the thing that blocks a deploy.
+        continue-on-error: true
+        with:
+          path: ~/apt-archives
+          key: apt-texlive-${{ runner.os }}-${{ hashFiles('.github/workflows/ci.yml') }}
+
+      # The export is only as good as the document it produces, and every
+      # defect it has had was invisible until something compiled it: a raw
       # Greek letter aborted the build, boxes printed over their neighbours,
       # nodes drifted off the layout the user drew. So CI compiles it.
       #
-      # base = pdflatex, extra = the standalone class and booktabs, pictures =
-      # pgf/tikz and the logic-gate shapes the fault-tree export draws with.
+      # base = pdflatex, extra = the standalone class and booktabs, pictures
+      # = pgf/tikz including the logic-gate shapes the fault-tree export
+      # draws with.
       - name: Install a LaTeX toolchain
         run: |
+          mkdir -p ~/apt-archives/partial
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends             texlive-latex-base texlive-latex-extra texlive-pictures             texlive-fonts-recommended
+          sudo apt-get install -y --no-install-recommends \
+            -o Dir::Cache::archives="$HOME/apt-archives" \
+            texlive-latex-base \
+            texlive-latex-extra \
+            texlive-pictures \
+            texlive-fonts-recommended
+          # apt runs as root and takes the directory with it; hand it back so
+          # the cache step can read what it just downloaded.
+          sudo chown -R "$USER" ~/apt-archives
 
       - name: Install dependencies
         run: npm ci
