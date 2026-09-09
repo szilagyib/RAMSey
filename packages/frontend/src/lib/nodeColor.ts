@@ -128,7 +128,12 @@ export function nodeColorStyle(
   if (border !== null) style.borderColor = border;
 
   const resolvedFill = fill ?? (border !== null ? tintFill(border) : defaultFill);
-  if (resolvedFill !== undefined) style.background = withAlpha(resolvedFill, opacity);
+  // The longhand, deliberately. Node bodies set `backgroundColor` themselves, and
+  // React diffs inline styles one property at a time: emitting the `background`
+  // shorthand here meant that when this style went away — undoing a fade, say —
+  // React removed the shorthand, which clears the longhand underneath it, and
+  // the node lost its fill and rendered transparent.
+  if (resolvedFill !== undefined) style.backgroundColor = withAlpha(resolvedFill, opacity);
 
   if (text !== null) style.color = text;
   else if (border !== null || fill !== null) style.color = 'var(--dg-undeveloped-text)';
