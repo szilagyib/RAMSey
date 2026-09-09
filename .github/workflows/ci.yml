@@ -111,10 +111,44 @@ jobs:
       - name: Run frontend tests
         run: npx vitest run --project frontend-unit
 
+  test-latex:
+    name: Test LaTeX Export
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      # The export is only as good as the document it produces, and every defect
+      # this suite has caught was invisible until something compiled it: a raw
+      # Greek letter aborted the build, boxes printed over their neighbours,
+      # nodes drifted off the layout the user drew. So CI compiles it.
+      #
+      # base = pdflatex, extra = the standalone class and booktabs, pictures =
+      # pgf/tikz and the logic-gate shapes the fault-tree export draws with.
+      - name: Install a LaTeX toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends             texlive-latex-base texlive-latex-extra texlive-pictures             texlive-fonts-recommended
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build shared engine
+        run: npm run build:engine
+
+      - name: Compile the exported diagrams
+        run: npm run test:latex
+
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [lint, typecheck, test-engine, test-backend, test-frontend]
+    needs: [lint, typecheck, test-engine, test-backend, test-frontend, test-latex]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7

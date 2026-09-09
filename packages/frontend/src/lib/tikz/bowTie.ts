@@ -52,7 +52,8 @@ export function bowTieToTikz(nodes: Node[], edges: Edge[]): string {
     if (isBarrier && d.label) {
       lines.push(
         `  \\node[font=\\scriptsize, text width=${BARRIER_LABEL_WIDTH}cm, align=center, ` +
-          `anchor=north] at ($(${id})+(0,-${BARRIER_LABEL_DROP})$) {${escapeLatex(d.label)}};`,
+          `anchor=north] (${id}_label) at ($(${id})+(0,-${BARRIER_LABEL_DROP})$) ` +
+          `{${escapeLatex(d.label)}};`,
       );
     }
   }

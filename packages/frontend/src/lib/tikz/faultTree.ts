@@ -92,7 +92,8 @@ export function faultTreeToTikz(nodes: Node[], edges: Edge[]): string {
             `minimum size=0.8cm] (${id}) at ${coord(p)} {};`,
         );
         lines.push(
-          `  \\node[font=\\small, anchor=west] at ($(${id})+(${GATE_LABEL_DX},0)$) {${label}};`,
+          `  \\node[font=\\small, anchor=west] (${id}_label) ` +
+            `at ($(${id})+(${GATE_LABEL_DX},0)$) {${label}};`,
         );
       } else {
         // K_OF_N (no native shape): labeled box with a threshold note.
@@ -101,7 +102,8 @@ export function faultTreeToTikz(nodes: Node[], edges: Edge[]): string {
           `  \\node[rectangle, draw, minimum width=1.2cm, minimum height=0.8cm] (${id}) at ${coord(p)} {$\\geq ${k}$};`,
         );
         lines.push(
-          `  \\node[font=\\small, anchor=west] at ($(${id})+(${KN_LABEL_DX},0)$) {${label}};`,
+          `  \\node[font=\\small, anchor=west] (${id}_label) ` +
+            `at ($(${id})+(${KN_LABEL_DX},0)$) {${label}};`,
         );
       }
     } else if (captionsBelow(d.eventType)) {
