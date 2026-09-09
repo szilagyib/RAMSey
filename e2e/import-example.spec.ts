@@ -68,7 +68,9 @@ const CROSS_NOTATION = [
   },
   {
     file: 'rbd-cooling-water.json',
-    type: 'Reliability Block Diagram',
+    // As the type picker labels it — the registry's display name is 'RBD', not
+    // the spelled-out form.
+    type: 'RBD',
     labels: ['IN', 'PMP-A', 'XTIE', 'HX-B', 'OUT'],
   },
   {

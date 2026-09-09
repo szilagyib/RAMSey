@@ -16,7 +16,10 @@ test('palette and inspector collapse, and stay collapsed across a reload', async
   await expect(palette).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Show palette' })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Collapse panel' }).click();
+  // `exact` matters: getByRole matches an accessible name by substring, and the
+  // toolbar's rename button carries this diagram's own name — "Collapse panels"
+  // — which contains "Collapse panel" and made the locator ambiguous.
+  await page.getByRole('button', { name: 'Collapse panel', exact: true }).click();
   await expect(inspector).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Show properties and analysis' })).toBeVisible();
 
