@@ -302,6 +302,22 @@ describe.skipIf(!hasPdflatex)('LaTeX export of the non-diagram paths', () => {
   });
 });
 
+// A kind the exporter does not know can reach it without passing through
+// createNode: an imported file, or properties an AI tool call set. It threw for a
+// bow-tie and wrote `\node[undefined]` for an event tree.
+describe.skipIf(!hasPdflatex)('LaTeX export of a node kind it does not know', () => {
+  it.each([
+    ['event-tree-cooling-loss.json', 'event_tree'],
+    ['bow-tie-cooling-loss.json', 'bow_tie'],
+  ])('compiles %s with one node of an unknown kind', (file, type) => {
+    const doc = loadExample(file);
+    const nodes = doc.nodes.map((n, i) =>
+      i === 0 ? { ...n, data: { ...n.data, nodeKind: 'hazard' } } : n,
+    );
+    expect(() => compile(generateLatex(type, nodes, doc.edges), `unknown-${type}`)).not.toThrow();
+  });
+});
+
 describe.skipIf(!hasPdflatex)('LaTeX export of user-supplied text', () => {
   const base = loadExample('markov-redundant-power.json');
 

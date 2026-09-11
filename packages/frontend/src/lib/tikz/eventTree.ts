@@ -2,6 +2,7 @@ import type { Node, Edge } from '@xyflow/react';
 import type { EventTreeNodeData, EventTreeEdgeData } from '../../types/diagram';
 import { coord, makeTransform } from './coords';
 import { escapeLatex, sanitizeId } from './latex';
+import { hasOwnKey } from '../utils';
 
 /**
  * `text width` rather than `minimum width`, at the width the canvas gives each
@@ -35,8 +36,13 @@ export function eventTreeToTikz(nodes: Node[], edges: Edge[]): string {
   for (const n of nodes) {
     const d = n.data as EventTreeNodeData;
     const p = tf(n);
+    // createNode always sets a known kind, but an imported file or an AI tool
+    // call's properties can carry any string, and an unknown one was written out
+    // as `\node[undefined]`, which LaTeX rejects. It is drawn as a header, the
+    // default kind, instead.
+    const style = hasOwnKey(NODE_STYLE, d.nodeKind) ? NODE_STYLE[d.nodeKind] : NODE_STYLE.header;
     lines.push(
-      `  \\node[${NODE_STYLE[d.nodeKind]}] (${sanitizeId(n.id)}) at ${coord(p)} {${escapeLatex(d.label)}};`,
+      `  \\node[${style}] (${sanitizeId(n.id)}) at ${coord(p)} {${escapeLatex(d.label)}};`,
     );
   }
 

@@ -273,6 +273,16 @@ describe('faultTreeToTikz', () => {
 });
 
 describe('eventTreeToTikz', () => {
+  // A kind can reach the exporter without passing through createNode — an
+  // imported file, or properties an AI tool call set — and an unknown one was
+  // written out as `\node[undefined]`, which LaTeX rejects.
+  it.each(['hazard', 'constructor'])('draws a node of unknown kind %s as a header', (kind) => {
+    const out = eventTreeToTikz([node('x', 0, 0, { label: 'X', nodeKind: kind })], []);
+    expect(out).not.toContain('undefined');
+    expect(out).not.toContain('function');
+    expect(out).toContain('fill=blue!10'); // header
+  });
+
   // `minimum width` is a floor, not a cap, so a box grew to fit its label on one
   // line: "Loss of main cooling water" stretched to ~4.5cm and printed over the
   // node beside it. The canvas wraps inside a fixed-width box, so the export
@@ -320,6 +330,14 @@ describe('rbdToTikz', () => {
 });
 
 describe('bowTieToTikz', () => {
+  // The same way in as the event tree's; here an unknown kind threw instead.
+  it.each(['hazard', 'constructor'])('draws a node of unknown kind %s as a threat', (kind) => {
+    const out = bowTieToTikz([node('x', 0, 0, { label: 'X', nodeKind: kind })], []);
+    expect(out).not.toContain('undefined');
+    expect(out).not.toContain('function');
+    expect(out).toContain('fill=red!15'); // threat
+  });
+
   // A barrier's name used to be rotated onto the bar itself, unbounded, so a
   // 20-character name ran ~0.85cm past each end of a 1.1cm bar and collided
   // with the barriers above and below. It sits below the bar now, wrapped: the

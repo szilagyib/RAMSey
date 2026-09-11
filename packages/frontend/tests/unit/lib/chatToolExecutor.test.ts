@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useDiagramStore } from '../../../src/stores/diagramStore';
 import { executeToolCall } from '../../../src/lib/chatToolExecutor';
 import type { ToolCall } from '../../../src/stores/chatStore';
@@ -10,12 +10,18 @@ vi.mock('../../../src/diagram-types/markov-chain/validation', () => ({
 }));
 
 vi.mock('../../../src/diagram-types/markov-chain/defaults', () => ({
-  createNewState: vi.fn((position: { x: number; y: number }, counter: number, stateType: string) => ({
-    id: `state-${counter}`,
-    type: 'stateNode',
-    position,
-    data: { label: `S${counter}`, stateType: stateType || 'operational', isInitial: counter === 0 },
-  })),
+  createNewState: vi.fn(
+    (position: { x: number; y: number }, counter: number, stateType: string) => ({
+      id: `state-${counter}`,
+      type: 'stateNode',
+      position,
+      data: {
+        label: `S${counter}`,
+        stateType: stateType || 'operational',
+        isInitial: counter === 0,
+      },
+    }),
+  ),
   createNewTransition: vi.fn((source: string, target: string, counter: number) => ({
     id: `transition-${counter}`,
     type: 'transitionEdge',
@@ -62,6 +68,27 @@ describe('chatToolExecutor', () => {
   });
 
   describe('add_node', () => {
+    // A model sometimes names a sub-type the diagram does not have. In a fault
+    // tree that threw inside the node factory, and the tool call failed.
+    describe('with a sub-type the diagram does not have', () => {
+      let initialType: ReturnType<typeof useDiagramStore.getState>['diagramType'];
+      beforeEach(() => {
+        initialType = useDiagramStore.getState().diagramType;
+      });
+      afterEach(() => useDiagramStore.setState({ diagramType: initialType }));
+
+      it('adds the default node instead of failing', () => {
+        useDiagramStore.setState({ diagramType: 'fault_tree' });
+        expect(() => run('add_node', { subType: 'or', label: 'Loss of cooling' })).not.toThrow();
+        const [n] = useDiagramStore.getState().nodes;
+        expect(n.data).toMatchObject({
+          nodeKind: 'event',
+          eventType: 'basic',
+          label: 'Loss of cooling',
+        });
+      });
+    });
+
     it('adds a node at the given position with label and properties applied', () => {
       run('add_node', {
         subType: 'failed',

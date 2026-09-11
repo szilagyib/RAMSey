@@ -1,5 +1,6 @@
 import type { Node, Edge } from '@xyflow/react';
 import type { BowTieNodeData, BowTieEdgeData } from '../../types/diagram';
+import { hasOwnKey } from '../../lib/utils';
 
 // ---------------------------------------------------------------------------
 // Sub-type to node-type mapping
@@ -53,14 +54,19 @@ export function createNode(
   counter: number,
   subType?: string,
 ): Node<BowTieNodeData> {
-  const kind = (subType ?? 'threat') as BowTieNodeData['nodeKind'];
+  // An unknown sub-type (an AI tool call can name one) gets the default kind in
+  // the data as well as the component. Falling back for the component alone drew
+  // a threat that carried no kind, which the solver passed straight through and
+  // the LaTeX export could not draw.
+  const kind: BowTieNodeData['nodeKind'] =
+    subType !== undefined && hasOwnKey(DEFAULT_NODE_DATA, subType) ? subType : 'threat';
   return {
     id: `bt-${kind}-${counter}`,
-    type: subTypeToNodeType[kind] ?? 'threatNode',
+    type: subTypeToNodeType[kind],
     position,
     data: {
       ...DEFAULT_NODE_DATA[kind],
-      label: `${defaultLabels[kind] ?? 'Node'} ${counter}`,
+      label: `${defaultLabels[kind]} ${counter}`,
     } as BowTieNodeData,
   };
 }

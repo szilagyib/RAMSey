@@ -1,5 +1,6 @@
 import type { Node, Edge } from '@xyflow/react';
 import type { RBDNodeData, RBDEdgeData } from '../../types/diagram';
+import { hasOwnKey } from '../../lib/utils';
 
 // ---------------------------------------------------------------------------
 // Sub-type definitions
@@ -40,7 +41,11 @@ export function createNode(
   counter: number,
   subType?: string,
 ): Node<RBDNodeData> {
-  const kind = (subType ?? 'block') as RBDSubType;
+  // An unknown sub-type (an AI tool call can name one) gets the default kind in
+  // the data as well as the component: a block drawn without a kind was left out
+  // of the analysis without a word.
+  const kind: RBDSubType =
+    subType !== undefined && hasOwnKey(DEFAULT_NODE_DATA, subType) ? subType : 'block';
   const labelMap: Record<RBDSubType, string> = {
     block: `B${counter}`,
     input_terminal: 'IN',
@@ -49,11 +54,11 @@ export function createNode(
 
   return {
     id: `rbd-${kind}-${counter}`,
-    type: nodeTypeMap[kind] ?? 'blockNode',
+    type: nodeTypeMap[kind],
     position,
     data: {
       ...DEFAULT_NODE_DATA[kind],
-      label: labelMap[kind] ?? `N${counter}`,
+      label: labelMap[kind],
     } as RBDNodeData,
   };
 }

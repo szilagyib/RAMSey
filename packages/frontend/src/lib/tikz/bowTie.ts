@@ -2,6 +2,7 @@ import type { Node, Edge } from '@xyflow/react';
 import type { BowTieNodeData } from '../../types/diagram';
 import { coord, makeTransform } from './coords';
 import { escapeLatex, sanitizeId } from './latex';
+import { hasOwnKey } from '../utils';
 
 const NODE_STYLE: Record<BowTieNodeData['nodeKind'], string> = {
   threat: 'rectangle, draw, fill=red!15, minimum width=1.6cm, minimum height=0.7cm',
@@ -48,7 +49,11 @@ export function bowTieToTikz(nodes: Node[], edges: Edge[]): string {
     const isBarrier = d.nodeKind === 'preventive_barrier' || d.nodeKind === 'mitigative_barrier';
     const id = sanitizeId(n.id);
     const text = isBarrier ? '' : escapeLatex(d.label);
-    lines.push(`  \\node[${COLOR_FIX(NODE_STYLE[d.nodeKind])}] (${id}) at ${coord(p)} {${text}};`);
+    // An imported file or an AI tool call's properties can carry a kind this
+    // table lacks; the lookup came back undefined and the export threw. It is
+    // drawn as a threat, the default kind, instead.
+    const style = hasOwnKey(NODE_STYLE, d.nodeKind) ? NODE_STYLE[d.nodeKind] : NODE_STYLE.threat;
+    lines.push(`  \\node[${COLOR_FIX(style)}] (${id}) at ${coord(p)} {${text}};`);
     if (isBarrier && d.label) {
       lines.push(
         `  \\node[font=\\scriptsize, text width=${BARRIER_LABEL_WIDTH}cm, align=center, ` +
