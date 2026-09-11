@@ -133,8 +133,8 @@ jobs:
         uses: actions/cache@v4
         # The cache is an optimisation, not a correctness requirement: if it is
         # unavailable for any reason the install below simply downloads as it
-        # always did. Non-fatal on purpose, because this job gates `build` and a
-        # caching hiccup must never be the thing that blocks a deploy.
+        # always did. Non-fatal on purpose, so a caching hiccup can never be
+        # what turns the export check red.
         continue-on-error: true
         with:
           path: ~/apt-archives

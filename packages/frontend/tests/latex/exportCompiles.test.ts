@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, existsSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import type { Node } from '@xyflow/react';
@@ -145,8 +145,11 @@ function compile(tex: string, name: string): string {
     encoding: 'utf8',
   });
   const log = `${run.stdout ?? ''}${run.stderr ?? ''}`;
+  const compiled = run.status === 0 && existsSync(join(dir, `${name}.pdf`));
+  // Everything worth keeping is in the log; the directory is scratch.
+  rmSync(dir, { recursive: true, force: true });
 
-  if (run.status !== 0 || !existsSync(join(dir, `${name}.pdf`))) {
+  if (!compiled) {
     const reason = log.split('\n').find((l) => l.startsWith('!')) ?? 'no error line in log';
     throw new Error(`${name} did not compile: ${reason}`);
   }
@@ -184,10 +187,19 @@ describe.skipIf(!hasPdflatex)('the LaTeX export compiles and lands where the dia
       const labelIds = [...tex.matchAll(/\((n[A-Za-z0-9_]+_label)\)/g)].map((m) => m[1]);
       const ids = [...nodeIds, ...labelIds];
 
-      // Compiled once per example: pdflatex is the slow part.
-      const log = compile(withProbes(tex, ids), name);
-      const boxes = parseBoxes(log);
-      const centres = parseCentres(log);
+      // Compiled once per example, since pdflatex is the slow part — and in a
+      // hook, not in this describe body. Vitest runs describe bodies even for a
+      // skipped suite, so compiling here failed the whole file on a machine
+      // without pdflatex instead of skipping it; and one throw here took every
+      // example's results down with it, where a hook failure fails only this
+      // example's tests.
+      let boxes: Box[] = [];
+      let centres = new Map<string, { x: number; y: number }>();
+      beforeAll(() => {
+        const log = compile(withProbes(tex, ids), name);
+        boxes = parseBoxes(log);
+        centres = parseCentres(log);
+      });
 
       /**
        * Where the canvas puts a node's anchor point, in px.
@@ -206,8 +218,8 @@ describe.skipIf(!hasPdflatex)('the LaTeX export compiles and lands where the dia
       };
 
       it('compiles to a PDF', () => {
-        // compile() throws on failure, so reaching here is the assertion; this
-        // also proves every node actually made it into the picture.
+        // A failed compile fails this in the hook above, with the LaTeX error;
+        // this also proves every node actually made it into the picture.
         expect(boxes).toHaveLength(ids.length);
         expect(centres.size).toBe(ids.length);
       });
