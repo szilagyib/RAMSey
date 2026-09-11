@@ -2,11 +2,23 @@ import type { Node, Edge } from '@xyflow/react';
 import type { EventTreeNodeData, EventTreeEdgeData } from '../../types/diagram';
 import { coord, makeTransform } from './coords';
 import { escapeLatex, sanitizeId } from './latex';
+import { hasOwnKey } from '../utils';
 
+/**
+ * `text width` rather than `minimum width`, at the width the canvas gives each
+ * kind (128px and 112px at 80px/cm).
+ *
+ * A minimum is a floor, not a cap, so the box grew to fit its label on one
+ * line: "Loss of main cooling water" stretched to about 4.5cm and printed
+ * straight over the node beside it. The canvas wraps inside a fixed-width box
+ * and grows downward; this does the same.
+ */
 const NODE_STYLE: Record<EventTreeNodeData['nodeKind'], string> = {
-  initiating_event: 'rectangle, draw, fill=orange!20, minimum width=1.8cm, minimum height=0.8cm',
-  header: 'rectangle, draw, fill=blue!10, minimum width=1.4cm, minimum height=0.6cm',
-  consequence: 'rectangle, draw, fill=green!15, minimum width=1.8cm, minimum height=0.7cm',
+  initiating_event:
+    'rectangle, draw, fill=orange!20, text width=1.6cm, align=center, minimum height=0.8cm',
+  header: 'rectangle, draw, fill=blue!10, text width=1.6cm, align=center, minimum height=0.6cm',
+  consequence:
+    'rectangle, draw, fill=green!15, text width=1.4cm, align=center, minimum height=0.7cm',
 };
 
 function edgeLabel(d: EventTreeEdgeData | undefined): string {
@@ -23,9 +35,14 @@ export function eventTreeToTikz(nodes: Node[], edges: Edge[]): string {
 
   for (const n of nodes) {
     const d = n.data as EventTreeNodeData;
-    const p = tf(n.position);
+    const p = tf(n);
+    // createNode always sets a known kind, but an imported file or an AI tool
+    // call's properties can carry any string, and an unknown one was written out
+    // as `\node[undefined]`, which LaTeX rejects. It is drawn as a header, the
+    // default kind, instead.
+    const style = hasOwnKey(NODE_STYLE, d.nodeKind) ? NODE_STYLE[d.nodeKind] : NODE_STYLE.header;
     lines.push(
-      `  \\node[${NODE_STYLE[d.nodeKind]}] (${sanitizeId(n.id)}) at ${coord(p)} {${escapeLatex(d.label)}};`,
+      `  \\node[${style}] (${sanitizeId(n.id)}) at ${coord(p)} {${escapeLatex(d.label)}};`,
     );
   }
 

@@ -6,12 +6,12 @@ import type {
   Solver,
   Warning,
 } from './interface.js';
-import { identity, matExp, matvec, solveLinear, type Matrix } from './linalg.js';
+import { matExp, matvec, multiply, solveLinear, type Matrix } from './linalg.js';
 import { resolveValue } from './valueref.js';
 import { buildResponse, errorResponse } from './response.js';
 
 const NAME = 'markov-solver';
-const VERSION = '0.1.0';
+const VERSION = '0.2.0';
 const UP: State['type'][] = ['operational', 'degraded'];
 
 function indexOf(ir: ModelIR): Map<string, number> {
@@ -103,6 +103,25 @@ function missionTimeOf(req: AnalyzeRequest, warnings: Warning[]): number {
   return resolveValue(ref, req.modelIR.parameters, warnings, 'mission time', 0);
 }
 
+/**
+ * The common spacing of an evenly spaced, ascending grid — or null if the grid
+ * is not one.
+ *
+ * `timePoints` is an arbitrary array on the API, so even spacing is something to
+ * detect rather than assume, even though the panel's linspace always sends it.
+ * The tolerance is relative because linspace computes each point independently
+ * and its gaps differ in the last bits.
+ */
+function uniformStep(times: number[]): number | null {
+  if (times.length < 3) return null; // nothing to amortise over
+  const step = times[1] - times[0];
+  if (!(step > 0)) return null;
+  for (let i = 2; i < times.length; i++) {
+    if (Math.abs(times[i] - times[i - 1] - step) > step * 1e-9) return null;
+  }
+  return step;
+}
+
 function transpose(a: Matrix): Matrix {
   const n = a.length;
   const m = a[0]?.length ?? 0;
@@ -115,7 +134,7 @@ function transpose(a: Matrix): Matrix {
 function reliabilityAt(ir: ModelIR, Q: Matrix, index: Map<string, number>, t: number): number {
   const absorbing = ir.states.filter((s) => s.type === 'absorbing');
   if (absorbing.length === 0) return 1;
-  const P = t === 0 ? identity(Q.length) : matExp(Q, t);
+  const P = matExp(Q, t);
   const pt = matvec(transpose(P), initialDist(ir, index));
   return 1 - absorbing.reduce((s, st) => s + pt[index.get(st.id)!], 0);
 }
@@ -142,7 +161,7 @@ export class MarkovSolver implements Solver {
     const warnings: Warning[] = [];
 
     if (ir.states.length === 0) {
-      return errorResponse(ir, req.method, 'Markov model has no states', NAME, start);
+      return errorResponse(ir, req.method, 'Markov model has no states', NAME, VERSION, start);
     }
 
     const index = indexOf(ir);
@@ -222,11 +241,54 @@ export class MarkovSolver implements Solver {
         const times = req.options.timePoints?.length ? req.options.timePoints : [mt];
         const p0 = initialDist(ir, index);
         const availability: number[] = [];
-        for (const t of times) {
-          const P = t === 0 ? identity(Q.length) : matExp(Q, t);
+
+        // On an evenly spaced grid one exponential serves the whole sweep:
+        // P(t_i) = P(t_{i-1})·exp(Q·Δt). That trades 61 uniformization series
+        // (each with its own squaring chain) for one, plus a matrix multiply per
+        // point. Safe to step rather than re-solve because a product of
+        // stochastic matrices is stochastic, so the per-step rounding stays at
+        // the level of the multiply itself rather than compounding.
+        const step = uniformStep(times);
+        const stride = step === null ? null : matExp(Q, step);
+
+        let P: Matrix | null = null;
+        for (let i = 0; i < times.length; i++) {
+          P = stride === null || i === 0 ? matExp(Q, times[i]) : multiply(P!, stride);
           const pt = matvec(transpose(P), p0);
-          availability.push(ir.states.reduce((s, _st, i) => (isUp(ir, i) ? s + pt[i] : s), 0));
+          availability.push(ir.states.reduce((s, _st, j) => (isUp(ir, j) ? s + pt[j] : s), 0));
         }
+        // A repairable chain relaxes to steady state on ~1/(λ+μ), which the repair
+        // rate dominates — hours — while a mission is typically a year. Sampled
+        // linearly across the mission the entire transition then falls inside the
+        // first step, and the curve is a step to a constant: it looks like a
+        // result but shows nothing. The value being sought is the steady state,
+        // which has a method of its own, so point at it — the mirror of the
+        // warning the availability method already raises for absorbing chains.
+        //
+        // The tell is that essentially all the variation sits between the first
+        // two samples. Deliberately not raised for an absorbing chain: there a
+        // fast collapse is a real result, and the useful alternative would be
+        // reliability/MTTF rather than steady state.
+        if (!hasAbsorbing && availability.length >= 3) {
+          const lo = Math.min(...availability);
+          const hi = Math.max(...availability);
+          const settled = availability[availability.length - 1];
+          // Nine significant figures is past what any failure rate is known to,
+          // so a spread below that is round-off, not a hidden transient.
+          const meaningful = hi - lo > Math.max(1, Math.abs(settled)) * 1e-9;
+          const inFirstStep = Math.abs(availability[1] - availability[0]) >= 0.99 * (hi - lo);
+          if (meaningful && inFirstStep) {
+            warnings.push({
+              code: 'transient_unresolved',
+              message:
+                `Availability relaxes to its steady state within the first sample interval, ` +
+                `so this curve is a step to ${Number(settled.toPrecision(6))}. Steady-state ` +
+                `availability reports that value directly; a shorter mission time would ` +
+                `resolve the transition itself.`,
+            });
+          }
+        }
+
         return buildResponse({
           ...base,
           metrics: { time: times, availability },
@@ -247,6 +309,7 @@ export class MarkovSolver implements Solver {
             req.method,
             'MTTF requires at least one absorbing state',
             NAME,
+            VERSION,
             start,
           );
         }
@@ -322,6 +385,7 @@ export class MarkovSolver implements Solver {
           req.method,
           `Markov solver does not support method '${req.method}'`,
           NAME,
+          VERSION,
           start,
         );
     }

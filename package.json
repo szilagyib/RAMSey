@@ -21,6 +21,7 @@
     "test:watch": "vitest",
     "test:unit": "vitest run --project engine --project backend-unit --project frontend-unit",
     "test:api": "vitest run --project backend-api",
+    "test:latex": "vitest run --project latex",
     "test:integration": "vitest run --project backend-integration",
     "test:coverage": "vitest run --coverage",
     "pretest:e2e": "npm run build:engine",

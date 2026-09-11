@@ -9,7 +9,7 @@ export function rbdToTikz(nodes: Node[], edges: Edge[]): string {
 
   for (const n of nodes) {
     const d = n.data as RBDNodeData;
-    const p = tf(n.position);
+    const p = tf(n);
     const id = sanitizeId(n.id);
 
     if (d.nodeKind === 'block') {

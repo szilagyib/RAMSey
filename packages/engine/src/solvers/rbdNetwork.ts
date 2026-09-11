@@ -206,6 +206,7 @@ export function analyzeNetwork(req: AnalyzeRequest, net: RbdNetwork): AnalyzeRes
     req.method,
     `RBD network solver does not support method '${req.method}'`,
     NAME,
+    VERSION,
     start,
   );
 }

@@ -19,12 +19,17 @@ import {
   AlignVerticalJustifyCenter,
   AlignHorizontalDistributeCenter,
   AlignVerticalDistributeCenter,
-  Map,
+  // Aliased: an unaliased `Map` shadows the global for this whole module.
+  Map as MapIcon,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { useDiagramStore } from '../../stores/diagramStore';
 import { getDiagramTypeConfig } from '../../diagram-types/registry';
-import { useAutoLayout, routeEdgesAfterLayout } from '../../hooks/useAutoLayout';
+import {
+  useAutoLayout,
+  routeEdgesAfterLayout,
+  applyLayoutPositions,
+} from '../../hooks/useAutoLayout';
 import { useEditorPrefs, type BackgroundMode } from '../../stores/editorPrefs';
 import { parseDiagramJson } from '../../lib/importDiagram';
 import { pickJsonFile } from '../../lib/exportUtils';
@@ -221,25 +226,64 @@ export function Toolbar({
     return () => window.removeEventListener('keydown', handler);
   }, [onSave, undo, redo, copySelection, paste, duplicateSelection, selectAll]);
 
+  /** True while a layout is out; see the guard at the top of handleAutoLayout. */
+  const layoutInFlight = useRef(false);
+  const [layingOut, setLayingOut] = useState(false);
+
   const handleAutoLayout = useCallback(async () => {
-    // Fault trees read top-down per the notation; every other type is a
-    // left-to-right flow.
-    const direction = diagramType === 'fault_tree' ? 'DOWN' : 'RIGHT';
-    const layoutedNodes = await autoLayout(nodes, edges, { direction });
-    // Re-route edges for the new positions: hand-placed control points move
-    // with the endpoints they were drawn against (hence the pre-layout nodes),
-    // and bidirectional pairs need fresh arcs so they don't collapse onto one
-    // another.
-    const routedEdges = routeEdgesAfterLayout(layoutedNodes, edges, nodes);
+    // Auto Layout is async and reachable from both the toolbar and the View
+    // menu, so it can be started again while the first run is still out. The
+    // merge below reconciles *other* actors' edits; it cannot help when the
+    // other actor is a second copy of this action, since both would match every
+    // id and the later one would simply overwrite the earlier with its own
+    // stale snapshot, for two undo entries and one user intent. A ref rather
+    // than the state below: two clicks in one tick share a render, so a state
+    // flag would still read false on the second.
+    if (layoutInFlight.current) return;
+    layoutInFlight.current = true;
+    setLayingOut(true);
+    try {
+      // Fault trees read top-down per the notation; every other type is a
+      // left-to-right flow.
+      const direction = diagramType === 'fault_tree' ? 'DOWN' : 'RIGHT';
+      let layoutedNodes;
+      try {
+        layoutedNodes = await autoLayout(nodes, edges, { direction });
+      } catch (err) {
+        // elkjs is fetched on demand, so this is usually a chunk that no longer
+        // exists (a tab left open across a deploy). Silently doing nothing makes
+        // the button look broken.
+        window.alert(`Auto layout failed: ${err instanceof Error ? err.message : err}`);
+        return;
+      }
 
-    // One undo entry for the whole layout (positions + edge routing).
-    useDiagramStore.getState().runInHistoryEntry(() => {
-      setNodes(layoutedNodes);
-      useDiagramStore.setState({ edges: routedEdges });
-    });
+      // The layout ran against a snapshot; the diagram may have moved on since.
+      // Merge into the current state rather than writing that snapshot back, or
+      // edits made while it ran are reverted — and pushed to collaborators.
+      const { nodes: currentNodes, edges: currentEdges } = useDiagramStore.getState();
+      const positioned = applyLayoutPositions(currentNodes, layoutedNodes);
+      if (!positioned) return; // the whole diagram was replaced mid-layout
 
-    // Frame the result so the user sees the whole diagram.
-    window.setTimeout(() => reactFlow.fitView(FIT_VIEW_OPTIONS), 60);
+      // Re-route edges for the new positions: hand-placed control points move
+      // with the endpoints they were drawn against (hence the pre-layout nodes),
+      // and bidirectional pairs need fresh arcs so they don't collapse onto one
+      // another.
+      const routedEdges = routeEdgesAfterLayout(positioned, currentEdges, currentNodes);
+
+      // One undo entry for the whole layout (positions + edge routing).
+      useDiagramStore.getState().runInHistoryEntry(() => {
+        setNodes(positioned);
+        useDiagramStore.setState({ edges: routedEdges });
+      });
+
+      // Frame the result so the user sees the whole diagram.
+      window.setTimeout(() => reactFlow.fitView(FIT_VIEW_OPTIONS), 60);
+    } finally {
+      // Including the failure paths: a run that threw must not wedge the button
+      // for the rest of the session.
+      layoutInFlight.current = false;
+      setLayingOut(false);
+    }
   }, [nodes, edges, diagramType, autoLayout, setNodes, reactFlow]);
 
   const handleValidate = useCallback(() => {
@@ -441,6 +485,9 @@ export function Toolbar({
         {
           label: 'Auto Layout',
           onClick: handleAutoLayout,
+          // The ref guard already ignores a second run started from here; this
+          // is what says so, the way the toolbar button does.
+          disabled: layingOut,
         },
       ],
     },
@@ -669,8 +716,9 @@ export function Toolbar({
               variant="ghost"
               size="sm"
               onClick={handleAutoLayout}
+              disabled={layingOut}
               className="h-7 w-7 p-0"
-              title="Auto Layout"
+              title={layingOut ? 'Laying out…' : 'Auto Layout'}
             >
               <LayoutGrid className="h-3.5 w-3.5" />
             </Button>
@@ -690,7 +738,7 @@ export function Toolbar({
               className={cn('h-7 w-7 p-0', minimap && 'text-primary-600')}
               title={minimap ? 'Hide minimap' : 'Show minimap'}
             >
-              <Map className="h-3.5 w-3.5" />
+              <MapIcon className="h-3.5 w-3.5" />
             </Button>
             <span className="mx-0.5 h-4 w-px bg-surface-200" />
             <Button

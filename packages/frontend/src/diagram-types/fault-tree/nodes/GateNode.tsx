@@ -160,11 +160,16 @@ function GateNodeComponent({ data, selected }: NodeProps) {
     text: 'var(--dg-gate-stroke)',
   });
   const wrapperStyle: React.CSSProperties = {
+    // Inherited by every shape below; <text> opts out so labels stay crisp.
+    //
+    // Outside the `custom` branch on purpose: opacity is its own channel, and
+    // hasCustomColor only looks at border/fill/text. Writing it there meant a
+    // gate faded only if it happened to be recoloured as well, so the opacity
+    // slider did nothing at all on an otherwise untouched gate.
+    ...(tokens.fillOpacity < 1 ? { fillOpacity: tokens.fillOpacity } : {}),
     ...(custom
       ? ({
           '--dg-gate-fill': tokens.fill,
-          // Inherited by every shape below; <text> opts out so labels stay crisp.
-          fillOpacity: tokens.fillOpacity,
           '--dg-gate-stroke': tokens.stroke,
         } as React.CSSProperties)
       : {}),

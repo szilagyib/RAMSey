@@ -70,11 +70,12 @@ export function errorResponse(
   method: string,
   message: string,
   solverName: string,
+  solverVersion: string,
   startTime: number,
 ): AnalyzeResponse {
   return buildResponse({
     solverName,
-    solverVersion: '0.1.0',
+    solverVersion,
     modelIR,
     method,
     startTime,

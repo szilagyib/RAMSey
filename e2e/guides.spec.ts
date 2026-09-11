@@ -31,8 +31,15 @@ test('dragging near another node snaps and shows a guide', async ({ page }) => {
 
   await page.mouse.move(startX, startY);
   await page.mouse.down();
-  // Aim at node 1's x + 4px, keeping y well below it.
-  await page.mouse.move(first.x + box.width / 2 + 4, startY, { steps: 12 });
+  // Aim straight at node 1's left edge, keeping y well below it.
+  //
+  // Not offset by a few px on purpose: a synthetic drag lands a handful of
+  // pixels short of where it aims (React Flow only starts tracking once its
+  // drag threshold is crossed, and the pointer interpolation costs a little
+  // more), so aiming a few px off the axis put the node outside SNAP_THRESHOLD
+  // and nothing snapped. Aiming at the axis leaves that slop inside the snap
+  // range, which is what the test is actually about.
+  await page.mouse.move(first.x + box.width / 2, startY, { steps: 12 });
 
   // A guide line renders mid-drag.
   await expect(page.locator('.react-flow__viewport-portal div').first()).toBeVisible();

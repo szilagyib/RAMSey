@@ -81,15 +81,24 @@ export async function createDiagram(page: Page, name: string, typeLabel?: string
  * Drop a node from the sidebar palette onto the React Flow canvas by
  * dispatching a drop event carrying the app's drag payload.
  */
-export async function dropNode(page: Page, subType: string): Promise<void> {
+/**
+ * Drop a palette node onto the canvas at a viewport coordinate.
+ *
+ * The coordinates are optional but they are not decoration: eight specs were
+ * already passing them and the helper ignored them, dropping every node on the
+ * same point. Overlapping nodes intercept each other's clicks, which is what
+ * made the selection spec fail intermittently.
+ */
+export async function dropNode(
+  page: Page,
+  subType: string,
+  clientX = 500,
+  clientY = 300,
+): Promise<void> {
   const dataTransfer = await page.evaluateHandle((t) => {
     const dt = new DataTransfer();
     dt.setData('application/ramsey-node-subtype', t);
     return dt;
   }, subType);
-  await page.dispatchEvent('.react-flow', 'drop', {
-    dataTransfer,
-    clientX: 500,
-    clientY: 300,
-  });
+  await page.dispatchEvent('.react-flow', 'drop', { dataTransfer, clientX, clientY });
 }

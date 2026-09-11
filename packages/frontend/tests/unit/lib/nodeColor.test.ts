@@ -30,6 +30,28 @@ describe('per-channel getters', () => {
   });
 });
 
+// React diffs inline styles property by property, and removing the `background`
+// shorthand also clears the `backgroundColor` longhand the node sets itself. So
+// a node that renders `backgroundColor` normally and `background` while faded
+// lost its fill entirely the moment the fade was undone: React removed the
+// shorthand, which wiped the longhand underneath it, and the node went
+// transparent. Writing the longhand here keeps both renders on one property.
+describe('nodeColorStyle writes the background longhand', () => {
+  it('never emits the background shorthand', () => {
+    for (const data of [
+      { color: '#ff8800' },
+      { fillColor: '#00ff00' },
+      { opacity: 0.4 },
+      { fillColor: '#00ff00', opacity: 0.4 },
+    ]) {
+      const style = nodeColorStyle(data, 'var(--dg-basic-fill)');
+      expect(style).toBeDefined();
+      expect(style).not.toHaveProperty('background');
+      expect(style).toHaveProperty('backgroundColor');
+    }
+  });
+});
+
 describe('nodeColorStyle (independent fill / border / text)', () => {
   it('is undefined when nothing is set', () => {
     expect(nodeColorStyle({})).toBeUndefined();
@@ -38,14 +60,14 @@ describe('nodeColorStyle (independent fill / border / text)', () => {
   it('border alone tints the fill and neutralizes text', () => {
     expect(nodeColorStyle({ color: '#ff8800' })).toEqual({
       borderColor: '#ff8800',
-      background: '#ff880026',
+      backgroundColor: '#ff880026',
       color: 'var(--dg-undeveloped-text)',
     });
   });
 
   it('fill alone sets only the background (+ neutral text), leaving the border default', () => {
     expect(nodeColorStyle({ fillColor: '#00ff00' })).toEqual({
-      background: '#00ff00',
+      backgroundColor: '#00ff00',
       color: 'var(--dg-undeveloped-text)',
     });
   });
@@ -59,7 +81,7 @@ describe('nodeColorStyle (independent fill / border / text)', () => {
       nodeColorStyle({ color: '#ff8800', fillColor: '#111111', textColor: '#ffffff' }),
     ).toEqual({
       borderColor: '#ff8800',
-      background: '#111111',
+      backgroundColor: '#111111',
       color: '#ffffff',
     });
   });
@@ -102,13 +124,15 @@ describe('opacity applies to the fill only', () => {
   // made a faded node unreadable and hard to grab.
   it('fades only the background in the CSS style, leaving border and text', () => {
     const style = nodeColorStyle({ color: '#ff8800', textColor: '#ffffff', opacity: 0.5 });
-    expect(style?.background).toContain('50%');
+    expect(style?.backgroundColor).toContain('50%');
     expect(style?.borderColor).toBe('#ff8800');
     expect(style?.color).toBe('#ffffff');
   });
 
   it('fades a default fill even when no colour was picked', () => {
-    expect(nodeColorStyle({ opacity: 0.25 }, 'var(--dg-basic-fill)')?.background).toContain('25%');
+    expect(nodeColorStyle({ opacity: 0.25 }, 'var(--dg-basic-fill)')?.backgroundColor).toContain(
+      '25%',
+    );
   });
 
   it('leaves a fully opaque node untouched', () => {

@@ -24,8 +24,6 @@ async function getElk() {
 export interface AutoLayoutOptions {
   direction?: 'RIGHT' | 'DOWN' | 'LEFT' | 'UP';
   spacing?: number;
-  nodeWidth?: number;
-  nodeHeight?: number;
 }
 
 const DEFAULT_OPTIONS: Required<AutoLayoutOptions> = {
@@ -33,9 +31,14 @@ const DEFAULT_OPTIONS: Required<AutoLayoutOptions> = {
   // Roomy by default: cramped layouts push edge labels on top of nodes and
   // each other. Space costs nothing on an infinite canvas.
   spacing: 120,
-  nodeWidth: 64,
-  nodeHeight: 64,
 };
+
+/**
+ * Node box assumed when React Flow has not measured a node yet. Shared by the
+ * layout and by the edge-routing centre calculation, so the two cannot end up
+ * disagreeing about where an unmeasured node sits.
+ */
+const FALLBACK_NODE_SIZE = 64;
 
 /** Perpendicular offset applied to each side of a bidirectional edge pair. */
 const PAIR_ARC = 70;
@@ -78,8 +81,8 @@ export async function autoLayout(
       const measured = (node as { measured?: { width?: number; height?: number } }).measured;
       return {
         id: node.id,
-        width: measured?.width ?? node.width ?? opts.nodeWidth,
-        height: measured?.height ?? node.height ?? opts.nodeHeight,
+        width: measured?.width ?? node.width ?? FALLBACK_NODE_SIZE,
+        height: measured?.height ?? node.height ?? FALLBACK_NODE_SIZE,
       };
     }),
     edges: edges.map((edge) => ({
@@ -109,6 +112,33 @@ export async function autoLayout(
   return layoutedNodes;
 }
 
+/**
+ * Merge a finished layout into the diagram as it stands *now*.
+ *
+ * Auto Layout is asynchronous — elkjs is fetched on first use and the layout
+ * itself takes time — and the diagram keeps moving while it runs: the user adds
+ * a node, a collaborator's edit arrives over Yjs. Writing back the snapshot the
+ * layout started from would silently revert all of it, and the Yjs binding
+ * would then broadcast that revert to every other peer. So positions are
+ * applied by id to the current nodes instead: whatever appeared meanwhile keeps
+ * its place, whatever disappeared stays gone.
+ *
+ * Returns null when the layout no longer applies to anything on the canvas —
+ * the diagram was replaced while it ran (navigated away, imported a file) — in
+ * which case the caller must leave the canvas alone.
+ */
+export function applyLayoutPositions(current: Node[], layouted: Node[]): Node[] | null {
+  const positions = new Map(layouted.map((n) => [n.id, n.position]));
+  let matched = false;
+  const merged = current.map((n) => {
+    const position = positions.get(n.id);
+    if (!position) return n;
+    matched = true;
+    return { ...n, position };
+  });
+  return matched ? merged : null;
+}
+
 // ---------------------------------------------------------------------------
 // Edge routing after layout
 // ---------------------------------------------------------------------------
@@ -118,8 +148,10 @@ type Point = { x: number; y: number };
 function centersOf(nodes: Node[]): Map<string, Point> {
   const center = new Map<string, Point>();
   for (const n of nodes) {
-    const w = (n as { measured?: { width?: number } }).measured?.width ?? n.width ?? 64;
-    const h = (n as { measured?: { height?: number } }).measured?.height ?? n.height ?? 64;
+    const w =
+      (n as { measured?: { width?: number } }).measured?.width ?? n.width ?? FALLBACK_NODE_SIZE;
+    const h =
+      (n as { measured?: { height?: number } }).measured?.height ?? n.height ?? FALLBACK_NODE_SIZE;
     center.set(n.id, { x: n.position.x + w / 2, y: n.position.y + h / 2 });
   }
   return center;
@@ -133,6 +165,9 @@ function centersOf(nodes: Node[]): Map<string, Point> {
  * the old endpoints — how far along the edge, how deep to the side — and
  * rebuild it from the new ones, so the bend the user drew follows its endpoints
  * instead of being discarded as stale.
+ *
+ * The caller guarantees `a` and `b` are distinct — with nothing between them
+ * there is no frame to rebuild in.
  */
 function remapControlPoint(cp: Point, a0: Point, b0: Point, a: Point, b: Point): Point {
   const len0 = Math.hypot(b0.x - a0.x, b0.y - a0.y);
@@ -150,7 +185,6 @@ function remapControlPoint(cp: Point, a0: Point, b0: Point, a: Point, b: Point):
   const aside = rx * -uy + ry * ux;
 
   const len = Math.hypot(b.x - a.x, b.y - a.y);
-  if (len === 0) return { x: a.x, y: a.y };
   const nx = (b.x - a.x) / len;
   const ny = (b.y - a.y) / len;
   return {
@@ -188,8 +222,12 @@ export function routeEdgesAfterLayout(nodes: Node[], edges: Edge[], previousNode
 
     // Self-loops (source === target) render their own fixed loop in the edge
     // component; a control point here would just be a degenerate point at the
-    // node centre, dragging the loop under the node.
-    if (e.source === e.target || !a || !b) {
+    // node centre, dragging the loop under the node. Two distinct nodes that
+    // ended up stacked on the exact same spot have the same problem — there is
+    // no direction along which to place a bend, and both the remap and the pair
+    // arc below would land on the node centre.
+    const stacked = a && b && a.x === b.x && a.y === b.y;
+    if (e.source === e.target || !a || !b || stacked) {
       // Straight/automatic routing.
       data.cpX = null;
       data.cpY = null;
@@ -217,7 +255,7 @@ export function routeEdgesAfterLayout(nodes: Node[], edges: Edge[], previousNode
 
     const dx = b.x - a.x;
     const dy = b.y - a.y;
-    const len = Math.hypot(dx, dy) || 1;
+    const len = Math.hypot(dx, dy); // non-zero: stacked endpoints returned above
     // Offset along the perpendicular of THIS edge's own direction. The reverse
     // edge's (dx,dy) are negated, so its perpendicular points the other way and
     // the pair arcs to opposite sides. (A shared, id-derived sign would push

@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Play, ChevronDown, ChevronRight } from 'lucide-react';
-import { contentHash, type AnalysisMethod, type AnalyzeResponse } from '@ramsey/engine';
+import {
+  contentHash,
+  getSolver,
+  type AnalysisMethod,
+  type AnalyzeResponse,
+  type DiagramType,
+} from '@ramsey/engine';
 import { useDiagramStore } from '../../stores/diagramStore';
 import { runAnalysis } from '../../lib/analysisClient';
 import { getCachedResult, setCachedResult, getLatestResult } from '../../lib/analysisCache';
@@ -14,6 +20,7 @@ import {
 import { api } from '../../services/api';
 import { useCapabilities } from '../../lib/capabilities';
 import { Button } from '../ui/Button';
+import { TimeSeriesChart } from './TimeSeriesChart';
 
 interface AnalysisPanelProps {
   projectId?: string;
@@ -55,6 +62,35 @@ function fmt(n: number): string {
   return Number(n.toFixed(6)).toString();
 }
 
+/**
+ * Mission time as the solver will accept it: finite and non-negative.
+ *
+ * `min={0}` on a number input validates on submit; it does not clamp the value,
+ * and there is no form submit here. matExp now rejects a negative or non-finite
+ * t rather than quietly returning zeros, so an unclamped typo turned into a
+ * failed analysis instead of a wrong one — better, but avoidable at the source.
+ *
+ * Only the sign is clamped. There is no defensible upper bound on a mission
+ * time — hours, days and years are all legitimate, and any ceiling picked here
+ * would be arbitrary — so an absurdly large value is left to the solver, which
+ * rejects it precisely, when Λ·t overflows, and says so.
+ */
+function cleanMissionTime(raw: string): number {
+  const value = Number(raw);
+  return Number.isFinite(value) && value > 0 ? value : 0;
+}
+
+/**
+ * Time points a transient run is evaluated at.
+ *
+ * Eleven was enough while the result was a column of numbers. As a curve it has
+ * to carry a shape, and the panel is only a couple of hundred pixels wide, so
+ * ~60 is the point past which more samples stop being visible. The cost is
+ * small and off the main thread — measured at ~11 ms warm and ~27 ms cold in
+ * the analysis worker, after the matrix exponential fix.
+ */
+const TRANSIENT_SAMPLES = 61;
+
 function linspace(a: number, b: number, count: number): number[] {
   if (count <= 1) return [b];
   return Array.from({ length: count }, (_, i) => a + ((b - a) * i) / (count - 1));
@@ -66,6 +102,10 @@ export function AnalysisPanel({ projectId, diagramId }: AnalysisPanelProps) {
   const diagramType = useDiagramStore((s) => s.diagramType);
 
   const methods = METHODS_BY_TYPE[diagramType];
+  // Cached results are keyed by the solver version that produced them, so a
+  // numerics fix invalidates them without anyone having to remember a step.
+  // No solver (FMEA) means nothing is analysable and nothing is cached.
+  const solverVersion = getSolver(diagramType as DiagramType)?.version ?? 'none';
   const [selectedMethod, setMethod] = useState<AnalysisMethod>(methods?.[0]?.[0] ?? 'availability');
   // Navigating to a diagram of a different type does not remount this panel, so
   // the selection can outlive its option list. A <select> whose value matches no
@@ -96,7 +136,7 @@ export function AnalysisPanel({ projectId, diagramId }: AnalysisPanelProps) {
   useEffect(() => {
     if (!diagramId || restoredFor.current === diagramId) return;
     restoredFor.current = diagramId;
-    const latest = getLatestResult(diagramId);
+    const latest = getLatestResult(diagramId, solverVersion);
     setResult(latest?.response ?? null);
     setCached(Boolean(latest));
     setGuard(null);
@@ -158,14 +198,15 @@ export function AnalysisPanel({ projectId, diagramId }: AnalysisPanelProps) {
       const hash = contentHash(ir);
       // Return a cached result if this exact model+method was already solved.
       if (diagramId) {
-        const hit = getCachedResult(diagramId, method, hash);
+        const hit = getCachedResult(diagramId, method, hash, solverVersion);
         if (hit) {
           setResult(hit);
           setCached(true);
           return;
         }
       }
-      const options = method === 'transient' ? { timePoints: linspace(0, missionTime, 11) } : {};
+      const options =
+        method === 'transient' ? { timePoints: linspace(0, missionTime, TRANSIENT_SAMPLES) } : {};
 
       const res =
         serverRun && canRunOnServer
@@ -214,7 +255,7 @@ export function AnalysisPanel({ projectId, diagramId }: AnalysisPanelProps) {
                 type="number"
                 value={missionTime}
                 min={0}
-                onChange={(e) => setMissionTime(Number(e.target.value))}
+                onChange={(e) => setMissionTime(cleanMissionTime(e.target.value))}
                 className="w-full rounded border border-surface-300 bg-white dark:bg-surface-200 px-2 py-1 text-xs"
               />
             </div>
@@ -279,6 +320,54 @@ export function AnalysisPanel({ projectId, diagramId }: AnalysisPanelProps) {
   );
 }
 
+/**
+ * The curve, with the numbers a click away.
+ *
+ * The plot answers the question the method was run to ask — does availability
+ * hold over the mission, and where does it bend. The table stays because a plot
+ * cannot be copied into a report and because a value must never be reachable
+ * only by hovering; it starts closed so it does not bury the chart.
+ */
+function TimeSeries({ time, values }: { time: number[]; values: number[] }) {
+  const [showValues, setShowValues] = useState(false);
+
+  // A curve can only be drawn through real numbers. The cache round-trips
+  // through JSON.stringify, which writes NaN and Infinity as null, so a
+  // restored result can arrive with holes in it — and a hole poisons the axis
+  // domain and throws when the chart formats it. The table still shows every
+  // value, which is what the plain table this replaced always did.
+  const plottable = time.every(Number.isFinite) && values.every(Number.isFinite);
+
+  return (
+    <div className="mt-2">
+      {plottable && (
+        <TimeSeriesChart time={time} values={values} valueLabel="availability" timeUnit="h" />
+      )}
+
+      <button
+        onClick={() => setShowValues(!showValues)}
+        className="mt-1 flex items-center gap-1 text-[10px] text-surface-500"
+      >
+        {showValues ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+        {showValues ? 'Hide values' : 'Show values'}
+      </button>
+
+      {showValues && (
+        <table className="mt-1 w-full font-mono">
+          <tbody>
+            {time.map((t, i) => (
+              <tr key={i}>
+                <td className="py-0.5 pr-2 text-surface-500">t={fmt(t)}</td>
+                <td className="py-0.5 text-right text-surface-800">{fmt(values[i])}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
 function Results({ result }: { result: AnalyzeResponse }) {
   if (result.status === 'error') {
     return (
@@ -292,12 +381,17 @@ function Results({ result }: { result: AnalyzeResponse }) {
     string,
     number,
   ][];
-  const timeSeries =
-    Array.isArray(result.metrics.time) && Array.isArray(result.metrics.availability)
-      ? (result.metrics.time as number[]).map((t, i) => [
-          t,
-          (result.metrics.availability as number[])[i],
-        ])
+  // Both arrays, non-empty, and the same length. `Array.isArray` alone let an
+  // empty or ragged series through — [] is truthy, and a short `availability`
+  // yields undefined values — which the chart cannot scale or label.
+  const time = result.metrics.time;
+  const availability = result.metrics.availability;
+  const curve =
+    Array.isArray(time) &&
+    Array.isArray(availability) &&
+    time.length > 0 &&
+    time.length === availability.length
+      ? { time, values: availability }
       : null;
 
   return (
@@ -315,21 +409,7 @@ function Results({ result }: { result: AnalyzeResponse }) {
         </table>
       )}
 
-      {timeSeries && (
-        <div className="mt-2">
-          <div className="mb-1 text-surface-400">availability over time</div>
-          <table className="w-full font-mono">
-            <tbody>
-              {timeSeries.map(([t, a], i) => (
-                <tr key={i}>
-                  <td className="py-0.5 pr-2 text-surface-500">t={fmt(t)}</td>
-                  <td className="py-0.5 text-right text-surface-800">{fmt(a)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      {curve && <TimeSeries {...curve} />}
 
       {Object.entries(result.contributions).map(([group, values]) => (
         <div key={group} className="mt-2">

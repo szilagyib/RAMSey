@@ -1,5 +1,6 @@
 import type { Node, Edge } from '@xyflow/react';
 import type { EventTreeNodeData, EventTreeEdgeData } from '../../types/diagram';
+import { hasOwnKey } from '../../lib/utils';
 
 // ---------------------------------------------------------------------------
 // Sub-types and their corresponding React Flow node type keys
@@ -49,14 +50,18 @@ export function createNode(
   counter: number,
   subType?: string,
 ): Node<EventTreeNodeData> {
-  const kind = (subType ?? 'header') as EventTreeNodeSubType;
+  // An unknown sub-type (an AI tool call can name one) gets the default kind in
+  // the data as well as the component, rather than a header carrying no kind,
+  // which the LaTeX export wrote out as a style LaTeX rejects.
+  const kind: EventTreeNodeSubType =
+    subType !== undefined && hasOwnKey(DEFAULT_NODE_DATA, subType) ? subType : 'header';
   return {
-    id: `${NODE_PREFIX_MAP[kind] ?? 'et'}-${counter}`,
-    type: NODE_TYPE_MAP[kind] ?? 'headerNode',
+    id: `${NODE_PREFIX_MAP[kind]}-${counter}`,
+    type: NODE_TYPE_MAP[kind],
     position,
     data: {
       ...DEFAULT_NODE_DATA[kind],
-      label: `${NODE_LABEL_MAP[kind] ?? 'N'}${counter}`,
+      label: `${NODE_LABEL_MAP[kind]}${counter}`,
     } as EventTreeNodeData,
   };
 }

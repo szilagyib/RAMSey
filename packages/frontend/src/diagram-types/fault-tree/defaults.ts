@@ -1,5 +1,6 @@
 import type { Node, Edge } from '@xyflow/react';
 import type { FaultTreeNodeData, FaultTreeEdgeData } from '../../types/diagram';
+import { hasOwnKey } from '../../lib/utils';
 
 // ---------------------------------------------------------------------------
 // Sub-type definitions
@@ -83,7 +84,14 @@ export function createNode(
   counter: number,
   subType?: string,
 ): Node<FaultTreeNodeData> {
-  const st = (subType ?? 'basic_event') as FaultTreeSubType;
+  // An unknown sub-type (an AI tool call can name one, "or" for "or_gate") gets
+  // the default. Left as it was, it matched neither table, and the label lookup
+  // below threw and failed the whole tool call.
+  const st: FaultTreeSubType =
+    subType !== undefined &&
+    (hasOwnKey(GATE_SUBTYPES, subType) || hasOwnKey(EVENT_SUBTYPES, subType))
+      ? subType
+      : 'basic_event';
   const isGate = isGateSubType(st);
   const defaults = isGate ? GATE_SUBTYPES[st as GateSubType] : EVENT_SUBTYPES[st as EventSubType];
 

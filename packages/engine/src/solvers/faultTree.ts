@@ -227,7 +227,14 @@ export class FaultTreeSolver implements Solver {
     const warnings: Warning[] = [];
 
     if (ir.gates.length === 0 && ir.events.length === 0) {
-      return errorResponse(ir, req.method, 'Fault tree model has no gates or events', NAME, start);
+      return errorResponse(
+        ir,
+        req.method,
+        'Fault tree model has no gates or events',
+        NAME,
+        VERSION,
+        start,
+      );
     }
 
     // CCF transforms the model before analysis.
@@ -244,6 +251,7 @@ export class FaultTreeSolver implements Solver {
         req.method,
         'Could not derive cut sets (no top event or empty tree)',
         NAME,
+        VERSION,
         start,
       );
     }
@@ -386,6 +394,7 @@ export class FaultTreeSolver implements Solver {
       req.method,
       `Fault tree solver does not support method '${req.method}'`,
       NAME,
+      VERSION,
       start,
     );
   }

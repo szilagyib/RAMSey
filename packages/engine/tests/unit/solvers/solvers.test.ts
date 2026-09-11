@@ -17,13 +17,22 @@ const close = (a: number, b: number, eps = 1e-6) => expect(Math.abs(a - b)).toBe
 // ───────────────────────── linalg ─────────────────────────
 describe('linalg', () => {
   it('solves a linear system', () => {
-    const x = solveLinear([[2, 1], [1, 3]], [3, 5]);
+    const x = solveLinear(
+      [
+        [2, 1],
+        [1, 3],
+      ],
+      [3, 5],
+    );
     close(x[0], 0.8);
     close(x[1], 1.4);
   });
 
   it('inverts a matrix (A·A⁻¹ = I)', () => {
-    const A = [[4, 7], [2, 6]];
+    const A = [
+      [4, 7],
+      [2, 6],
+    ];
     const I = multiply(A, invert(A));
     close(I[0][0], 1);
     close(I[1][1], 1);
@@ -32,10 +41,154 @@ describe('linalg', () => {
 
   it('matrix exponential matches the analytic 2-state result', () => {
     // Q: state0 →1 at rate 1; state1 absorbing.  P00(t)=e^{-t}, P01(t)=1-e^{-t}.
-    const P = matExp([[-1, 1], [0, 0]], 1);
+    const P = matExp(
+      [
+        [-1, 1],
+        [0, 0],
+      ],
+      1,
+    );
     close(P[0][0], Math.exp(-1), 1e-9);
     close(P[0][1], 1 - Math.exp(-1), 1e-9);
     close(P[1][1], 1);
+  });
+
+  // Uniformization seeds the Poisson recurrence at e^{-Λt}, which is exactly 0
+  // in float64 once Λt > 745 — every term then contributes nothing and the
+  // result is an all-zero matrix. Just below that, the seed is denormal and the
+  // series loses most of its precision. Both regimes are silent: the numbers
+  // look like answers. A row of a transition-probability matrix must sum to 1,
+  // so the row sum catches either failure without needing a reference value.
+  describe('matrix exponential past the Poisson underflow horizon', () => {
+    // Symmetric two-state chain: Λ = 1, so Λt = t and the horizon is t ≈ 745.
+    // P00(t) = ½(1 + e^{−2t}), which stays a comfortable 0.5 out to any t.
+    const SYMMETRIC: number[][] = [
+      [-1, 1],
+      [1, -1],
+    ];
+
+    it('stays a probability matrix well past the horizon', () => {
+      const P = matExp(SYMMETRIC, 1000);
+      close(P[0][0] + P[0][1], 1, 1e-9);
+      close(P[1][0] + P[1][1], 1, 1e-9);
+    });
+
+    it('matches the analytic result well past the horizon', () => {
+      const P = matExp(SYMMETRIC, 1000);
+      close(P[0][0], 0.5, 1e-9);
+      close(P[0][1], 0.5, 1e-9);
+    });
+
+    it('keeps full precision at the horizon, where the seed goes denormal', () => {
+      const P = matExp(SYMMETRIC, 745);
+      close(P[0][0] + P[0][1], 1, 1e-9);
+      close(P[0][0], 0.5, 1e-9);
+    });
+
+    it('is continuous across the horizon', () => {
+      const before = matExp(SYMMETRIC, 744)[0][0];
+      const after = matExp(SYMMETRIC, 746)[0][0];
+      close(after, before, 1e-9);
+    });
+  });
+
+  // Scaling and squaring buys a representable seed, but the squarings also
+  // compound whatever the series left on the table: it stops once the Poisson
+  // tail is under `tol`, leaving rows summing to 1−tol, and every squaring
+  // doubles that deficit. Unchecked, the result is sub-stochastic by 2^k·tol —
+  // orders of magnitude past the documented tolerance, and enough to show up as
+  // a fake trend once a caller plots it.
+  describe('matrix exponential accuracy under squaring', () => {
+    // A fast repair (Λ = 0.3002) so a one-year mission needs several squarings.
+    const REPAIRABLE_WITH_FAILURE: number[][] = [
+      [-0.0004, 0.0004, 0],
+      [0.3, -0.3002, 0.0002],
+      [0, 0, 0],
+    ];
+
+    it('keeps rows stochastic to tolerance however many squarings it takes', () => {
+      for (const t of [500, 2000, 4000, 8000, 8760, 40000]) {
+        const rowSum = matExp(REPAIRABLE_WITH_FAILURE, t)[0].reduce((a, b) => a + b, 0);
+        expect(Math.abs(1 - rowSum)).toBeLessThan(1e-12);
+      }
+    });
+
+    // A chain with no absorbing state cannot fail, so P(up) is exactly 1 for
+    // all t. Any spread here is pure round-off, and a caller that scales an
+    // axis to its data will magnify it into a decay that does not exist.
+    it('holds a no-failure chain at exactly 1', () => {
+      const noFailure: number[][] = [
+        [-0.0004, 0.0004],
+        [0.3, -0.3],
+      ];
+      const sums = [0, 876, 2628, 4380, 8760, 40000].map((t) =>
+        matExp(noFailure, t)[0].reduce((a, b) => a + b, 0),
+      );
+      expect(Math.max(...sums) - Math.min(...sums)).toBeLessThan(1e-12);
+    });
+  });
+
+  // A negative or non-finite t is not a value this can answer for, and both
+  // used to fail silently: NaN propagated through the term count so the series
+  // never ran and the freshly zeroed accumulator was returned — zeros dressed
+  // up as results, the very thing the underflow fix set out to remove — while
+  // an infinite t made the squaring count infinite and the loop never ended.
+  describe('matrix exponential input guards', () => {
+    const CHAIN: number[][] = [
+      [-1, 1],
+      [1, -1],
+    ];
+
+    it('rejects a negative t rather than returning zeros', () => {
+      expect(() => matExp(CHAIN, -5)).toThrow(RangeError);
+    });
+
+    it('rejects a non-finite t rather than looping forever', () => {
+      expect(() => matExp(CHAIN, Infinity)).toThrow(RangeError);
+      expect(() => matExp(CHAIN, NaN)).toThrow(RangeError);
+    });
+
+    // Guarding `t` alone is not enough: it is Λ·t that sizes the work, and it
+    // can overflow while t itself is a perfectly ordinary finite number. The
+    // squaring count then becomes Infinity and the loop never ends — in the
+    // analysis worker, which has no timeout, so the panel waits forever.
+    it('rejects a finite t whose Λ·t overflows', () => {
+      // Λ = 2, so Λ·t tips over float64's ceiling while t itself is finite.
+      const fast: number[][] = [
+        [-2, 2],
+        [2, -2],
+      ];
+      expect(() => matExp(fast, 1e308)).toThrow(RangeError);
+    });
+  });
+
+  // The series stops once its Poisson tail is worth less than stepTol, and
+  // stepTol shrinks by 2^k so the *final* matrix can hold `tol`. Past ~2^13 that
+  // target falls under float64's resolution near 1, so the break can never fire
+  // and the accumulated error runs free — including past 1, which is how a
+  // probability ends up super-stochastic.
+  describe('matrix exponential at a high uniformization rate', () => {
+    // Λ ≈ 1000 (a fast repair), so a one-year mission needs ~17 squarings.
+    const FAST: number[][] = [
+      [-1e-4, 1e-4, 0],
+      [1000, -1000.00001, 1e-5],
+      [0, 0, 0],
+    ];
+
+    it('still holds the documented tolerance', () => {
+      for (const t of [8760, 20000, 87600]) {
+        const rowSum = matExp(FAST, t)[0].reduce((a, b) => a + b, 0);
+        expect(Math.abs(1 - rowSum)).toBeLessThan(1e-12);
+      }
+    });
+
+    it('never returns a probability above 1', () => {
+      for (const t of [8760, 20000, 87600]) {
+        for (const row of matExp(FAST, t)) {
+          for (const p of row) expect(p).toBeLessThanOrEqual(1);
+        }
+      }
+    });
   });
 });
 
@@ -65,6 +218,28 @@ function absorbing(lambda: number): ModelIR {
   return ir;
 }
 
+/**
+ * Up ⇄ Degraded on a fast repair, with a slow absorbing failure out of
+ * Degraded. The fast repair sets the uniformization rate (Λ = 0.3) while
+ * absorption is slow, so Λ·t crosses the float64 underflow horizon (t ≈ 2483 h)
+ * a third of the way into a one-year mission.
+ */
+function repairableWithAbsorbingFailure(): ModelIR {
+  const ir = createDefaultModelIR('markov_chain');
+  ir.states = [
+    { id: 'S0', label: 'Up', type: 'operational' },
+    { id: 'S1', label: 'Degraded', type: 'degraded' },
+    { id: 'S2', label: 'Failed', type: 'absorbing' },
+  ];
+  ir.transitions = [
+    { id: 't0', from: 'S0', to: 'S1', rate: 0.0004 },
+    { id: 't1', from: 'S1', to: 'S0', rate: 0.3 },
+    { id: 't2', from: 'S1', to: 'S2', rate: 0.0002 },
+  ];
+  ir.initialCondition = { type: 'single', stateId: 'S0' };
+  return ir;
+}
+
 describe('Markov solver', () => {
   const lambda = 0.001;
   const mu = 0.01;
@@ -84,6 +259,88 @@ describe('Markov solver', () => {
     close(avail[1], expected, 1e-6);
   });
 
+  // A uniform grid lets one exp(Q·Δt) serve every point, stepped forward by
+  // multiplication instead of solving the exponential 61 times over. The saving
+  // is only sound if every point still lands on the closed form — stepping
+  // accumulates its own rounding — so this checks all of them, not just the last.
+  describe('transient over a uniform grid', () => {
+    const closedForm = (t: number) =>
+      mu / (lambda + mu) + (lambda / (lambda + mu)) * Math.exp(-(lambda + mu) * t);
+
+    it('matches the closed form at every point', async () => {
+      const timePoints = Array.from({ length: 61 }, (_, i) => (8760 * i) / 60);
+      const r = await analyze(req(repairable(lambda, mu), 'transient', { timePoints }));
+      const avail = r.metrics.availability as number[];
+
+      expect(avail).toHaveLength(timePoints.length);
+      timePoints.forEach((t, i) => close(avail[i], closedForm(t), 1e-9));
+    });
+
+    // timePoints is an arbitrary array on the API, so the even spacing the panel
+    // happens to send is not something the solver may assume.
+    it('matches the closed form on an uneven grid too', async () => {
+      const timePoints = [0, 1, 7, 100, 2500, 8760];
+      const r = await analyze(req(repairable(lambda, mu), 'transient', { timePoints }));
+      const avail = r.metrics.availability as number[];
+
+      timePoints.forEach((t, i) => close(avail[i], closedForm(t), 1e-9));
+    });
+
+    it('handles a grid that does not start at zero', async () => {
+      const timePoints = [100, 200, 300, 400];
+      const r = await analyze(req(repairable(lambda, mu), 'transient', { timePoints }));
+      const avail = r.metrics.availability as number[];
+
+      timePoints.forEach((t, i) => close(avail[i], closedForm(t), 1e-9));
+    });
+  });
+
+  // A repairable chain relaxes to steady state on ~1/(λ+μ), set by the repair
+  // rate — hours — while a mission is typically a year. On a linear grid over
+  // the mission the whole transient falls inside the first step (measured on
+  // examples/markov-2oo3-pump-station.json: settles within 0.1% by t=1.6h,
+  // which is 1% of one 146h step), so the curve is a step to a constant and
+  // carries almost nothing. The number wanted is the steady state, which has
+  // its own method — so say so, the way the availability method already warns
+  // the other way round for absorbing chains.
+  describe('a transient the time grid cannot resolve', () => {
+    const YEAR = 8760;
+    const grid = Array.from({ length: 61 }, (_, i) => (YEAR * i) / 60);
+
+    it('points at the steady-state method', async () => {
+      // μ = 0.5/h: relaxation ~2h against a 146h first step.
+      const r = await analyze(req(repairable(0.0004, 0.5), 'transient', { timePoints: grid }));
+      const warning = r.warnings.find((w) => w.code === 'transient_unresolved');
+
+      expect(warning).toBeDefined();
+      expect(warning!.message).toMatch(/steady.state/i);
+    });
+
+    it('says nothing when the transient actually spans the mission', async () => {
+      // The shipped absorbing example's shape: decay over the whole year.
+      const r = await analyze(
+        req(repairableWithAbsorbingFailure(), 'transient', { timePoints: grid }),
+      );
+      expect(r.warnings.map((w) => w.code)).not.toContain('transient_unresolved');
+    });
+
+    it('says nothing when the grid is fine enough to show the relaxation', async () => {
+      const fine = Array.from({ length: 61 }, (_, i) => (20 * i) / 60); // 20h window
+      const r = await analyze(req(repairable(0.0004, 0.5), 'transient', { timePoints: fine }));
+      expect(r.warnings.map((w) => w.code)).not.toContain('transient_unresolved');
+    });
+
+    it('says nothing about a curve that never moves', async () => {
+      // No failure transition at all: constant 1, nothing being hidden.
+      const ir = createDefaultModelIR('markov_chain');
+      ir.states = [{ id: 'S0', label: 'Up', type: 'operational' }];
+      ir.transitions = [];
+      ir.initialCondition = { type: 'single', stateId: 'S0' };
+      const r = await analyze(req(ir, 'transient', { timePoints: grid }));
+      expect(r.warnings.map((w) => w.code)).not.toContain('transient_unresolved');
+    });
+  });
+
   it('MTTF = 1/λ for a single failure transition to an absorbing state', async () => {
     const r = await analyze(req(absorbing(lambda), 'mttf'));
     expect(r.status).toBe('success');
@@ -97,6 +354,80 @@ describe('Markov solver', () => {
     close(r.metrics.reliability as number, Math.exp(-lambda * 100), 1e-6);
   });
 
+  // The uniformization rate is the largest total exit rate in the chain, so a
+  // fast repair sets it while the slow failure sets the timescale of interest.
+  // That combination — normal for a repairable system — puts Λ·t past the
+  // underflow horizon well inside a one-year mission, which is where the
+  // solver used to start returning zeros dressed up as results.
+  describe('a one-year mission on a chain with a fast repair rate', () => {
+    // Λ = μ = 0.3, so the horizon lands at t ≈ 2483 h, a third of the way in.
+    const FAST_MU = 0.3;
+    const SLOW_LAMBDA = 0.0004;
+    const YEAR = 8760;
+
+    it('transient availability holds its plateau instead of collapsing to zero', async () => {
+      const r = await analyze(
+        req(repairable(SLOW_LAMBDA, FAST_MU), 'transient', { timePoints: [0, YEAR] }),
+      );
+      const avail = r.metrics.availability as number[];
+      const steady = FAST_MU / (SLOW_LAMBDA + FAST_MU);
+      const expected =
+        steady +
+        (SLOW_LAMBDA / (SLOW_LAMBDA + FAST_MU)) * Math.exp(-(SLOW_LAMBDA + FAST_MU) * YEAR);
+      close(avail[1], expected, 1e-9);
+    });
+
+    it('never reports availability above 1', async () => {
+      const r = await analyze(
+        req(repairable(SLOW_LAMBDA, FAST_MU), 'transient', {
+          // Straddles the horizon, including the denormal-seed region.
+          timePoints: [2400, 2483, 2484, 5000, YEAR],
+        }),
+      );
+      for (const a of r.metrics.availability as number[]) {
+        expect(a).toBeLessThanOrEqual(1);
+        expect(a).toBeGreaterThan(0);
+      }
+    });
+  });
+
+  // Survival probability is non-increasing in mission time. The underflow made
+  // reliability read exactly 1.0 past the horizon — a longer mission looking
+  // *safer* than a shorter one, and the most dangerous shape this bug takes:
+  // a plausible, perfect number.
+  it('reliability never increases with a longer mission', async () => {
+    const missions = [1000, 2400, 2483, 2600, 5000, 8760];
+    const values: number[] = [];
+    for (const missionTime of missions) {
+      const ir = repairableWithAbsorbingFailure();
+      ir.missionTime = missionTime;
+      values.push((await analyze(req(ir, 'reliability'))).metrics.reliability as number);
+    }
+    for (let i = 1; i < values.length; i++) {
+      expect(values[i]).toBeLessThanOrEqual(values[i - 1]);
+    }
+    expect(values[values.length - 1]).toBeLessThan(1);
+  });
+
+  // Every response stamps the solver version so a stored number can be traced
+  // to the code that produced it — which is also what the frontend's cache
+  // invalidation reasons about. errorResponse wrote a literal '0.1.0', so the
+  // moment any solver moved off that version its errors started lying.
+  it('reports the same solver version on error as on success', async () => {
+    const ok = await analyze(req(repairable(lambda, mu), 'availability'));
+
+    const noStates = createDefaultModelIR('markov_chain');
+    noStates.states = [];
+    const modelError = await analyze(req(noStates, 'availability'));
+
+    const unsupported = await analyze(req(repairable(lambda, mu), 'minimal_cut_sets'));
+
+    expect(modelError.status).toBe('error');
+    expect(unsupported.status).toBe('error');
+    expect(modelError.solver.version).toBe(ok.solver.version);
+    expect(unsupported.solver.version).toBe(ok.solver.version);
+  });
+
   it('populates provenance metadata', async () => {
     const r = await analyze(req(repairable(lambda, mu), 'availability'));
     expect(r.solver.name).toBe('markov-solver');
@@ -107,7 +438,12 @@ describe('Markov solver', () => {
 });
 
 // ───────────────────────── RBD ─────────────────────────
-function rbd(structure: 'series' | 'parallel' | 'k_of_n', n: number, lambda: number, k?: number): ModelIR {
+function rbd(
+  structure: 'series' | 'parallel' | 'k_of_n',
+  n: number,
+  lambda: number,
+  k?: number,
+): ModelIR {
   const ir = createDefaultModelIR('reliability_block_diagram');
   ir.missionTime = 1;
   ir.components = Array.from({ length: n }, (_, i) => ({
@@ -116,7 +452,9 @@ function rbd(structure: 'series' | 'parallel' | 'k_of_n', n: number, lambda: num
     failureRate: lambda,
     metadata: {},
   }));
-  ir.blocks = [{ id: 'sys', name: 'System', type: structure, k, children: ir.components.map((c) => c.id) }];
+  ir.blocks = [
+    { id: 'sys', name: 'System', type: structure, k, children: ir.components.map((c) => c.id) },
+  ];
   return ir;
 }
 
@@ -149,7 +487,12 @@ function rbdNet(
 ): ModelIR {
   const ir = createDefaultModelIR('reliability_block_diagram');
   ir.missionTime = 1;
-  ir.components = components.map((c) => ({ id: c.id, name: c.id, failureRate: c.lambda, metadata: {} }));
+  ir.components = components.map((c) => ({
+    id: c.id,
+    name: c.id,
+    failureRate: c.lambda,
+    metadata: {},
+  }));
   ir.rbdNetwork = {
     source: 'IN',
     sink: 'OUT',
@@ -163,8 +506,15 @@ describe('RBD network solver', () => {
 
   it('series network reliability = 0.81', async () => {
     const ir = rbdNet(
-      [{ id: 'a', lambda }, { id: 'b', lambda }],
-      [['IN', 'a'], ['a', 'b'], ['b', 'OUT']],
+      [
+        { id: 'a', lambda },
+        { id: 'b', lambda },
+      ],
+      [
+        ['IN', 'a'],
+        ['a', 'b'],
+        ['b', 'OUT'],
+      ],
     );
     const r = await analyze(req(ir, 'reliability'));
     close(r.metrics.reliability as number, 0.81, 1e-6);
@@ -172,8 +522,16 @@ describe('RBD network solver', () => {
 
   it('parallel network reliability = 0.99', async () => {
     const ir = rbdNet(
-      [{ id: 'a', lambda }, { id: 'b', lambda }],
-      [['IN', 'a'], ['IN', 'b'], ['a', 'OUT'], ['b', 'OUT']],
+      [
+        { id: 'a', lambda },
+        { id: 'b', lambda },
+      ],
+      [
+        ['IN', 'a'],
+        ['IN', 'b'],
+        ['a', 'OUT'],
+        ['b', 'OUT'],
+      ],
     );
     const r = await analyze(req(ir, 'reliability'));
     close(r.metrics.reliability as number, 0.99, 1e-6);
@@ -190,13 +548,21 @@ describe('RBD network solver', () => {
         { id: 'bt', lambda }, // b→OUT leg
       ],
       [
-        ['IN', 'sa'], ['sa', 'A'], ['IN', 'sb'], ['sb', 'B'],
-        ['A', 'ab'], ['ab', 'B'],
-        ['A', 'at'], ['at', 'OUT'],
-        ['B', 'bt'], ['bt', 'OUT'],
+        ['IN', 'sa'],
+        ['sa', 'A'],
+        ['IN', 'sb'],
+        ['sb', 'B'],
+        ['A', 'ab'],
+        ['ab', 'B'],
+        ['A', 'at'],
+        ['at', 'OUT'],
+        ['B', 'bt'],
+        ['bt', 'OUT'],
       ],
     );
-    const paths = minimalPathSets(ir.rbdNetwork!, (id) => ['sa', 'sb', 'ab', 'at', 'bt'].includes(id));
+    const paths = minimalPathSets(ir.rbdNetwork!, (id) =>
+      ['sa', 'sb', 'ab', 'at', 'bt'].includes(id),
+    );
     expect(paths).toHaveLength(3); // {sa,at}, {sb,bt}, {sa,ab,bt}
     const r = await analyze(req(ir, 'reliability'));
     const p = 0.9;
@@ -204,8 +570,20 @@ describe('RBD network solver', () => {
   });
 
   it('Monte Carlo converges to the series result', async () => {
-    const ir = rbdNet([{ id: 'a', lambda }, { id: 'b', lambda }], [['IN', 'a'], ['a', 'b'], ['b', 'OUT']]);
-    const r = await analyze(req(ir, 'monte_carlo_simulation', { monteCarloSamples: 40000, seed: 7 }));
+    const ir = rbdNet(
+      [
+        { id: 'a', lambda },
+        { id: 'b', lambda },
+      ],
+      [
+        ['IN', 'a'],
+        ['a', 'b'],
+        ['b', 'OUT'],
+      ],
+    );
+    const r = await analyze(
+      req(ir, 'monte_carlo_simulation', { monteCarloSamples: 40000, seed: 7 }),
+    );
     close(r.metrics.reliability as number, 0.81, 0.01);
   });
 });
@@ -315,7 +693,14 @@ describe('Bow-tie solver', () => {
     // Threat → PB(eff 0.9) → Top → MB(eff 0.8) → escalated consequence; + direct minor consequence.
     ir.bowTie = {
       topEventId: 'top',
-      labels: { T: 'Corrosion', PB: 'Coating', top: 'Leak', MB: 'Bund', Cmajor: 'Spill', Cminor: 'Contained' },
+      labels: {
+        T: 'Corrosion',
+        PB: 'Coating',
+        top: 'Leak',
+        MB: 'Bund',
+        Cmajor: 'Spill',
+        Cminor: 'Contained',
+      },
       nodes: [
         { id: 'T', kind: 'threat' },
         { id: 'PB', kind: 'preventive_barrier', effectiveness: 0.9 },
@@ -395,14 +780,21 @@ describe('sensitivity', () => {
 
 describe('Monte Carlo converges to the exact result', () => {
   it('RBD series MC ≈ 0.81', async () => {
-    const r = await analyze(req(rbd('series', 2, -Math.log(0.9)), 'monte_carlo_simulation', { monteCarloSamples: 40000, seed: 7 }));
+    const r = await analyze(
+      req(rbd('series', 2, -Math.log(0.9)), 'monte_carlo_simulation', {
+        monteCarloSamples: 40000,
+        seed: 7,
+      }),
+    );
     close(r.metrics.reliability as number, 0.81, 0.01);
     expect(r.errorBounds.reliability.lower).toBeLessThan(0.81);
     expect(r.errorBounds.reliability.upper).toBeGreaterThan(0.81);
   });
 
   it('FTA OR-gate MC ≈ 0.19', async () => {
-    const r = await analyze(req(ft('OR', 0.1), 'monte_carlo_simulation', { monteCarloSamples: 40000, seed: 7 }));
+    const r = await analyze(
+      req(ft('OR', 0.1), 'monte_carlo_simulation', { monteCarloSamples: 40000, seed: 7 }),
+    );
     close(r.metrics.probability as number, 0.19, 0.01);
   });
 });
@@ -412,7 +804,9 @@ describe('RBD uncertainty propagation', () => {
     const lambda = -Math.log(0.9);
     const ir = createDefaultModelIR('reliability_block_diagram');
     ir.missionTime = 1;
-    ir.components = [{ id: 'c0', name: 'C0', failureRate: lambda, distribution: 'd1', metadata: {} }];
+    ir.components = [
+      { id: 'c0', name: 'C0', failureRate: lambda, distribution: 'd1', metadata: {} },
+    ];
     ir.distributions = [{ id: 'd1', type: 'constant', params: { value: lambda } }];
     ir.blocks = [{ id: 'sys', name: 'S', type: 'series', children: ['c0'] }];
     const r = await analyze(req(ir, 'uncertainty_propagation', { monteCarloSamples: 500 }));
@@ -433,7 +827,14 @@ describe('Fault tree common-cause failure (beta-factor)', () => {
     ];
     ir.gates = [{ id: 'g1', type: 'AND', inputs: ['a', 'b'], output: 'top' }];
     ir.dependencies = [
-      { kind: 'common_cause_failure', id: 'ccf1', name: 'Shared', affectedComponents: ['a', 'b'], beta, model: 'beta_factor' },
+      {
+        kind: 'common_cause_failure',
+        id: 'ccf1',
+        name: 'Shared',
+        affectedComponents: ['a', 'b'],
+        beta,
+        model: 'beta_factor',
+      },
     ];
     const r = await analyze(req(ir, 'common_cause_failure'));
     const ind = (1 - beta) * p;

@@ -67,6 +67,69 @@ describe('examples/markov-2oo3-pump-station.json', () => {
   });
 });
 
+describe('examples/markov-redundant-power.json', () => {
+  const { doc, nodes, edges } = loadExample('markov-redundant-power.json');
+  const MISSION = 8760;
+  const ir = () => markovToModelIR(nodes, edges, MISSION);
+
+  it('is a repairable chain that ends in an absorbing blackout', () => {
+    expect(doc.type).toBe('markov_chain');
+    const types = nodes.map((n: { data: { stateType: string } }) => n.data.stateType);
+    expect(types).toContain('absorbing');
+    expect(validateMarkovDiagram(nodes, edges).errors).toEqual([]);
+    expect(validateModelIR(ir()).valid).toBe(true);
+  });
+
+  // The battery depletion rate (β = 0.25/h) is ~600× the failure rate, and the
+  // largest exit rate is what uniformization scales by — so Λ·t crosses the
+  // float64 seed limit (745) about 2483 h in, a third of the way through the
+  // mission this example ships with. The whole example is inside the regime
+  // that used to return zeros, which is why it is worth its own coverage.
+  describe('transient availability over the shipped one-year mission', () => {
+    const timePoints = Array.from({ length: 11 }, (_, i) => (MISSION * i) / 10);
+    const run = async () =>
+      (
+        await analyze({ modelIR: ir(), method: 'transient', options: { timePoints } })
+      ).metrics.availability as number[];
+
+    it('stays a probability at every point', async () => {
+      for (const a of await run()) {
+        expect(a).toBeGreaterThan(0);
+        expect(a).toBeLessThanOrEqual(1);
+      }
+    });
+
+    it('never rises — the blackout state is absorbing', async () => {
+      const avail = await run();
+      for (let i = 1; i < avail.length; i++) {
+        expect(avail[i]).toBeLessThanOrEqual(avail[i - 1]);
+      }
+    });
+
+    it('lands on a realistic year-end availability, not a collapse to zero', async () => {
+      const avail = await run();
+      expect(avail[0]).toBeCloseTo(1, 9);
+      // Two hot-redundant PSUs with a 20 h MTTR: a percent or so of downtime
+      // over the year, not a dead system.
+      expect(avail[avail.length - 1]).toBeGreaterThan(0.95);
+      expect(avail[avail.length - 1]).toBeLessThan(1);
+    });
+  });
+
+  it('reports a mission reliability below 1', async () => {
+    const res = await analyze({ modelIR: ir(), method: 'reliability', options: {} });
+    expect(res.status).toBe('success');
+    expect(res.metrics.reliability as number).toBeLessThan(1);
+    expect(res.metrics.reliability as number).toBeGreaterThan(0.95);
+  });
+
+  it('solves MTTF to the blackout state', async () => {
+    const res = await analyze({ modelIR: ir(), method: 'mttf', options: {} });
+    expect(res.status).toBe('success');
+    expect(res.metrics.mttf as number).toBeGreaterThan(MISSION);
+  });
+});
+
 describe('examples/fault-tree-cooling-loss.json', () => {
   const { nodes, edges } = loadExample('fault-tree-cooling-loss.json');
 

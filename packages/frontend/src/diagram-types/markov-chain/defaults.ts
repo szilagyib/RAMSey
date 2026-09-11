@@ -1,5 +1,6 @@
 import type { Node, Edge } from '@xyflow/react';
 import type { MarkovNodeData, MarkovEdgeData } from '../../types/diagram';
+import { hasOwnKey } from '../../lib/utils';
 
 // ---------------------------------------------------------------------------
 // Default data for each state type
@@ -62,11 +63,11 @@ export function createNode(
   counter: number,
   subType?: string,
 ): Node<MarkovNodeData> {
-  return createNewState(
-    position,
-    counter,
-    (subType as MarkovNodeData['stateType']) ?? 'operational',
-  );
+  // An unknown sub-type (an AI tool call can name one) gets the default state,
+  // rather than being stored as a state type nothing else recognises.
+  const stateType: MarkovNodeData['stateType'] =
+    subType !== undefined && hasOwnKey(DEFAULT_STATE_DATA, subType) ? subType : 'operational';
+  return createNewState(position, counter, stateType);
 }
 
 export function createEdge(source: string, target: string, counter: number): Edge<MarkovEdgeData> {

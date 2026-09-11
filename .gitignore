@@ -93,6 +93,10 @@ AI_VALIDATION_NOTES.md
 # Local-only ops diagnostic (kept on disk if we ever need it; not for the repo)
 packages/backend/scripts/check-openai.cjs
 
+# Host-specific Playwright config (hardcodes local ports; the committed
+# playwright.config.ts is the real one)
+playwright.localhost.config.ts
+
 # Playwright
 test-results/
 playwright-report/

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { StrictMode } from 'react';
 import { render, screen, cleanup, fireEvent, act } from '@testing-library/react';
-import type { AnalyzeResponse } from '@ramsey/engine';
+import { getSolver, type AnalyzeResponse, type DiagramType } from '@ramsey/engine';
 
 const mocks = vi.hoisted(() => ({
   runAnalysis: vi.fn(),
@@ -40,10 +40,16 @@ vi.mock('../../../src/lib/capabilities', () => ({
 import { AnalysisPanel } from '../../../src/components/editor/AnalysisPanel';
 import { setCachedResult } from '../../../src/lib/analysisCache';
 
-function response(method: string, metrics: Record<string, number>): AnalyzeResponse {
+function response(method: string, metrics: Record<string, number | number[]>): AnalyzeResponse {
   return {
     status: 'success',
-    solver: { name: 'test', version: '1.0.0' },
+    // Cached results are keyed by solver version, so a stored result has to
+    // carry the version the panel will look for — that of the solver which
+    // would actually run for this diagram type.
+    solver: {
+      name: 'test',
+      version: getSolver(mocks.diagramType as DiagramType)?.version ?? 'none',
+    },
     modelIRVersion: '1.0.0',
     contentHash: 'hash',
     metrics,
@@ -213,5 +219,100 @@ describe('AnalysisPanel — method/result state sync', () => {
     });
 
     expect(mocks.runAnalysis).toHaveBeenCalledWith(expect.objectContaining({ method: shown }));
+  });
+});
+
+// A transient run is the one method that returns a curve rather than a number.
+// Eleven rows of digits do not show a trend; a plot does — and the values still
+// have to be reachable for anyone copying them into a report.
+describe('AnalysisPanel — transient results', () => {
+  const CURVE = {
+    time: [0, 2190, 4380, 6570, 8760],
+    availability: [1, 0.99926, 0.99889, 0.99869, 0.99854],
+  };
+
+  beforeEach(() => {
+    mocks.diagramType = 'markov_chain';
+  });
+
+  const runTransient = async (metrics: Record<string, number | number[]> = CURVE) => {
+    mocks.runAnalysis.mockResolvedValue(response('transient', metrics));
+    render(<AnalysisPanel projectId="p1" diagramId="d1" />);
+    fireEvent.change(methodSelect(), { target: { value: 'transient' } });
+    await act(async () => {
+      fireEvent.click(runButton());
+    });
+  };
+
+  it('plots the curve', async () => {
+    await runTransient();
+    expect(screen.getByRole('img').getAttribute('aria-label')).toMatch(/availability over time/);
+  });
+
+  it('keeps the numbers reachable without a pointer', async () => {
+    await runTransient();
+
+    // Collapsed by default — the plot is the answer, the table is the backup.
+    expect(screen.queryByText('0.99854')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: /values/i }));
+    expect(screen.getByText('0.99854')).toBeTruthy();
+  });
+
+  it('samples densely enough to draw a curve', async () => {
+    await runTransient();
+    const { options } = mocks.runAnalysis.mock.calls[0][0];
+    expect((options.timePoints as number[]).length).toBeGreaterThan(11);
+  });
+
+  // `Array.isArray` was the only gate, and [] passes it. An empty or ragged
+  // series then reached the chart as a NaN domain or a TypeError, where the
+  // table it replaced had rendered harmlessly.
+  it('ignores a time series with no samples', async () => {
+    await runTransient({ time: [], availability: [] });
+    expect(screen.queryByRole('img')).toBeNull();
+  });
+
+  it('ignores a time series whose arrays disagree in length', async () => {
+    await runTransient({ time: [0, 100, 200], availability: [1, 0.99] });
+    expect(screen.queryByRole('img')).toBeNull();
+  });
+
+  // The cache round-trips through JSON.stringify, which writes NaN and Infinity
+  // as null. Restoring such a result handed the chart a null, where Math.min
+  // coerced it to 0 (a bogus domain) and toFixed threw outright — an uncaught
+  // render error taking the whole panel down, where the table it replaced had
+  // printed the value harmlessly.
+  it('lists the values instead of charting a series with a hole in it', async () => {
+    await runTransient({
+      time: [0, 100, 200],
+      availability: [1, null as unknown as number, 0.9],
+    });
+
+    expect(screen.queryByRole('img')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /values/i }));
+    expect(screen.getByText('0.9')).toBeTruthy();
+  });
+
+  // matExp rejects a negative t outright now, so an unclamped input turned a
+  // typo into a failed analysis. `min={0}` on a number input only validates.
+  it('does not let the mission time go negative', () => {
+    mocks.diagramType = 'markov_chain';
+    render(<AnalysisPanel projectId="p1" diagramId="d1" />);
+    const missionTime = screen.getByRole('spinbutton') as HTMLInputElement;
+
+    fireEvent.change(missionTime, { target: { value: '-100' } });
+    expect(Number(missionTime.value)).toBeGreaterThanOrEqual(0);
+  });
+
+  it('leaves a scalar-only result as a plain metric table', async () => {
+    mocks.runAnalysis.mockResolvedValue(response('availability', { availability: 0.98 }));
+    render(<AnalysisPanel projectId="p1" diagramId="d1" />);
+    await act(async () => {
+      fireEvent.click(runButton());
+    });
+
+    expect(screen.queryByRole('img')).toBeNull();
+    expect(screen.getByText('availability')).toBeTruthy();
   });
 });
